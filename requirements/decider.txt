@@ -1,0 +1,3 @@
+decider-ai>=1.8.1
+# flash-linear-attention ships as a dependency; needed for GPU speed (Qwen3.5 linear-attention layers).
+# CPU-only fallback venv: install decider-ai with --no-deps plus torch/transformers only — see README.

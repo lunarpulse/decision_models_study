@@ -1,0 +1,127 @@
+"""Laya demo service: zero-shot Router + fine-tuned checkpoint, one process.
+GET /health -> ok; POST /predict {state, questions} -> {zero: {...}, ft: {...}}
+CORS open for file:// frontend. Run under the repo's .venv-laya/bin/python.
+"""
+import json, time, sys, re, os, pathlib, urllib.request, urllib.error
+from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
+
+_DEC_PORT = os.environ.get("DECIDER_PORT", "8902")
+
+ROOT = pathlib.Path(os.environ.get("DEMO_ROOT", pathlib.Path(__file__).resolve().parent))
+FT_PATH = os.environ.get("LAYA_FT_CKPT", str(ROOT / "laya-ft-ckpt"))
+
+import laya
+from laya import Router
+
+router = Router(preload=True)
+ft = laya.load(FT_PATH, device="cuda")
+FT_ML_PATH = os.environ.get("LAYA_FT_ML_CKPT", str(ROOT / "laya-ft-ml-ckpt"))  # retained on disk, not served (operator preference)
+
+# Demo policy: Engine B shows ONLY the English fine-tuned checkpoint. Any non-English input
+# (explicit lang hint or non-Latin script) gets an explicit note instead of a guessed answer.
+_NONLATIN = re.compile(r"[\u3131-\uD79F\u3040-\u30FF\u4E00-\u9FFF\u0900-\u097F\u0600-\u06FF\u0590-\u05FF\u0E00-\u0E7F]")
+_NON_EN_HINTS = ("es", "fr", "de", "it", "pt", "nl", "ko", "ja", "hi", "zh", "ar", "he", "th", "ru")
+
+def ft_engine_for(state, lang=None):
+    if lang in _NON_EN_HINTS or (isinstance(state, str) and _NONLATIN.search(state)):
+        return None, "english-only"
+    return ft, "english-finetuned"
+
+print("[laya-service] zero-shot Router + English fine-tuned checkpoint loaded", flush=True)
+
+
+def run_engine(eng, state, questions):
+    t0 = time.perf_counter()
+    res = eng.predict(state, questions)
+    ms = round((time.perf_counter() - t0) * 1000, 1)
+    out = {"ms": ms, "routing_model": (res.get("routing") or {}).get("model"), "answers": {}}
+    for qid, a in res.get("answers", {}).items():
+        d = {"type": a.get("type")}
+        if "choice" in a: d["choice"] = a["choice"]
+        if "score" in a: d["score"] = a["score"]
+        if "noul" in a: d["noul"] = a["noul"]
+        if isinstance(a.get("probabilities"), dict):
+            d["probabilities"] = {str(k): round(float(v), 4) for k, v in a["probabilities"].items()}
+            d["confidence"] = round(float(a.get("answer_confidence", max(d["probabilities"].values()))), 4)
+        out["answers"][qid] = d
+    return out
+
+
+class H(BaseHTTPRequestHandler):
+    def _cors(self):
+        self.send_header("Access-Control-Allow-Origin", "*")
+        self.send_header("Access-Control-Allow-Headers", "Content-Type")
+        self.send_header("Access-Control-Allow-Methods", "GET, POST, OPTIONS")
+
+    def do_OPTIONS(self):
+        self.send_response(204); self._cors(); self.end_headers()
+
+    def do_GET(self):
+        base = str(ROOT)
+        routes = {
+            "/": ("text/html; charset=utf-8", base + "/index.html"),
+            "/presets": ("application/json", base + "/data/demo_presets.json"),
+            "/stats": ("application/json", base + "/data/stats.json"),
+        }
+        if self.path == "/health":
+            self._send(200, "application/json", b'{"ok":true}')
+            return
+        if self.path == "/dec/health":  # proxied decider health for single-origin pages
+            try:
+                with urllib.request.urlopen(f"http://127.0.0.1:{_DEC_PORT}/health", timeout=10) as r2:
+                    self._send(200, "application/json", r2.read())
+            except Exception as e:
+                self._send(502, "application/json", json.dumps({"ok": False, "error": repr(e)[:120]}).encode())
+            return
+        if self.path in routes:
+            ctype, path = routes[self.path]
+            try:
+                self._send(200, ctype, open(path, "rb").read())
+            except FileNotFoundError:
+                self.send_response(404); self._cors(); self.end_headers()
+            return
+        self.send_response(404); self._cors(); self.end_headers()
+
+    def _send(self, code, ctype, payload):
+        self.send_response(code); self._cors()
+        self.send_header("Content-Type", ctype)
+        self.send_header("Content-Length", str(len(payload))); self.end_headers()
+        self.wfile.write(payload)
+
+    def do_POST(self):
+        if self.path == "/dec/predict":  # proxy to decider service (single-origin tunneling)
+            try:
+                n = int(self.headers.get("Content-Length", 0))
+                body = self.rfile.read(n)
+                req = urllib.request.Request(f"http://127.0.0.1:{_DEC_PORT}/predict", data=body,
+                                             headers={"Content-Type": "application/json"})
+                with urllib.request.urlopen(req, timeout=120) as r2:
+                    code, payload = 200, r2.read()
+            except urllib.error.HTTPError as e:
+                code, payload = e.code, e.read()
+            except Exception as e:
+                code, payload = 502, json.dumps({"error": repr(e)[:200]}).encode()
+            self._send(code, "application/json", payload)
+            return
+        if self.path != "/predict":
+            self.send_response(404); self._cors(); self.end_headers(); return
+        n = int(self.headers.get("Content-Length", 0))
+        body = json.loads(self.rfile.read(n) or b"{}")
+        state = body["state"]; questions = body.get("questions"); lang = body.get("lang")
+        try:
+            eng, which = ft_engine_for(state, lang)
+            if eng is None:
+                ft_res = {"note": which}
+            else:
+                ft_res = run_engine(eng, state, questions)
+                ft_res["ft_checkpoint"] = which
+            resp = {"zero": run_engine(router, state, questions), "ft": ft_res}
+            code, ctype, payload = 200, "application/json", json.dumps(resp).encode()
+        except Exception as e:
+            code, ctype, payload = 500, "application/json", json.dumps({"error": repr(e)[:300]}).encode()
+        self._send(code, ctype, payload)
+
+if __name__ == "__main__":
+    port = int(sys.argv[1]) if len(sys.argv) > 1 else 8901
+    print(f"[laya-service] serving on 0.0.0.0:{port}", flush=True)
+    ThreadingHTTPServer(("0.0.0.0", port), H).serve_forever()

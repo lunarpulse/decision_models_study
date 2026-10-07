@@ -1,0 +1,11 @@
+# weights & caches — regenerate with demo-insurance/train_laya.sh or let HF download
+demo-insurance/laya-ft-ckpt/
+demo-insurance/laya-ft-ml-ckpt/
+study/models/
+*.log
+nohup.out
+__pycache__/
+*.pyc
+.venv-*/
+demo-insurance/tunnel-url.txt
+demo-insurance/questions.json
