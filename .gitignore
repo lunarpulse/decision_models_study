@@ -9,3 +9,6 @@ __pycache__/
 .venv-*/
 demo-insurance/tunnel-url.txt
 demo-insurance/questions.json
+study/g0-*/
+study/g2-*/
+study/g3-*/

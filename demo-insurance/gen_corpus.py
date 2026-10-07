@@ -139,6 +139,8 @@ def to_train(r):
 rows = {}
 seen = set()
 i = 0
+# 15,480 target = 14,500 consumed (12k/2k/500) + 980-row surplus margin so preset
+# forces can be drawn from the same seeded pool. Changing this number changes all SHAs.
 while len(rows) < 15480:
     r = make_row(i)
     key = r["state"]

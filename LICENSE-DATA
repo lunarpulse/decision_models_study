@@ -1,0 +1,13 @@
+Data license (applies to demo-insurance/data/ and study/anchor-corpus/)
+
+The synthetic corpora bundled in this repository are released under CC0-1.0
+(https://creativecommons.org/publicdomain/zero/1.0/). To the extent possible under
+law, the authors have waived all copyright and related or neighboring rights.
+
+- demo-insurance/data/ — generated deterministically by demo-insurance/gen_corpus.py
+  (seeded; see the script for the generator rules).
+- study/anchor-corpus/ — sealed ID/shifted/train/validation splits reused verbatim from
+  the prior CLM-8B anchor study (see docs/LAYA_DECIDER_EXPERIMENT_REPORT.md for provenance).
+
+Code in this repository is MIT (LICENSE). Model weights referenced but not redistributed
+remain under their upstream Apache-2.0 licenses.

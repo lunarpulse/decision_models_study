@@ -1,14 +1,14 @@
 # Demo operator & presenter manual — Insurance Claims Decision Console
 
 Session development record (including operator Q&A and the failure ledger): `DEVELOPMENT_LOG.md`.
-Location: `~/AI/catalog/decision-study/demo-insurance/` · Console: **http://127.0.0.1:8901**
-Everything runs on this machine (ai-dev box, RTX 5090, ~10 GB VRAM with all engines resident).
+Run from the repo's `demo-insurance/` directory. · Console: **http://127.0.0.1:8901**
+Runs on one machine with a CUDA GPU (~10 GB VRAM with all engines resident; author measurements used an RTX 5090 — see docs/ for provenance).
 
 ## 1. Start / stop
 
 ```bash
-~/AI/catalog/decision-study/demo-insurance/start_demo.sh   # starts services if down, prints URLs
-~/AI/catalog/decision-study/demo-insurance/stop_demo.sh    # stops services + cloudflared tunnel
+bash start_demo.sh   (from demo-insurance/)   # starts services if down, prints URLs
+bash stop_demo.sh    (from demo-insurance/)    # stops services + cloudflared tunnel
 ```
 
 - **laya service** `:8901` — serves the console AND both Laya engines: zero-shot Router
@@ -21,8 +21,8 @@ Everything runs on this machine (ai-dev box, RTX 5090, ~10 GB VRAM with all engi
 ## 2. Sharing online (cloudflared)
 
 ```bash
-~/bin/cloudflared tunnel --url http://localhost:8901 > ~/AI/catalog/decision-study/demo-insurance/cloudflared.log 2>&1 &
-grep -o 'https://[a-z0-9-]*\.trycloudflare\.com' ~/AI/catalog/decision-study/demo-insurance/cloudflared.log | head -1
+cloudflared tunnel --url http://localhost:8901 > cloudflared.log 2>&1 &   # install: https://developers.cloudflare.com/cloudflare-one/connections/connect-networks/downloads/
+grep -o 'https://[a-z0-9-]*\.trycloudflare\.com' cloudflared.log | head -1
 ```
 
 The printed `https://…trycloudflare.com` URL is the public demo link (no account needed; URL is
@@ -61,7 +61,7 @@ network see traffic metadata. Fine for a session with known recipients; revoke w
 Study context: on the prior sealed corpus Laya-ft beat the adapted 8B CLM model on every endpoint
 (`LAYA_DECIDER_EXPERIMENT_REPORT.md`).
 
-## 6. Language handling (measured, and why Engine B is English-only)
+## 5. Language handling (measured, and why Engine B is English-only)
 
 The English fine-tuned checkpoint **trades away language robustness**: on a Spanish claim it
 scored 1/3 where the untrained base scored 2/3 — fine-tuning to zero loss on templated English
@@ -74,7 +74,7 @@ proper multilingual fine-tune you need multilingual training rows (translated or
 synthetic data), not English-only data.
 
 
-## 7. Q&A cheatsheet
+## 6. Q&A cheatsheet
 
 - *"Is the fine-tuned model always right?"* — On this claim family it maxed the exam; the planning
   number is always the unseen-distribution figure (92% on the study corpus). Never quote 100% as
@@ -87,7 +87,7 @@ synthetic data), not English-only data.
 - *"Where does training data come from?"* — 12,000 synthetic past claims with rule-computed answers
   (`gen_corpus.py`); in production this would be your historical labeled claims.
 
-## 8. Troubleshooting
+## 7. Troubleshooting
 
 | Symptom | Fix |
 |---|---|

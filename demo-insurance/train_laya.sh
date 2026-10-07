@@ -6,6 +6,7 @@ set -euo pipefail
 cd "$(dirname "$0")"
 LAYA_PY="${LAYA_PY:-$(pwd)/../.venv-laya/bin/python}"
 EPOCHS="${EPOCHS:-3}"
+[ -x "$LAYA_PY" ] || { echo "[train] laya python not found: $LAYA_PY — run ../setup.sh or set LAYA_PY"; exit 1; }
 
 # 1) corpus (seeded; skip if present and non-empty)
 if [ ! -s data/train.jsonl ]; then

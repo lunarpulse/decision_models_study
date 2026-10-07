@@ -1,12 +1,12 @@
 # Insurance-claims live demo — decision console
 
 Audience-facing demo of the study's engines on an insurance-claims user journey.
-Fine-tuning happens **before** the session; nothing trains live. Two "eras" are served side by side.
+Fine-tuning happens **before** the session (`bash train_laya.sh`); nothing trains live. Two "eras" are served side by side.
 
 ## Start
 
 ```bash
-~/AI/catalog/decision-study/demo-insurance/start_demo.sh
+cd demo-insurance && bash start_demo.sh
 ```
 
 Then open **http://127.0.0.1:8901/?mode=day1** (the Laya service serves the console itself).
@@ -55,7 +55,7 @@ Services: `laya_service.py` :8901 (zero-shot Router + fine-tuned checkpoint in o
 1. `laya.train` warned the fine-tuned checkpoint's noul (yes/no) calibration fit stayed at 1.0 —
    yes/no confidences from the trained engine are uncalibrated (visible as very sharp probabilities;
    demo shows probabilities, not just argmax, so this is observable, not hidden).
-2. The "via multilingual" routing badge on engine A is not rendering in 0.3.28 (field name drift);
-   multilingual routing itself is evidenced by correct non-English answers. Cosmetic only.
-3. Both services bind 127.0.0.1 inside the `ai-dev` box (distrobox shares the host loopback).
-   GPU budget: ~10 GB of the RTX 5090's 32 GB with all engines resident.
+2. The "via <checkpoint>" routing badge on engine A renders from the engine-level payload field.
+3. Both services bind 127.0.0.1 by default (set `DEMO_HOST=0.0.0.0` to expose on the LAN —
+   there is no authentication; anyone who can reach the port can run inferences on your GPU).
+   GPU budget with all engines resident: ~10 GB.

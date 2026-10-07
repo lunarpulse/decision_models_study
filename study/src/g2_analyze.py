@@ -3,7 +3,7 @@ Host python3, stdlib only. Run after runner outputs exist (missing files are ski
 """
 import os as _os, pathlib as _pl
 _STUDY_ROOT = _pl.Path(_os.environ.get("DECISION_STUDY_ROOT", _pl.Path(__file__).resolve().parents[1]))
-_ANCHOR = _pl.Path(_os.environ.get("CLM8B_ANCHOR_ROOT", _STUDY_ROOT / "study" / "anchor-corpus"))
+_ANCHOR = _pl.Path(_os.environ.get("CLM8B_ANCHOR_ROOT", _STUDY_ROOT / "anchor-corpus"))
 _MODELS = _pl.Path(_os.environ.get("DECIDER_MODELS_DIR", _STUDY_ROOT / "models"))
 
 import json, math, random, pathlib
@@ -296,6 +296,7 @@ def main():
                                     if r["probabilities"] else r["correct"])) for r in ret]
             res["splits"][split]["decider-zero-retuned"] = report("ret", ret)
 
+    G2.mkdir(parents=True, exist_ok=True)
     out = G2 / "analysis.json"
     out.write_text(json.dumps(res, indent=2))
     print("wrote", out)

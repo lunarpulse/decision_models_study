@@ -183,8 +183,9 @@ const fmtP = (p) => (100*p).toFixed(1) + "%";
 // Same-origin when served over http (local :8901 or a cloudflared tunnel); decider is proxied
 // through the laya service so one public origin serves everything. file:// falls back to localhost.
 const SAME = location.protocol.startsWith("http");
-const LAYA = SAME ? location.origin : "http://127.0.0.1:8901";
-const DECBASE = SAME ? LAYA + "/dec" : "http://127.0.0.1:8902";
+const QP = new URLSearchParams(location.search);
+const LAYA = SAME ? location.origin : (QP.get("laya") || "http://127.0.0.1:8901");
+const DECBASE = SAME ? LAYA + "/dec" : (QP.get("dec") || "http://127.0.0.1:8902");
 const DEC = DECBASE + "/predict";
 function setMode(m, keepClaim){
   MODE = m;
@@ -249,7 +250,7 @@ function renderEngineCards(data, gold, nonLatin){
           `<div class="ansline"><span class="ans">${ansTxt}</span>` +
           `<span class="verdict ${v.cls}">${v.txt}</span>` +
           (a.confidence!==undefined?`<span class="lat">confidence ${fmtP(a.confidence)}</span>`:"") +
-          (a.routing_model?`<span class="lat">via ${a.routing_model}</span>`:"") + `</div>` +
+          (d.routing_model?`<span class="lat">via ${d.routing_model}</span>`:"") + `</div>` +
           `<div class="bars">${barsHTML(a)}</div></div>`;
       }
     }

@@ -1,7 +1,7 @@
 """decider-4b demo service. POST /predict {state, questions} -> {decider: {...}}
 Run under the repo's .venv-decider/bin/python.
 """
-import json, time, sys
+import json, time, sys, os, urllib.parse
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 
 from decider.infer import Decider
@@ -10,9 +10,6 @@ import os
 DECIDER_MODEL = os.environ.get("DECIDER_MODEL", "Mapika/decider-4b")  # hub id or local path
 d = Decider(DECIDER_MODEL)
 print("[decider-service] decider-4b v2.1 loaded", flush=True)
-
-QUESTION_OF_TYPE = {"choice": None, "score": None, "noul": "no-yes"}
-
 
 def score_question(q):
     crit = q.get("criteria")
@@ -67,7 +64,8 @@ class H(BaseHTTPRequestHandler):
         self.send_response(204); self._cors(); self.end_headers()
 
     def do_GET(self):
-        if self.path == "/health":
+        path = urllib.parse.urlsplit(self.path).path
+        if path == "/health":
             self.send_response(200); self._cors()
             self.send_header("Content-Type", "application/json"); self.end_headers()
             self.wfile.write(b'{"ok":true}')
@@ -75,7 +73,8 @@ class H(BaseHTTPRequestHandler):
             self.send_response(404); self.end_headers()
 
     def do_POST(self):
-        if self.path != "/predict":
+        path = urllib.parse.urlsplit(self.path).path
+        if path != "/predict":
             self.send_response(404); self.end_headers(); return
         n = int(self.headers.get("Content-Length", 0))
         body = json.loads(self.rfile.read(n) or b"{}")
@@ -97,4 +96,5 @@ class H(BaseHTTPRequestHandler):
 if __name__ == "__main__":
     port = int(sys.argv[1]) if len(sys.argv) > 1 else 8902
     print(f"[decider-service] serving on 0.0.0.0:{port}", flush=True)
-    ThreadingHTTPServer(("0.0.0.0", port), H).serve_forever()
+    HOST = os.environ.get("DEMO_HOST", "127.0.0.1")  # set DEMO_HOST=0.0.0.0 to expose on the LAN (no auth!)
+    ThreadingHTTPServer((HOST, port), H).serve_forever()

@@ -2,11 +2,12 @@
 Writes data/stats.json: {zero, ft, dec} = per-question accuracy over 500 rows x 3 questions.
 Host python3, stdlib only. Run after both services are up.
 """
-import json, time, pathlib, urllib.request
+import json, os, time, pathlib, urllib.request
 
 HOLD = str(pathlib.Path(__file__).resolve().parent / "data" / "holdout_eval.jsonl")
 OUT = str(pathlib.Path(__file__).resolve().parent / "data" / "stats.json")
-LAYA, DEC = "http://127.0.0.1:8901", "http://127.0.0.1:8902"
+LAYA = f"http://127.0.0.1:{os.environ.get('LAYA_PORT', '8901')}"
+DEC = f"http://127.0.0.1:{os.environ.get('DECIDER_PORT', '8902')}"
 
 def post(url, obj):
     req = urllib.request.Request(url + "/predict", data=json.dumps(obj).encode(),
@@ -44,6 +45,8 @@ for i, r in enumerate(rows):
         print(f"{i+1}/{len(rows)} elapsed {time.time()-t0:.0f}s "
               f"zero={stats['zero'][0]/stats['zero'][1]:.3f} ft={stats['ft'][0]/stats['ft'][1]:.3f} dec={stats['dec'][0]/stats['dec'][1]:.3f}", flush=True)
 
+if stats["zero"][1] < len(rows) or stats["dec"][1] < len(rows):
+    raise SystemExit(f"service errors detected ({len(rows) - stats['dec'][1]} decider / {len(rows) - stats['zero'][1]} laya rows) — aborting, stats.json NOT overwritten")
 out = {"zero": stats["zero"][0] / stats["zero"][1], "ft": stats["ft"][0] / stats["ft"][1],
        "dec": stats["dec"][0] / stats["dec"][1], "n_rows": len(rows),
        "rows_all_correct": row_all, "elapsed_s": round(time.time() - t0, 1)}

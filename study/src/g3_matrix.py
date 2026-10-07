@@ -4,7 +4,7 @@ Usage: g3_matrix.py --subject {laya|decider|decider-gguf} --placement {cuda|cpu}
 """
 import os as _os, pathlib as _pl
 _STUDY_ROOT = _pl.Path(_os.environ.get("DECISION_STUDY_ROOT", _pl.Path(__file__).resolve().parents[1]))
-_ANCHOR = _pl.Path(_os.environ.get("CLM8B_ANCHOR_ROOT", _STUDY_ROOT / "study" / "anchor-corpus"))
+_ANCHOR = _pl.Path(_os.environ.get("CLM8B_ANCHOR_ROOT", _STUDY_ROOT / "anchor-corpus"))
 _MODELS = _pl.Path(_os.environ.get("DECIDER_MODELS_DIR", _STUDY_ROOT / "models"))
 
 import argparse, json, time, statistics, os, subprocess
