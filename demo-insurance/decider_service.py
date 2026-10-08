@@ -8,7 +8,8 @@ from decider.infer import Decider
 
 import os
 DECIDER_MODEL = os.environ.get("DECIDER_MODEL", "Mapika/decider-4b")  # hub id or local path
-d = Decider(DECIDER_MODEL)
+DEVICE = os.environ.get("DEVICE", "cuda")  # DEVICE=cpu needs a FLA-free venv (see README CPU row)
+d = Decider(DECIDER_MODEL, device=DEVICE)
 print("[decider-service] decider-4b v2.1 loaded", flush=True)
 
 def score_question(q):

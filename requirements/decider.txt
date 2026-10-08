@@ -1,3 +1,5 @@
-decider-ai>=1.8.1
-# flash-linear-attention ships as a dependency; needed for GPU speed (Qwen3.5 linear-attention layers).
-# CPU-only fallback venv: install decider-ai with --no-deps plus torch/transformers only — see README.
+# Measured, pinned environment (the exact set the study/demo numbers were produced with).
+decider-ai==1.8.1
+transformers==5.18.0
+# flash-linear-attention ships as a dependency; needed for GPU speed (Qwen3.5 linear-attention
+# layers). CPU-only fallback: see README's CPU row. GGUF arm: pip install "decider-ai[gguf]==1.8.1".

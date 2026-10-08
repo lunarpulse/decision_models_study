@@ -1,1 +1,6 @@
-laya>=0.3.28
+# Measured, pinned environment (the exact set the study/demo numbers were produced with).
+# laya 0.4.0 (released after this study) breaks `laya-train` with a device-placement error in its
+# pre-training calibration pass ("Expected all tensors to be on the same device"); 0.3.28 is the
+# version all bundled results were measured with. transformers pinned to the same measured set.
+laya==0.3.28
+transformers==5.18.0
