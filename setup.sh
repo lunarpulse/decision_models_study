@@ -6,9 +6,12 @@ set -euo pipefail
 cd "$(dirname "$0")"
 
 PY="${PYTHON:-python3}"
-"$PY" -c 'import sys; raise SystemExit(0 if (3,11) <= sys.version_info[:2] <= (3,13) else 1)' \
-  || { echo "[setup] need Python 3.11–3.13; set PYTHON=/path/to/python3.12"; exit 1; }
 command -v uv >/dev/null 2>&1 && HAVE_UV=1 || HAVE_UV=0
+if [ "$HAVE_UV" != "1" ]; then
+  # no uv: the fallback venv inherits $PY, so enforce the supported range ourselves
+  "$PY" -c 'import sys; raise SystemExit(0 if (3,11) <= sys.version_info[:2] <= (3,13) else 1)' \
+    || { echo "[setup] need Python 3.11–3.13; set PYTHON=/path/to/python3.12 (or install uv)"; exit 1; }
+fi
 
 make_venv() { # $1 name, $2 requirements file
   if [ "$HAVE_UV" = "1" ]; then
