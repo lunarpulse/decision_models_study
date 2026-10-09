@@ -20,8 +20,9 @@ jobs:
       - name: Syntax-check shell scripts
         run: |
           bash -n setup.sh
+          shopt -s nullglob
           for f in demo-insurance/*.sh study/*.sh docs/*.sh; do
-            [ -e "$f" ] && bash -n "$f"
+            bash -n "$f"
           done
 
       - name: Corpus reproducibility (seeded generator must byte-match committed data)
