@@ -1,0 +1,31 @@
+name: CI
+
+on:
+  push:
+  pull_request:
+
+jobs:
+  checks:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Syntax-check all Python sources
+        run: python3 -m compileall -q .
+
+      - name: Syntax-check shell scripts
+        run: |
+          bash -n setup.sh
+          for f in demo-insurance/*.sh study/*.sh docs/*.sh; do
+            [ -e "$f" ] && bash -n "$f"
+          done
+
+      - name: Corpus reproducibility (seeded generator must byte-match committed data)
+        run: |
+          python3 demo-insurance/gen_corpus.py > /dev/null
+          git diff --exit-code -- demo-insurance/data/
+          echo "OK: regenerated corpus is byte-identical to the committed files"

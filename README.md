@@ -1,5 +1,7 @@
 # Decision Models Study & Live Demo — Laya + decider-4b vs CLM-8B
 
+[![CI](https://github.com/lunarpulse/decision_models_study/actions/workflows/ci.yml/badge.svg)](https://github.com/lunarpulse/decision_models_study/actions/workflows/ci.yml)
+
 A reproducible study and an audience-facing live demo of open-weight **decision models**
 (System-One style: typed questions in, calibrated probabilities out — never generated prose)
 on an insurance-claims journey, anchored on a sealed-evaluation comparison against CLM-8B.
@@ -9,6 +11,8 @@ on an insurance-claims journey, anchored on a sealed-evaluation comparison again
 - **Full study evidence**: sealed-split evaluation, serving matrix, GGUF quantization gate,
   option-order controls, calibration analysis, retained-failure ledger — all measured, nothing
   vendor-quoted without a label.
+
+![Decision console — side-by-side compare mode](docs/img/console-compare.png)
 
 ## Quickstart
 
