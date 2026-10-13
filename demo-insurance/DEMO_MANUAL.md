@@ -66,13 +66,24 @@ network see traffic metadata. Fine for a session with known recipients; revoke w
 | Engine | v2 accuracy | All-seven-correct rows |
 |---|---:|---:|
 | Laya out-of-box | 35.5% | 0/500 |
-| Laya fine-tuned (12k claims) | 99.9% | 497/500 |
 | decider-4b (no training) | 70.8% | 21/500 |
+| Laya fine-tuned (12k claims) | 99.9% | 497/500 |
+| **decider-4b + LoRA (same 12k claims)** | **100.0%** | **500/500** |
 | Rules engine (Engine D) | 100.0% *English phrasing only* | 500/500 — `unparsed` on non-English |
 
-Ops floor (τ = 0.80): 69.4% straight-through (347 claims, $2.29M), every auto-approved claim
-correct on all seven decisions (347/347), one fraud claim below threshold (the τ-slider's
-cautionary tale), $1.21M fraud-$ flagged with $0 false-flagged.
+**The parity result (what fine-tuning does to the decider):** the same 12,000 rows that took
+Laya from 35.5% to 99.9% took decider-4b from 70.8% to **100.0%** (LoRA rank 64, 2 epochs,
+71 minutes on this GPU, merged to bf16) — and unlike the Laya fine-tune it **kept its
+languages**: 140/140 preset questions including Korean, Japanese, Hindi and Spanish. Caveats,
+stated plainly: train and holdout come from the same templated generator (in-distribution);
+its post-training confidences hit the calibration floor (T=0.05, razor-sharp — treat
+thresholds on it as uncalibrated until recalibrated on real data); no general-benchmark
+regression was re-run on the merged weights.
+
+Ops floor (τ = 0.80, fine-tuned Laya as the working engine): 69.4% straight-through (347
+claims, $2.29M), every auto-approved claim correct on all seven decisions (347/347), one
+fraud claim below threshold (the τ-slider's cautionary tale), $1.21M fraud-$ flagged with
+$0 false-flagged.
 
 v1 comparison (3-question era, same corpus seed): 37.8% / 100.0% / 74.1%. Study context: on the
 prior sealed corpus Laya-ft beat the adapted 8B CLM model on every endpoint

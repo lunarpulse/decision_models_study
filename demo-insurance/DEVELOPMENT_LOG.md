@@ -141,6 +141,16 @@ does the percentage come from, and why does decider show a red dot — "check th
 7. Training warning (both fine-tunes): noul (yes/no) calibration fit stayed at 1.0 — the trained
    engines' yes/no confidences are uncalibrated; the console therefore displays probabilities,
    not just argmax, and the manual flags recalibration before real thresholds.
+8. Decider-LoRA save bug (v2): `inject_adapter_in_model` leaves projections wrapped as
+   `q_proj.base_layer`, so `save_pretrained` wrote wrong key names — the saved checkpoint
+   reloaded with **randomly initialized projections** (29.5% on presets, silent except for a
+   transformers MISSING-keys warning). Caught because the presets eval ran before celebrating;
+   recovered without retraining by rewriting the state-dict keys (drop `.lora_*`, strip
+   `.base_layer`, remap the `model.language_model.` prefix) — after which the same checkpoint
+   scored 140/140. Trainer fixed to restore base module names before saving.
+9. The full decider fine-tune launched with bare `nohup … &` died ~60 s in, silently, when the
+   tool call's process group ended (no step ever logged). Relaunched as a managed async job.
+   Lesson already in the ledger's spirit: a launch is not a run — verify the first log lines.
 
 ## Phase 6 — Demo v2: journey questions, ops floor, Engine D, decider parity (2026-10-13)
 

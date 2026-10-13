@@ -143,11 +143,13 @@ def main():
 
     log("[merge] merging LoRA into bf16 weights")
     merged_n = 0
-    for m in model.lm.modules():
-        if isinstance(m, LoraLinear):
-            m.merge()
-            merged_n += 1
-    log(f"[merge] merged {merged_n} adapter layers")
+    for parent in model.lm.modules():
+        for child_name, child in list(parent.named_children()):
+            if isinstance(child, LoraLinear):
+                child.merge()
+                setattr(parent, child_name, child.get_base_layer())
+                merged_n += 1
+    log(f"[merge] merged {merged_n} adapters and restored base module names")
     model.eval()
     model.lm.save_pretrained(f"{a.out}/model")
     tok.save_pretrained(f"{a.out}/model")
