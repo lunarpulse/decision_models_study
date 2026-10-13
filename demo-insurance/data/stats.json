@@ -1,12 +1,52 @@
 {
- "zero": 0.378,
- "ft": 1.0,
- "dec": 0.7413333333333333,
  "n_rows": 500,
  "rows_all_correct": {
+  "dec": 21,
   "zero": 0,
-  "ft": 500,
-  "dec": 256
+  "ft": 497,
+  "rules": 500
  },
- "elapsed_s": 28.8
+ "per_question": {
+  "dec": {
+   "routing": 0.802,
+   "fraud_review": 0.772,
+   "urgency": 0.658,
+   "coverage_eligibility": 0.97,
+   "net_payable_band": 0.444,
+   "subrogation": 0.922,
+   "expected_touches": 0.386
+  },
+  "zero": {
+   "routing": 0.58,
+   "fraud_review": 0.508,
+   "urgency": 0.0,
+   "coverage_eligibility": 0.35,
+   "net_payable_band": 0.136,
+   "subrogation": 0.914,
+   "expected_touches": 0.0
+  },
+  "ft": {
+   "routing": 1.0,
+   "fraud_review": 1.0,
+   "urgency": 0.998,
+   "coverage_eligibility": 1.0,
+   "net_payable_band": 1.0,
+   "subrogation": 1.0,
+   "expected_touches": 0.996
+  },
+  "rules": {
+   "routing": 1.0,
+   "fraud_review": 1.0,
+   "urgency": 1.0,
+   "coverage_eligibility": 1.0,
+   "net_payable_band": 1.0,
+   "subrogation": 1.0,
+   "expected_touches": 1.0
+  }
+ },
+ "elapsed_s": 115.7,
+ "zero": 0.3554,
+ "ft": 0.9991,
+ "dec": 0.7077,
+ "rules": 1.0
 }

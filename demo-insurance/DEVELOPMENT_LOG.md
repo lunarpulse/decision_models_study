@@ -142,6 +142,37 @@ does the percentage come from, and why does decider show a red dot — "check th
    engines' yes/no confidences are uncalibrated; the console therefore displays probabilities,
    not just argmax, and the manual flags recalibration before real thresholds.
 
+## Phase 6 — Demo v2: journey questions, ops floor, Engine D, decider parity (2026-10-13)
+
+Goal set by operator: make the demo *realistic and business-attractive*, and fine-tune the local
+decision model to maximize its value. Research pass (industry KPIs: leakage, STP rate, cycle
+time, touches/claim; McKinsey/CLARA/SAS framing) shaped four tracks: full claim journey, money
+layer, STP/adjuster ops floor, rules-engine baseline — plus supervised parity for decider-4b.
+
+1. **Corpus v2** (`gen_corpus.py`): four new rule-verifiable questions — coverage eligibility
+   (policy-active date logic, 2-day review window, flood/tier exclusion), net payable band
+   (deductible arithmetic per line), subrogation (identified third party), expected adjuster
+   touches (complication count, fraud → 4+). Journey stages emitted in `demo_presets.json`.
+   Independent validation: a *text-replay checker* (regex/date parse of the claim text, no
+   generator internals) reproduces generator gold **500/500 rows, all fields**. Hindi preset
+   amount adjusted 18,500→17,500 (the original fell under the fraud rule by two markers — the
+   curated "clean high-value" story was inconsistent with the written rule).
+2. **Engine D** (`rules_engine.py`, served at `/rules`): the incumbent implemented honestly —
+   the same written policy via keyword/date parsing, every answer carrying its evidence
+   (audit trail). **100.0% on the English holdout** (it must be: the rules are the gold
+   generator) and `unparsed` on non-English input — the incumbent's real shape, shown in the
+   console rather than argued.
+3. **Ops floor** (`?mode=ops`): money cards, confidence-threshold slider driving STP counters,
+   adjuster queue with approve/flag/review overrides, per-engine calibration strips, ROI
+   annualization input. Backed by `build_portfolio.py` — all arms measured once on the sealed
+   holdout (offline, study-style), written to `portfolio_results.json`, served at `/portfolio`.
+4. **Console failures found and fixed during v2**: `MODE_ENGINES` missing the `ops` key made
+   `renderEngineCards` throw mid-`setMode` (ops floor silently blank — the pageerror listener
+   never surfaced it; found by DOM-trace instrumentation); TDZ bug (`setMode("ops")` ran before
+   `let OPS` initialized); boot line (`const m = …`) lost in an edit.
+5. **VRAM sequencing**: portfolio builder originally loaded decider *after* the laya arms and
+   OOM'd (live stack 18 GB resident); reordered to load/free the 8.4 GB decider first.
+
 ## Final state at log time
 
 - Services: `laya_service.py` :8901 (zero-shot Router + English fine-tune; 0.0.0.0; serves console,

@@ -78,7 +78,57 @@ QUESTIONS = {
                          "disruption. routine: everything else."),
         "criteria": ["routine", "priority", "urgent", "critical"],
     },
+    "coverage_eligibility": {
+        "type": "choice",
+        "instructions": ("Is this loss covered by the quoted policy? Rules: the incident must fall "
+                         "on or after the policy start date (earlier incidents are not covered). "
+                         "An incident within 2 days after policy start needs manual review before "
+                         "coverage is confirmed. Vehicle flood damage is covered only on Plus or "
+                         "Premium plans. Otherwise the loss is covered."),
+        "criteria": {
+            "covered": "Policy active for the incident and the peril is included in the plan.",
+            "not_covered_policy_not_active": "The incident happened before the policy start date.",
+            "not_covered_peril_excluded": "The plan tier excludes this peril (flood damage on Basic or Standard vehicle plans).",
+            "review_required": "Incident within 2 days of policy start; a coverage check must precede any payment.",
+        },
+    },
+    "net_payable_band": {
+        "type": "choice",
+        "instructions": ("After the plan deductible is applied, which band does the net payable "
+                         "amount fall into? Deductibles: motor USD 500, property USD 1,000, "
+                         "health USD 250, travel USD 100. If the claim is not covered or is held "
+                         "for special investigation, nothing is payable yet (USD 0)."),
+        "criteria": {
+            "zero_nothing_payable": "Not covered, under review, or payout held for investigation.",
+            "up_to_1000": "Net payable USD 1 - 1,000 after the deductible.",
+            "1000_to_5000": "Net payable USD 1,001 - 5,000 after the deductible.",
+            "5000_to_15000": "Net payable USD 5,001 - 15,000 after the deductible.",
+            "over_15000": "Net payable over USD 15,000 after the deductible.",
+        },
+    },
+    "subrogation": {
+        "type": "noul",
+        "instructions": ("Should the insurer pursue a third party to recover the payout "
+                         "(subrogation)? Answer yes only when a liable third party is identified "
+                         "in the claim: another driver rear-ended the customer, or a parking-garage "
+                         "collision with a police report naming the other party."),
+    },
+    "expected_touches": {
+        "type": "score",
+        "instructions": ("How many adjuster touches will this claim need? 0-1: complete, documented, "
+                         "low-value claim (straight-through candidate). 2: one complication - missing "
+                         "documents, high value (USD 8,800+), or a coverage check. 3: two complications. "
+                         "4+: fraud-flagged or three complications."),
+        "criteria": ["0-1 touches (straight-through candidate)", "2 touches", "3 touches", "4+ touches / investigator assigned"],
+    },
 }
+
+JOURNEY_STAGES = [
+    {"stage": "1 · Intake & triage", "questions": ["routing", "urgency"]},
+    {"stage": "2 · Coverage & payment", "questions": ["coverage_eligibility", "net_payable_band"]},
+    {"stage": "3 · Investigation", "questions": ["fraud_review", "subrogation"]},
+    {"stage": "4 · Operations", "questions": ["expected_touches"]},
+]
 
 
 def make_row(i, force=None):
@@ -88,6 +138,7 @@ def make_row(i, force=None):
     amount = rng.choice(AMOUNTS)
     policy_days = rng.choice([3, 9, 17, 26, 45, 80, 140, 260, 400, 700])
     docs_ok = rng.random() < 0.72
+    tier = rng.choice(['Basic', 'Standard', 'Plus', 'Premium'])
     injury = "injury" in thing or "fractured" in thing or "allergic" in thing or "back pain" in thing or "knee surgery" in thing
     hospital = ("emergency room" in thing) or ("urgent care" in thing)
     uninhabitable = "flooded the basement" in thing
@@ -98,6 +149,12 @@ def make_row(i, force=None):
     if amount >= 18500: markers += 1
     fraud = markers >= 2
 
+    name = rng.choice(FIRST) + " " + rng.choice(NAMES)
+    today = datetime.date(2026, 10, 8)
+    filed = today - datetime.timedelta(days=rng.choice([0, 1, 2, 4, 7]))
+    incident = filed - datetime.timedelta(days=rng.choice([0, 1, 2, 5, 9]))
+    policy_start = today - datetime.timedelta(days=policy_days)
+
     gold = {}
     gold["routing"] = "special_investigations" if fraud else spec["unit"]
     gold["fraud_review"] = fraud
@@ -106,11 +163,31 @@ def make_row(i, force=None):
     elif amount >= 8800 or cat == "travel": gold["urgency"] = 1
     else: gold["urgency"] = 0
 
-    name = rng.choice(FIRST) + " " + rng.choice(NAMES)
-    today = datetime.date(2026, 10, 8)
-    filed = today - datetime.timedelta(days=rng.choice([0, 1, 2, 4, 7]))
-    incident = filed - datetime.timedelta(days=rng.choice([0, 1, 2, 5, 9]))
-    policy_start = today - datetime.timedelta(days=policy_days)
+    # ---- v2 journey gold (all rules stated in the question instructions) ----
+    if incident < policy_start:
+        gold["coverage_eligibility"] = "not_covered_policy_not_active"
+    elif incident <= policy_start + datetime.timedelta(days=2):
+        gold["coverage_eligibility"] = "review_required"
+    elif thing.startswith("flooded engine") and tier in ("Basic", "Standard"):
+        gold["coverage_eligibility"] = "not_covered_peril_excluded"
+    else:
+        gold["coverage_eligibility"] = "covered"
+
+    deductible = {"motor": 500, "property": 1000, "health": 250, "travel": 100}[cat]
+    payable = 0 if (fraud or gold["coverage_eligibility"] != "covered") else max(0, amount - deductible)
+    gold["net_payable_band"] = ("zero_nothing_payable" if payable == 0 else
+                                "up_to_1000" if payable <= 1000 else
+                                "1000_to_5000" if payable <= 5000 else
+                                "5000_to_15000" if payable <= 15000 else
+                                "over_15000")
+
+    gold["subrogation"] = (thing == "rear-ended at a traffic light" or
+                           (thing == "side-swiped in a parking garage" and docs_ok))
+
+    complications = (0 if docs_ok else 1) + (1 if amount >= 8800 else 0) + \
+                    (0 if gold["coverage_eligibility"] == "covered" else 1)
+    gold["expected_touches"] = 3 if fraud else min(3, complications)
+
 
     doc_phrase = ("The customer attached the " + " and ".join(spec["docs"]) + "."
                   if docs_ok else
@@ -124,12 +201,16 @@ def make_row(i, force=None):
         f"Policy {cat.upper()}-{5000+i} started {policy_start.isoformat()}. "
         f"The incident: {thing}, on {incident.isoformat()}. "
         f"Claimed amount: {amount_phrase}. {doc_phrase} "
-        f"The customer's plan tier is {rng.choice(['Basic','Standard','Plus','Premium'])}."
+        f"The customer's plan tier is {tier}."
     )
     return {"id": f"ins-{i:06d}", "state": state, "questions": QUESTIONS, "gold": gold,
             "meta": {"cat": cat, "amount": amount, "policy_days": policy_days,
                      "docs_ok": docs_ok, "fraud": fraud, "hospital": hospital,
-                     "injury": injury, "uninhabitable": uninhabitable}}
+                     "injury": injury, "uninhabitable": uninhabitable,
+                     "tier": tier, "deductible": deductible, "payable": payable,
+                     "incident_iso": incident.isoformat(), "filed_iso": filed.isoformat(),
+                     "policy_start_iso": policy_start.isoformat(),
+                     "complications": complications}}
 
 
 def to_train(r):
@@ -189,25 +270,37 @@ for k, force in enumerate(forces):
 MULTILINGUAL = [
     {"label": "🇰🇷 Korean motor claim", "lang": "ko",
      "state": "보험 청구 CLM-771001. 정책 MOTOR-7710은 2026년 4월 1일에 시작되었습니다. 사고: 신호등에서 추돌 사고가 발생했고, 후미 범퍼와 트렁크가 파손되었습니다. 청구 금액: USD 2,400. 고객은 수리 견적서와 사진을 첨부했습니다.",
-     "gold": {"routing": "motor_unit", "fraud_review": False, "urgency": 0}},
+     "gold": {"routing": "motor_unit", "fraud_review": False, "urgency": 0,
+              "coverage_eligibility": "covered", "net_payable_band": "1000_to_5000",
+              "subrogation": True, "expected_touches": 0}},
     {"label": "🇯🇵 Japanese property claim", "lang": "ja",
      "state": "保険請求 CLM-771002。ポリシー PROPERTY-7720 は 2026年3月15日に開始。出来事：台風で屋根の屋根板が剥がされました。請求額：6,300米ドル。お客様は業者の見積書と写真を添付しています。",
-     "gold": {"routing": "property_unit", "fraud_review": False, "urgency": 0}},
+     "gold": {"routing": "property_unit", "fraud_review": False, "urgency": 0,
+              "coverage_eligibility": "covered", "net_payable_band": "5000_to_15000",
+              "subrogation": False, "expected_touches": 0}},
     {"label": "🇮🇳 Hindi health claim", "lang": "hi",
-     "state": "बीमा दावा CLM-771003। पॉलिसी HEALTH-7730 का आरंभ 2026-09-20 को हुआ। घटना: गुर्दे की पथरी के इलाज के लिए आपातकालीन कक्ष में भर्ती। दावा राशि: 18,500 अमेरिकी डॉलर। अस्पताल का विस्तृत बिल और पर्चा प्रति संलग्न है।",
-     "gold": {"routing": "health_benefits", "fraud_review": False, "urgency": 3}},
+     "state": "बीमा दावा CLM-771003। पॉलिसी HEALTH-7730 का आरंभ 2026-09-20 को हुआ। घटना: गुर्दे की पथरी के इलाज के लिए आपातकालीन कक्ष में भर्ती। दावा राशि: 17,500 अमेरिकी डॉलर। अस्पताल का विस्तृत बिल और पर्चा प्रति संलग्न है।",
+     "gold": {"routing": "health_benefits", "fraud_review": False, "urgency": 3,
+              "coverage_eligibility": "covered", "net_payable_band": "over_15000",
+              "subrogation": False, "expected_touches": 1}},
     {"label": "🇪🇸 Spanish travel claim", "lang": "es",
      "state": "Reclamación de seguro CLM-771004. La póliza TRAVEL-7740 comenzó el 2026-01-10. Incidente: el vuelo de regreso fue cancelado y hubo que pagar una noche de hotel no planificada. Importe: 480 USD. El cliente adjuntó la confirmación de la aerolínea y el recibo del hotel.",
-     "gold": {"routing": "travel_unit", "fraud_review": False, "urgency": 1}},
+     "gold": {"routing": "travel_unit", "fraud_review": False, "urgency": 1,
+              "coverage_eligibility": "covered", "net_payable_band": "up_to_1000",
+              "subrogation": False, "expected_touches": 0}},
 ]
 presets.extend(MULTILINGUAL)
 
 with open(OUT / "demo_presets.json", "w") as f:
-    json.dump({"questions": QUESTIONS, "presets": presets}, f, indent=1, ensure_ascii=False)
+    json.dump({"questions": QUESTIONS, "stages": JOURNEY_STAGES, "presets": presets}, f, indent=1, ensure_ascii=False)
 
 import collections
 print("train", len(train), "val", len(validation), "holdout", len(holdout), "presets", len(presets))
 print("train fraud rate", sum(r["meta"]["fraud"] for r in train) / len(train))
 print("routing dist", dict(collections.Counter(r["gold"]["routing"] for r in train)))
 print("urgency dist", dict(collections.Counter(r["gold"]["urgency"] for r in train)))
+print("eligibility dist", dict(collections.Counter(r["gold"]["coverage_eligibility"] for r in train)))
+print("payable band dist", dict(collections.Counter(r["gold"]["net_payable_band"] for r in train)))
+print("subrogation rate", sum(r["gold"]["subrogation"] for r in train) / len(train))
+print("touches dist", dict(collections.Counter(r["gold"]["expected_touches"] for r in train)))
 print("presets labels:", [p["label"] for p in presets])

@@ -64,6 +64,7 @@ class H(BaseHTTPRequestHandler):
             "/": ("text/html; charset=utf-8", base + "/index.html"),
             "/presets": ("application/json", base + "/data/demo_presets.json"),
             "/stats": ("application/json", base + "/data/stats.json"),
+            "/portfolio": ("application/json", base + "/data/portfolio_results.json"),
         }
         if path == "/health":
             self._send(200, "application/json", b'{"ok":true}')
@@ -105,6 +106,16 @@ class H(BaseHTTPRequestHandler):
             except Exception as e:
                 code, payload = 502, json.dumps({"error": repr(e)[:200]}).encode()
             self._send(code, "application/json", payload)
+            return
+        if path == "/rules":  # Engine D: incumbent rules engine (pure Python, no GPU)
+            n = int(self.headers.get("Content-Length", 0))
+            body = json.loads(self.rfile.read(n) or b"{}")
+            try:
+                import rules_engine
+                resp = rules_engine.decide(body.get("state", ""), body.get("questions"))
+                self._send(200, "application/json", json.dumps(resp).encode())
+            except Exception as e:
+                self._send(500, "application/json", json.dumps({"error": repr(e)[:300]}).encode())
             return
         if path != "/predict":
             self.send_response(404); self._cors(); self.end_headers(); return

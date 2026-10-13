@@ -3,3 +3,5 @@ decider-ai==1.8.1
 transformers==5.18.0
 # flash-linear-attention ships as a dependency; needed for GPU speed (Qwen3.5 linear-attention
 # layers). CPU-only fallback: see README's CPU row. GGUF arm: pip install "decider-ai[gguf]==1.8.1".
+# Supervised-parity arm only (demo-insurance/train_decider_ft.py): pip install peft
+# (LoRA r64 on attention+MLP, Mapika's published stage-2 recipe, merged to bf16 after training).

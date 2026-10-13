@@ -19,8 +19,17 @@ on an insurance-claims journey, anchored on a sealed-evaluation comparison again
 ```bash
 bash setup.sh                     # creates .venv-laya and .venv-decider (uv or python -m venv)
 cd demo-insurance
-bash train_laya.sh                # ~15 min on a CUDA GPU; regenerates the fine-tuned checkpoint
+bash train_laya.sh                # ~30-40 min on a CUDA GPU; fine-tunes on the 12k-claim corpus
+python build_portfolio.py         # ~2 min; measures all engines on the sealed 500-claim holdout
+                                  # (also regenerates stats.json and the ops-floor data)
 bash start_demo.sh                # → http://127.0.0.1:8901/?mode=day1
+```
+
+Optional supervised-parity arm (what happens if you fine-tune the decider too?):
+```bash
+cd demo-insurance
+python train_decider_ft.py        # LoRA r64 on the same 12k corpus (~1-2 h, 8.4 GB weights)
+python eval_presets.py decider-ft-ckpt/model   # 20-preset verdict table, before vs after
 ```
 
 Optional public URL: `cloudflared tunnel --url http://localhost:8901` (see `demo-insurance/DEMO_MANUAL.md`).
@@ -37,6 +46,17 @@ Optional public URL: `cloudflared tunnel --url http://localhost:8901` (see `demo
 | Ports | 8901, 8902 | configurable via `LAYA_PORT` / `DECIDER_PORT` |
 
 No API keys, no accounts — every model is public open weight (Apache-2.0).
+
+**Demo v2 (journey + ops floor):** every claim now walks a four-stage journey — intake/triage
+(routing, urgency), coverage & payment (eligibility with deductible bands), investigation
+(fraud flag, subrogation), operations (expected adjuster touches) — seven typed questions, all
+rule-verifiable. The **ops floor** (`?mode=ops`) turns the sealed 500-claim holdout into an
+operations view: money cards, a confidence-threshold slider with straight-through-processing
+counters, an adjuster queue with override buttons, per-engine calibration strips, and **Engine D**,
+an honest keyword-rules implementation of the same written policy (perfect on the phrasing it
+was built for, `unparsed` on anything else — the incumbent's real shape).
+
+![Ops floor — straight-through processing](docs/img/ops-floor.png)
 
 ## What's inside
 

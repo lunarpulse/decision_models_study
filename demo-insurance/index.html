@@ -88,6 +88,22 @@ pre.schema{font-size:.68em;background:#f4f7fb;border:1px solid var(--line);borde
 .statl{font-size:.75em;color:var(--muted);font-weight:600}
 .statsgrid{display:grid;grid-template-columns:repeat(auto-fit,minmax(190px,1fr));gap:.7rem;margin:.6rem 0}
 footer{border-top:1px solid var(--line);margin-top:1.2rem;padding:.7rem 0;font-size:.75em;color:var(--muted)}
+.stagehdr{margin:.8rem 0 .2rem;padding:.15rem .45rem;background:var(--accent-soft);border-left:3px solid var(--accent);
+  font-size:.72em;font-weight:800;letter-spacing:.08em;text-transform:uppercase;color:var(--accent);border-radius:0 6px 6px 0}
+.ev{margin-top:.3rem;padding:.35rem .5rem;background:#f6f8fa;border:1px dashed var(--line);border-radius:6px;color:var(--muted)}
+.opstable{width:100%;border-collapse:collapse;font-size:.92em}
+.opstable th{font-size:.75em;text-transform:uppercase;letter-spacing:.06em;color:var(--muted);text-align:left;padding:.3rem .45rem;border-bottom:2px solid var(--line)}
+.opstable td{padding:.32rem .45rem;border-bottom:1px solid var(--line)}
+.opstable tr:hover td{background:#f6f9fc}
+.chip{display:inline-block;padding:.1rem .5rem;border-radius:999px;font-size:.78em;font-weight:700}
+.chip-auto{background:var(--era2-soft);color:var(--era2);border:1px solid #bcd9cb}
+.chip-rev{background:var(--era1-soft);color:var(--era1);border:1px solid #d9c08f}
+.mini{font-size:.78em;padding:.12rem .5rem;margin-right:.2rem;border:1px solid var(--line);border-radius:6px;background:#fff;cursor:pointer}
+.mini:hover{border-color:var(--accent);color:var(--accent)}
+.calrow{display:flex;gap:.25rem;align-items:center;margin:.3rem 0;flex-wrap:wrap}
+.calrow .k{width:5.2em;font-weight:700;font-size:.8em}
+.calbin{display:inline-flex;flex-direction:column;align-items:center;min-width:3em;padding:.15rem .25rem;border:1px solid var(--line);border-radius:5px;font-size:.78em;font-weight:700;background:#fff}
+.calbin small{font-weight:400;color:var(--muted);font-size:.85em}
 </style>
 </head>
 <body>
@@ -110,7 +126,7 @@ footer{border-top:1px solid var(--line);margin-top:1.2rem;padding:.7rem 0;font-s
   <div class="tabs" role="tablist">
     <button class="tab" data-mode="day1" id="tab-day1">Day 1 · nothing trained yet</button>
     <button class="tab" data-mode="after" id="tab-after">After training · 12,000 past claims</button>
-    <button class="tab" data-mode="compare" id="tab-compare">Side-by-side compare</button>
+    <button class="tab" data-mode="ops" id="tab-ops">🚦 Ops floor · straight-through processing</button>
   </div>
 
   <div class="era day1" id="era-day1" hidden>
@@ -131,6 +147,15 @@ footer{border-top:1px solid var(--line);margin-top:1.2rem;padding:.7rem 0;font-s
     <p>Left column = day one. Middle = after training. Right = the zero-training generalist.
       The scoreboard above tallies preset-claim hits per visible engine.</p>
   </div>
+  <div class="era" id="era-ops" style="border-color:var(--line);background:#fff" hidden>
+    <h2>🚦 The ops floor — today's intake, decided in one pass</h2>
+    <p>Every claim from the sealed 500-claim holdout, all four engines, measured once before the
+      session. Set the confidence threshold; claims below it run straight through, the rest go to
+      an adjuster. Approve or override — the counters follow you. The money strip speaks the
+      language your CFO uses.</p>
+  </div>
+
+  <div id="opsfloor" hidden style="margin:.4rem 0 1rem"></div>
 
   <div class="statsgrid">
     <div class="card"><div class="statbig" id="st-zero">…</div><div class="statl">Laya out-of-box · 500 unseen claims (measured before the session)</div></div>
@@ -173,10 +198,13 @@ const ENGINES = {
   zero: {tag:"Engine A", name:"Laya — out of the box", sub:"421M · zero training"},
   ft:   {tag:"Engine B", name:"Laya — fine-tuned", sub:"421M · trained on 12,000 claims"},
   dec:  {tag:"Engine C", name:"decider-4b", sub:"4.2B · zero training, generalist"},
+  rules:{tag:"Engine D", name:"Rules engine (incumbent)", sub:"keyword + date parsing · the way automation is built today"},
 };
-const MODE_ENGINES = {day1:["zero","dec"], after:["ft","dec"], compare:["zero","ft","dec"]};
-const QTITLE = {routing:"Route to unit", fraud_review:"Flag for fraud investigation?", urgency:"Priority"};
-let PRESETS = [], QUESTIONS = null, SCORES = {}, MODE = "day1", LAST = null;
+const MODE_ENGINES = {day1:["zero","dec"], after:["ft","dec"], compare:["zero","ft","dec","rules"], ops:[]};
+const QTITLE = {routing:"Route to unit", fraud_review:"Flag for fraud investigation?", urgency:"Priority",
+  coverage_eligibility:"Coverage eligibility", net_payable_band:"Net payable band",
+  subrogation:"Pursue third party (subrogation)?", expected_touches:"Expected adjuster touches"};
+let PRESETS = [], QUESTIONS = null, STAGES = [], SCORES = {}, MODE = "day1", LAST = null;
 
 const $ = (id) => document.getElementById(id);
 const fmtP = (p) => (100*p).toFixed(1) + "%";
@@ -190,11 +218,16 @@ const DEC = DECBASE + "/predict";
 function setMode(m, keepClaim){
   MODE = m;
   document.querySelectorAll(".tab").forEach(t => t.classList.toggle("on", t.dataset.mode === m));
-  for (const k of ["day1","after","compare"]) $("era-"+k).hidden = (k !== m);
-  try { history.replaceState(null, "", "?mode=" + m); } catch (e) { /* opaque origin (file/about) — mode stays in-memory */ }
+  for (const k of ["day1","after","compare","ops"]) $("era-"+k).hidden = (k !== m);
+  const ops = (m === "ops");
+  $("opsfloor").hidden = !ops;
+  document.querySelector(".statsgrid").style.display = ops ? "none" : "";
+  document.querySelector(".grid.g2").style.display = ops ? "none" : "";
+  try { history.replaceState(null, "", "?mode=" + m); } catch (e) { }
   renderEngineCards();
   drawScores();
-  if (keepClaim && LAST) runClaim(LAST.state, LAST.gold, LAST.nonLatin, true, LAST.lang);
+  if (ops) initOps();
+  else if (keepClaim && LAST) runClaim(LAST.state, LAST.gold, LAST.nonLatin, true, LAST.lang);
 }
 
 function verdictFor(qid, ans, gold){
@@ -241,17 +274,25 @@ function renderEngineCards(data, gold, nonLatin){
       if (key === "ft" && d.ft_checkpoint){
         inner += `<div class="qblock"><span class="lat">trained checkpoint: ${d.ft_checkpoint}</span></div>`;
       }
-      for (const [qid, a] of Object.entries(d.answers)){
-        const v = verdictFor(qid, a, gold);
-        const ansTxt = a.choice !== undefined ? a.choice
-                  : a.noul !== undefined ? (a.noul>=0.5?`YES · p=${fmtP(a.noul)}`:`NO · p(yes)=${fmtP(a.noul)}`)
-                  : `level ${(typeof a.score === "number") ? a.score.toFixed(2) : a.score}`;
-        inner += `<div class="qblock"><div class="qlabel">${QTITLE[qid]||qid}</div>` +
-          `<div class="ansline"><span class="ans">${ansTxt}</span>` +
-          `<span class="verdict ${v.cls}">${v.txt}</span>` +
-          (a.confidence!==undefined?`<span class="lat">confidence ${fmtP(a.confidence)}</span>`:"") +
-          (d.routing_model?`<span class="lat">via ${d.routing_model}</span>`:"") + `</div>` +
-          `<div class="bars">${barsHTML(a)}</div></div>`;
+      const qids = Object.keys(d.answers);
+      const stages = (STAGES && STAGES.length) ? STAGES : [{stage:"Decisions", questions:qids}];
+      for (const st of stages){
+        inner += `<div class="stagehdr">${st.stage}</div>`;
+        for (const qid of st.questions){
+          const a = d.answers[qid]; if (!a) continue;
+          const v = verdictFor(qid, a, gold);
+          const ansTxt = a.choice !== undefined ? a.choice
+                    : a.noul !== undefined ? (a.noul>=0.5?`YES · p=${fmtP(a.noul)}`:`NO · p(yes)=${fmtP(a.noul)}`)
+                    : `level ${(typeof a.score === "number") ? a.score.toFixed(2) : a.score}`;
+          inner += `<div class="qblock"><div class="qlabel">${QTITLE[qid]||qid}</div>` +
+            `<div class="ansline"><span class="ans">${ansTxt}</span>` +
+            `<span class="verdict ${v.cls}">${v.txt}</span>` +
+            (a.confidence!==undefined?`<span class="lat">confidence ${fmtP(a.confidence)}</span>`:"") +
+            (d.routing_model?`<span class="lat">via ${d.routing_model}</span>`:"") + `</div>` +
+            `<div class="bars">${barsHTML(a)}</div>` +
+            (key==="rules" && d.evidence && d.evidence[qid] ? `<div class="small ev">${d.evidence[qid].map(e=>"· "+e).join("<br>")}</div>`:"") +
+            `</div>`;
+        }
       }
     }
     div.innerHTML = inner;
@@ -290,14 +331,16 @@ async function runClaim(state, gold, nonLatin, silent, lang){
   renderEngineCards(null, gold, nonLatin);
   try {
     const SIG = { signal: AbortSignal.timeout(60000) };
-    const [lr, dr] = await Promise.all([
+    const [lr, dr, rr] = await Promise.all([
       fetch(LAYA + "/predict", {method:"POST", headers:{"Content-Type":"application/json"},
         body: JSON.stringify({state, questions: QUESTIONS, lang}), ...SIG}).then(r=>r.json()),
       fetch(DEC, {method:"POST", headers:{"Content-Type":"application/json"},
         body: JSON.stringify({state, questions: QUESTIONS}), ...SIG}).then(r=>r.json()),
+      fetch(LAYA + "/rules", {method:"POST", headers:{"Content-Type":"application/json"},
+        body: JSON.stringify({state, questions: QUESTIONS}), ...SIG}).then(r=>r.json()).catch(()=>null),
     ]);
     if (lr.error || dr.error){ throw new Error(lr.error || dr.error); }
-    const data = {zero: lr.zero, ft: lr.ft, dec: dr.decider};
+    const data = {zero: lr.zero, ft: lr.ft, dec: dr.decider, rules: rr};
     renderEngineCards(data, gold, nonLatin);
     for (const key of MODE_ENGINES[MODE]) tallyEngine(key, data[key], gold);
   } catch (e) {
@@ -313,7 +356,7 @@ function isNonLatin(s){
 
 function loadPresets(){
   fetch(LAYA + "/presets").then(r=>r.json()).then(d => {
-    PRESETS = d.presets; QUESTIONS = d.questions;
+    PRESETS = d.presets; QUESTIONS = d.questions; STAGES = d.stages || [];
     const groups = {"Standard claims":[], "Fraud-flag scenarios":[], "Multilingual (auto-routed)":[]};
     for (const p of PRESETS){
       if (/FRAUD/.test(p.label)) groups["Fraud-flag scenarios"].push(p);
@@ -354,10 +397,119 @@ fetch(LAYA + "/stats").then(r=>r.json()).then(s => {
   $("st-zero").textContent = (100*s.zero).toFixed(1) + "%";
   $("st-ft").textContent = (100*s.ft).toFixed(1) + "%";
   $("st-dec").textContent = (100*s.dec).toFixed(1) + "%";
+  if (s.rules !== undefined){
+    document.querySelector(".statsgrid").insertAdjacentHTML("beforeend",
+      `<div class="card"><div class="statbig">${(100*s.rules).toFixed(1)}%</div><div class="statl">Rules engine (Engine D) · same 500 — perfect on the phrasing it was built for, <em>unparsed</em> on anything else</div></div>`);
+  }
 }).catch(()=>{ $("st-zero").textContent=$("st-ft").textContent=$("st-dec").textContent="n/a"; });
 
+
+
+// ======================= Ops floor (STP + adjuster queue) =======================
+let OPS = null, OPS_TAU = 0.8, OPS_ACTIONS = {};
+const usd = (n) => "$" + Math.round(n).toLocaleString("en-US");
+
+async function initOps(){
+  if (!OPS){
+    $("opsfloor").innerHTML = `<p class="small">loading the measured 500-claim portfolio…</p>`;
+    try {
+      OPS = await fetch(LAYA + "/portfolio").then(r=>r.json());
+    } catch (e) {
+      $("opsfloor").innerHTML = `<div class="card"><p>portfolio data not available (${e}). Run <code>python build_portfolio.py</code> once.</p></div>`;
+      return;
+    }
+  }
+  drawOps();
+}
+
+function opsRow(c, i){
+  const ftA = c.arms.ft.answers, g = c.gold, m = c.meta;
+  const pF = ftA.fraud_review ? ftA.fraud_review.noul : 0;
+  const stpOk = pF < OPS_TAU && ftA.expected_touches && ftA.expected_touches.score <= 1
+                && ftA.coverage_eligibility && ftA.coverage_eligibility.choice === "covered";
+  const act = OPS_ACTIONS[c.id] || (stpOk ? "auto" : "review");
+  const routingOK = ftA.routing && ftA.routing.choice === g.routing;
+  const fraudOK = (pF >= 0.5) === !!m.fraud;
+  const touched = act !== "auto";
+  return `<tr>
+    <td class="small">${c.id.replace("ins-","")}</td>
+    <td class="small">${m.cat}</td>
+    <td class="small" style="text-align:right">${usd(m.amount)}</td>
+    <td class="small">${ftA.routing ? ftA.routing.choice : "—"} ${routingOK?"✓":"✗"}</td>
+    <td class="small" style="text-align:right">${fmtP(pF)} ${fraudOK?"✓":"✗"}</td>
+    <td class="small" style="text-align:center">${ftA.expected_touches ? ftA.expected_touches.score : "—"}/${g.expected_touches}</td>
+    <td><span class="chip ${act==="auto"?"chip-auto":"chip-rev"}">${act==="auto"?"auto-approved":"adjuster review"}</span></td>
+    <td class="small">
+      <button class="mini" onclick="opsAct('${c.id}','auto')">Approve</button>
+      <button class="mini" onclick="opsAct('${c.id}','flag')">Flag fraud</button>
+      <button class="mini" onclick="opsAct('${c.id}','review')">To review</button>
+    </td></tr>`;
+}
+
+function opsAct(id, act){ OPS_ACTIONS[id] = act; drawOps(); }
+
+function drawOps(){
+  const el = $("opsfloor");
+  const claims = OPS.claims, S = OPS.summary;
+  // counters over current actions/threshold
+  let auto = 0, rev = 0, touched = 0, autoAll = 0, autoN = 0, missed = 0, stp$ = 0, tot$ = 0, flaggedOK$ = 0, flaggedFP$ = 0;
+  for (const c of claims){
+    const ftA = c.arms.ft.answers, m = c.meta;
+    const pF = ftA.fraud_review ? ftA.fraud_review.noul : 0;
+    const stpOk = pF < OPS_TAU && ftA.expected_touches && ftA.expected_touches.score <= 1
+                  && ftA.coverage_eligibility && ftA.coverage_eligibility.choice === "covered";
+    const act = OPS_ACTIONS[c.id] || (stpOk ? "auto" : "review");
+    tot$ += m.amount;
+    if (act === "auto"){ auto++; stp$ += m.amount;
+      autoN++; if (Object.keys(c.gold).every(q => { const a = ftA[q]; const g = c.gold[q];
+          if (!a) return false; if (a.noul !== undefined) return (a.noul>=0.5)===!!g;
+          return (a.choice !== undefined ? a.choice : a.score) === g; })) autoAll++;
+      if (m.fraud) missed++;
+    } else { rev++; touched++; }
+    if (pF >= OPS_TAU){ if (m.fraud) flaggedOK$ += m.amount; else flaggedFP$ += m.amount; }
+  }
+  const money = S["money_tau_" + String(OPS_TAU).replace(".","_")] || S["money_tau_0.8"] || {};
+  el.innerHTML = `
+  <div class="statsgrid" style="grid-template-columns:repeat(auto-fit,minmax(170px,1fr))">
+    <div class="card"><div class="statbig">${claims.length}</div><div class="statl">claims in the sealed holdout</div></div>
+    <div class="card"><div class="statbig">${usd(tot$)}</div><div class="statl">total claimed</div></div>
+    <div class="card" style="border-color:#bcd9cb;background:#f4faf7"><div class="statbig">${(100*auto/claims.length).toFixed(1)}%</div><div class="statl">straight-through at τ=${OPS_TAU.toFixed(2)} (${auto} claims, ${usd(stp$)})</div></div>
+    <div class="card"><div class="statbig">${autoN ? (100*autoAll/autoN).toFixed(1)+"%" : "—"}</div><div class="statl">auto-approved claims with every decision correct (${autoAll}/${autoN})</div></div>
+    <div class="card" style="${missed? "border-color:#d9a5a5;background:#fdf4f4":""}"><div class="statbig">${missed}</div><div class="statl">fraud claims that slipped into auto-approve</div></div>
+    <div class="card"><div class="statbig">${usd(flaggedOK$)}</div><div class="statl">fraud $ flagged at τ (${usd(flaggedFP$)} false-flagged)</div></div>
+  </div>
+  <div class="card" style="margin:.6rem 0">
+    <div style="display:flex;gap:1rem;align-items:center;flex-wrap:wrap">
+      <label><strong>Auto-approve threshold τ:</strong> <input type="range" id="tauSlider" min="50" max="95" value="${Math.round(OPS_TAU*100)}"> <span id="tauVal">${OPS_TAU.toFixed(2)}</span></label>
+      <label><strong>Claims/year:</strong> <input type="number" id="volIn" value="120000" style="width:6.5em"> </label>
+      <span class="small">Projected: <b id="roiOut">—</b> auto-approved claims/yr · <b id="roiFraud">—</b> fraud-$ held/yr</span>
+    </div>
+  </div>
+  <div class="card" style="margin:.6rem 0">
+    <h3>Adjuster queue — highest fraud probability first</h3>
+    <table class="opstable"><thead><tr><th>claim</th><th>cat</th><th>amount</th><th>routing (ft)</th><th>p(fraud)</th><th>touches pred/gold</th><th>current action</th><th>adjuster</th></tr></thead>
+    <tbody>${claims.slice().sort((a,b)=> (b.arms.ft.answers.fraud_review.noul||0)-(a.arms.ft.answers.fraud_review.noul||0)).slice(0,14).map(opsRow).join("")}</tbody></table>
+    <p class="small">Override buttons change the counters above — the STP rate, the accuracy of what ran unattended, and the fraud that slipped through. That interplay is the buy/no-buy decision.</p>
+  </div>
+  <div class="card">
+    <h3>Calibration — when an engine says ${OPS_TAU.toFixed(0)}%, how often is it right?</h3>
+    ${Object.entries(OPS.summary.calibration || {}).map(([arm, bins]) => `
+      <div class="calrow"><span class="k">${arm}</span>
+      ${bins.map(b => `<span class="calbin" title="p ${b.lo}–${b.hi}: said ${(100*b.avg_p).toFixed(0)}%, right ${(100*b.acc).toFixed(0)}% of ${b.n}">${(100*b.acc).toFixed(0)}<small>${b.n}</small></span>`).join("")}
+      </div>`).join("")}
+    <p class="small">Each cell: empirical accuracy of fraud-review answers in that probability bin (n below). Perfect calibration sits on the diagonal.</p>
+  </div>`;
+  $("tauSlider").oninput = (e) => { OPS_TAU = e.target.value/100; $("tauVal").textContent = OPS_TAU.toFixed(2); drawOps(); };
+  $("volIn").oninput = (e) => {
+    const v = +e.target.value || 0; const per = claims.length ? v/claims.length : 0;
+    $("roiOut").textContent = Math.round(per*auto).toLocaleString("en-US");
+    $("roiFraud").textContent = usd(per*flaggedOK$);
+  };
+  $("volIn").oninput({target:$("volIn")});
+}
+
 const m = new URLSearchParams(location.search).get("mode");
-setMode(["day1","after","compare"].includes(m) ? m : "day1", false);
+setMode(["day1","after","compare","ops"].includes(m) ? m : "day1", false);
 health(); loadPresets(); setInterval(health, 15000);
 </script>
 </body>

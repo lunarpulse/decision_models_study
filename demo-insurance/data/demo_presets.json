@@ -24,327 +24,567 @@
     "urgent",
     "critical"
    ]
+  },
+  "coverage_eligibility": {
+   "type": "choice",
+   "instructions": "Is this loss covered by the quoted policy? Rules: the incident must fall on or after the policy start date (earlier incidents are not covered). An incident within 2 days after policy start needs manual review before coverage is confirmed. Vehicle flood damage is covered only on Plus or Premium plans. Otherwise the loss is covered.",
+   "criteria": {
+    "covered": "Policy active for the incident and the peril is included in the plan.",
+    "not_covered_policy_not_active": "The incident happened before the policy start date.",
+    "not_covered_peril_excluded": "The plan tier excludes this peril (flood damage on Basic or Standard vehicle plans).",
+    "review_required": "Incident within 2 days of policy start; a coverage check must precede any payment."
+   }
+  },
+  "net_payable_band": {
+   "type": "choice",
+   "instructions": "After the plan deductible is applied, which band does the net payable amount fall into? Deductibles: motor USD 500, property USD 1,000, health USD 250, travel USD 100. If the claim is not covered or is held for special investigation, nothing is payable yet (USD 0).",
+   "criteria": {
+    "zero_nothing_payable": "Not covered, under review, or payout held for investigation.",
+    "up_to_1000": "Net payable USD 1 - 1,000 after the deductible.",
+    "1000_to_5000": "Net payable USD 1,001 - 5,000 after the deductible.",
+    "5000_to_15000": "Net payable USD 5,001 - 15,000 after the deductible.",
+    "over_15000": "Net payable over USD 15,000 after the deductible."
+   }
+  },
+  "subrogation": {
+   "type": "noul",
+   "instructions": "Should the insurer pursue a third party to recover the payout (subrogation)? Answer yes only when a liable third party is identified in the claim: another driver rear-ended the customer, or a parking-garage collision with a police report naming the other party."
+  },
+  "expected_touches": {
+   "type": "score",
+   "instructions": "How many adjuster touches will this claim need? 0-1: complete, documented, low-value claim (straight-through candidate). 2: one complication - missing documents, high value (USD 8,800+), or a coverage check. 3: two complications. 4+: fraud-flagged or three complications.",
+   "criteria": [
+    "0-1 touches (straight-through candidate)",
+    "2 touches",
+    "3 touches",
+    "4+ touches / investigator assigned"
+   ]
   }
  },
+ "stages": [
+  {
+   "stage": "1 · Intake & triage",
+   "questions": [
+    "routing",
+    "urgency"
+   ]
+  },
+  {
+   "stage": "2 · Coverage & payment",
+   "questions": [
+    "coverage_eligibility",
+    "net_payable_band"
+   ]
+  },
+  {
+   "stage": "3 · Investigation",
+   "questions": [
+    "fraud_review",
+    "subrogation"
+   ]
+  },
+  {
+   "stage": "4 · Operations",
+   "questions": [
+    "expected_touches"
+   ]
+  }
+ ],
  "presets": [
   {
    "label": "plain motor claim, docs attached",
    "id": "ins-990000",
-   "state": "Insurance claim CLM-1080000 filed by M. Ueda on 2026-10-06 through the web portal. Policy MOTOR-995000 started 2026-10-05. The incident: rear-ended at a traffic light, on 2026-10-05. Claimed amount: USD 2,800. The customer attached the repair estimate and photos of the damage and police report reference. The customer's plan tier is Premium.",
+   "state": "Insurance claim CLM-1080000 filed by L. Rossi on 2026-10-07 through the mobile app. Policy MOTOR-995000 started 2025-09-03. The incident: hail damage to the roof and hood, on 2026-10-05. Claimed amount: USD 850. No supporting documents were attached; the customer says they were lost in a move. The customer's plan tier is Premium.",
    "gold": {
     "routing": "motor_unit",
     "fraud_review": false,
-    "urgency": 0
+    "urgency": 0,
+    "coverage_eligibility": "covered",
+    "net_payable_band": "up_to_1000",
+    "subrogation": false,
+    "expected_touches": 1
    },
    "meta": {
     "cat": "motor",
-    "amount": 2800,
-    "policy_days": 3,
-    "docs_ok": true,
-    "fraud": false,
-    "hospital": false,
-    "injury": false,
-    "uninhabitable": false
-   }
-  },
-  {
-   "label": "motor hail damage",
-   "id": "ins-990100",
-   "state": "Insurance claim CLM-1080100 filed by K. Zhang on 2026-10-06 through the web portal. Policy MOTOR-995100 started 2026-01-21. The incident: side-swiped in a parking garage, on 2026-10-01. Claimed amount: USD 7,400. The customer attached the repair estimate and photos of the damage and police report reference. The customer's plan tier is Standard.",
-   "gold": {
-    "routing": "motor_unit",
-    "fraud_review": false,
-    "urgency": 0
-   },
-   "meta": {
-    "cat": "motor",
-    "amount": 7400,
-    "policy_days": 260,
-    "docs_ok": true,
-    "fraud": false,
-    "hospital": false,
-    "injury": false,
-    "uninhabitable": false
-   }
-  },
-  {
-   "label": "kitchen fire",
-   "id": "ins-990200",
-   "state": "Insurance claim CLM-1080200 filed by L. Nakamura on 2026-10-01 through the claims hotline. Policy PROPERTY-995200 started 2025-09-03. The incident: burst pipe flooded the basement, on 2026-09-30. Claimed amount: USD 850. No supporting documents were attached; the customer says they were lost in a move. The customer's plan tier is Basic.",
-   "gold": {
-    "routing": "property_unit",
-    "fraud_review": false,
-    "urgency": 2
-   },
-   "meta": {
-    "cat": "property",
     "amount": 850,
     "policy_days": 400,
     "docs_ok": false,
     "fraud": false,
     "hospital": false,
     "injury": false,
-    "uninhabitable": true
+    "uninhabitable": false,
+    "tier": "Premium",
+    "deductible": 500,
+    "payable": 350,
+    "incident_iso": "2026-10-05",
+    "filed_iso": "2026-10-07",
+    "policy_start_iso": "2025-09-03",
+    "complications": 1
    }
   },
   {
-   "label": "burst pipe",
-   "id": "ins-990300",
-   "state": "Insurance claim CLM-1080300 filed by A. Alvarez on 2026-10-08 through the web portal. Policy PROPERTY-995300 started 2025-09-03. The incident: storm tore shingles off the roof, on 2026-10-06. Claimed amount: USD 9,600. The customer attached the contractor quote and photos of the damage and incident report reference. The customer's plan tier is Basic.",
+   "label": "motor hail damage",
+   "id": "ins-990100",
+   "state": "Insurance claim CLM-1080100 filed by J. Dubois on 2026-10-06 through the mobile app. Policy MOTOR-995100 started 2025-09-03. The incident: side-swiped in a parking garage, on 2026-10-05. Claimed amount: USD 9,600. The customer attached the repair estimate and photos of the damage and police report reference. The customer's plan tier is Standard.",
    "gold": {
-    "routing": "property_unit",
+    "routing": "motor_unit",
     "fraud_review": false,
-    "urgency": 1
+    "urgency": 1,
+    "coverage_eligibility": "covered",
+    "net_payable_band": "5000_to_15000",
+    "subrogation": true,
+    "expected_touches": 1
    },
    "meta": {
-    "cat": "property",
+    "cat": "motor",
     "amount": 9600,
     "policy_days": 400,
     "docs_ok": true,
     "fraud": false,
     "hospital": false,
     "injury": false,
-    "uninhabitable": false
+    "uninhabitable": false,
+    "tier": "Standard",
+    "deductible": 500,
+    "payable": 9100,
+    "incident_iso": "2026-10-05",
+    "filed_iso": "2026-10-06",
+    "policy_start_iso": "2025-09-03",
+    "complications": 1
+   }
+  },
+  {
+   "label": "kitchen fire",
+   "id": "ins-990200",
+   "state": "Insurance claim CLM-1080200 filed by D. Ferreira on 2026-10-07 through an email to the claims desk. Policy PROPERTY-995200 started 2026-01-21. The incident: break-in damaged the back door and stole electronics, on 2026-10-06. Claimed amount: USD 7,400. No supporting documents were attached; the customer says they were lost in a move. The customer's plan tier is Plus.",
+   "gold": {
+    "routing": "property_unit",
+    "fraud_review": false,
+    "urgency": 0,
+    "coverage_eligibility": "covered",
+    "net_payable_band": "5000_to_15000",
+    "subrogation": false,
+    "expected_touches": 1
+   },
+   "meta": {
+    "cat": "property",
+    "amount": 7400,
+    "policy_days": 260,
+    "docs_ok": false,
+    "fraud": false,
+    "hospital": false,
+    "injury": false,
+    "uninhabitable": false,
+    "tier": "Plus",
+    "deductible": 1000,
+    "payable": 6400,
+    "incident_iso": "2026-10-06",
+    "filed_iso": "2026-10-07",
+    "policy_start_iso": "2026-01-21",
+    "complications": 1
+   }
+  },
+  {
+   "label": "burst pipe",
+   "id": "ins-990300",
+   "state": "Insurance claim CLM-1080300 filed by P. Silva on 2026-10-07 through the web portal. Policy PROPERTY-995300 started 2026-10-05. The incident: kitchen fire damaged cabinets and countertops, on 2026-10-07. Claimed amount: USD 7,400. The customer attached the contractor quote and photos of the damage and incident report reference. The customer's plan tier is Premium.",
+   "gold": {
+    "routing": "property_unit",
+    "fraud_review": false,
+    "urgency": 0,
+    "coverage_eligibility": "review_required",
+    "net_payable_band": "zero_nothing_payable",
+    "subrogation": false,
+    "expected_touches": 1
+   },
+   "meta": {
+    "cat": "property",
+    "amount": 7400,
+    "policy_days": 3,
+    "docs_ok": true,
+    "fraud": false,
+    "hospital": false,
+    "injury": false,
+    "uninhabitable": false,
+    "tier": "Premium",
+    "deductible": 1000,
+    "payable": 0,
+    "incident_iso": "2026-10-07",
+    "filed_iso": "2026-10-07",
+    "policy_start_iso": "2026-10-05",
+    "complications": 1
    }
   },
   {
    "label": "ER fracture",
    "id": "ins-990401",
-   "state": "Insurance claim CLM-1080401 filed by L. Rossi on 2026-10-01 through the mobile app. Policy HEALTH-995401 started 2026-10-05. The incident: emergency room visit for a fractured wrist, on 2026-09-30. Claimed amount: USD 7,400. The customer attached the itemized hospital invoice and referral letter and prescription copy. The customer's plan tier is Standard.",
+   "state": "Insurance claim CLM-1080401 filed by S. Eriksen on 2026-10-08 through the web portal. Policy HEALTH-995401 started 2026-08-24. The incident: emergency room visit for a fractured wrist, on 2026-10-03. Claimed amount: USD 13,400. The customer attached the itemized hospital invoice and referral letter and prescription copy. The customer's plan tier is Premium.",
    "gold": {
     "routing": "health_benefits",
     "fraud_review": false,
-    "urgency": 3
+    "urgency": 3,
+    "coverage_eligibility": "covered",
+    "net_payable_band": "5000_to_15000",
+    "subrogation": false,
+    "expected_touches": 1
    },
    "meta": {
     "cat": "health",
-    "amount": 7400,
-    "policy_days": 3,
+    "amount": 13400,
+    "policy_days": 45,
     "docs_ok": true,
     "fraud": false,
     "hospital": true,
     "injury": true,
-    "uninhabitable": false
+    "uninhabitable": false,
+    "tier": "Premium",
+    "deductible": 250,
+    "payable": 13150,
+    "incident_iso": "2026-10-03",
+    "filed_iso": "2026-10-08",
+    "policy_start_iso": "2026-08-24",
+    "complications": 1
    }
   },
   {
    "label": "prescription",
-   "id": "ins-990500",
-   "state": "Insurance claim CLM-1080500 filed by A. Tanaka on 2026-10-01 through an email to the claims desk. Policy HEALTH-995500 started 2026-05-21. The incident: physiotherapy sessions after knee surgery, on 2026-10-01. Claimed amount: USD 15,800. No supporting documents were attached; the customer says they were lost in a move. The customer's plan tier is Basic.",
+   "id": "ins-990501",
+   "state": "Insurance claim CLM-1080501 filed by R. Haddad on 2026-10-04 through an email to the claims desk. Policy HEALTH-995501 started 2026-09-21. The incident: emergency room visit for a fractured wrist, on 2026-09-25. Claimed amount: USD 4,200. The customer attached the itemized hospital invoice and referral letter and prescription copy. The customer's plan tier is Plus.",
    "gold": {
     "routing": "health_benefits",
     "fraud_review": false,
-    "urgency": 2
+    "urgency": 3,
+    "coverage_eligibility": "covered",
+    "net_payable_band": "1000_to_5000",
+    "subrogation": false,
+    "expected_touches": 0
    },
    "meta": {
     "cat": "health",
-    "amount": 15800,
-    "policy_days": 140,
-    "docs_ok": false,
+    "amount": 4200,
+    "policy_days": 17,
+    "docs_ok": true,
     "fraud": false,
-    "hospital": false,
+    "hospital": true,
     "injury": true,
-    "uninhabitable": false
+    "uninhabitable": false,
+    "tier": "Plus",
+    "deductible": 250,
+    "payable": 3950,
+    "incident_iso": "2026-09-25",
+    "filed_iso": "2026-10-04",
+    "policy_start_iso": "2026-09-21",
+    "complications": 0
    }
   },
   {
    "label": "flight cancellation",
    "id": "ins-990600",
-   "state": "Insurance claim CLM-1080600 filed by S. Eriksen on 2026-10-08 through the web portal. Policy TRAVEL-995600 started 2024-11-07. The incident: tour operator cancelled the booked excursion, on 2026-10-03. Claimed amount: USD 5,100. No supporting documents were attached; the customer says they were lost in a move. The customer's plan tier is Premium.",
+   "state": "Insurance claim CLM-1080600 filed by T. Vargas on 2026-10-08 through the web portal. Policy TRAVEL-995600 started 2026-01-21. The incident: delayed connection caused missed cruise departure, on 2026-10-08. Claimed amount: USD 6,300. The customer attached the airline confirmation and hotel receipt and booking itinerary. The customer's plan tier is Basic.",
    "gold": {
     "routing": "travel_unit",
     "fraud_review": false,
-    "urgency": 1
+    "urgency": 1,
+    "coverage_eligibility": "covered",
+    "net_payable_band": "5000_to_15000",
+    "subrogation": false,
+    "expected_touches": 0
    },
    "meta": {
     "cat": "travel",
-    "amount": 5100,
-    "policy_days": 700,
-    "docs_ok": false,
+    "amount": 6300,
+    "policy_days": 260,
+    "docs_ok": true,
     "fraud": false,
     "hospital": false,
     "injury": false,
-    "uninhabitable": false
+    "uninhabitable": false,
+    "tier": "Basic",
+    "deductible": 100,
+    "payable": 6200,
+    "incident_iso": "2026-10-08",
+    "filed_iso": "2026-10-08",
+    "policy_start_iso": "2026-01-21",
+    "complications": 0
    }
   },
   {
    "label": "lost baggage",
    "id": "ins-990700",
-   "state": "Insurance claim CLM-1080700 filed by M. Haddad on 2026-10-08 through the web portal. Policy TRAVEL-995700 started 2026-05-21. The incident: delayed connection caused missed cruise departure, on 2026-10-08. Claimed amount: USD 480. The customer attached the airline confirmation and hotel receipt and booking itinerary. The customer's plan tier is Plus.",
+   "state": "Insurance claim CLM-1080700 filed by J. Wong on 2026-10-08 through an email to the claims desk. Policy TRAVEL-995700 started 2026-10-05. The incident: trip interrupted by a family medical emergency, on 2026-09-29. Claimed amount: USD 4,200. The customer attached the airline confirmation and hotel receipt and booking itinerary. The customer's plan tier is Premium.",
    "gold": {
     "routing": "travel_unit",
     "fraud_review": false,
-    "urgency": 1
+    "urgency": 1,
+    "coverage_eligibility": "not_covered_policy_not_active",
+    "net_payable_band": "zero_nothing_payable",
+    "subrogation": false,
+    "expected_touches": 1
    },
    "meta": {
     "cat": "travel",
-    "amount": 480,
-    "policy_days": 140,
+    "amount": 4200,
+    "policy_days": 3,
     "docs_ok": true,
     "fraud": false,
     "hospital": false,
     "injury": false,
-    "uninhabitable": false
+    "uninhabitable": false,
+    "tier": "Premium",
+    "deductible": 100,
+    "payable": 0,
+    "incident_iso": "2026-09-29",
+    "filed_iso": "2026-10-08",
+    "policy_start_iso": "2026-10-05",
+    "complications": 1
    }
   },
   {
    "label": "FRAUD: no docs + fresh policy",
-   "id": "ins-990814",
-   "state": "Insurance claim CLM-1080814 filed by P. Tanaka on 2026-10-08 through the claims hotline. Policy MOTOR-995814 started 2026-09-29. The incident: windshield cracked by road debris, on 2026-09-29. Claimed amount: USD 6,300. No supporting documents were attached; the customer says they were lost in a move. The customer's plan tier is Standard.",
+   "id": "ins-990802",
+   "state": "Insurance claim CLM-1080802 filed by T. Bennett on 2026-10-07 through an email to the claims desk. Policy MOTOR-995802 started 2026-09-12. The incident: rear-ended at a traffic light, on 2026-10-07. Claimed amount: USD 5,100. No supporting documents were attached; the customer says they were lost in a move. The customer's plan tier is Plus.",
    "gold": {
     "routing": "special_investigations",
     "fraud_review": true,
-    "urgency": 0
+    "urgency": 0,
+    "coverage_eligibility": "covered",
+    "net_payable_band": "zero_nothing_payable",
+    "subrogation": true,
+    "expected_touches": 3
    },
    "meta": {
     "cat": "motor",
+    "amount": 5100,
+    "policy_days": 26,
+    "docs_ok": false,
+    "fraud": true,
+    "hospital": false,
+    "injury": false,
+    "uninhabitable": false,
+    "tier": "Plus",
+    "deductible": 500,
+    "payable": 0,
+    "incident_iso": "2026-10-07",
+    "filed_iso": "2026-10-07",
+    "policy_start_iso": "2026-09-12",
+    "complications": 1
+   }
+  },
+  {
+   "label": "FRAUD: no docs + huge amount",
+   "id": "ins-990901",
+   "state": "Insurance claim CLM-1080901 filed by R. Wong on 2026-10-07 through the web portal. Policy PROPERTY-995901 started 2025-09-03. The incident: break-in damaged the back door and stole electronics, on 2026-10-02. Claimed amount: USD 26,500. No supporting documents were attached; the customer says they were lost in a move. The customer's plan tier is Premium.",
+   "gold": {
+    "routing": "special_investigations",
+    "fraud_review": true,
+    "urgency": 1,
+    "coverage_eligibility": "covered",
+    "net_payable_band": "zero_nothing_payable",
+    "subrogation": false,
+    "expected_touches": 3
+   },
+   "meta": {
+    "cat": "property",
+    "amount": 26500,
+    "policy_days": 400,
+    "docs_ok": false,
+    "fraud": true,
+    "hospital": false,
+    "injury": false,
+    "uninhabitable": false,
+    "tier": "Premium",
+    "deductible": 1000,
+    "payable": 0,
+    "incident_iso": "2026-10-02",
+    "filed_iso": "2026-10-07",
+    "policy_start_iso": "2025-09-03",
+    "complications": 2
+   }
+  },
+  {
+   "label": "FRAUD: fresh policy + limit ask",
+   "id": "ins-991000",
+   "state": "Insurance claim CLM-1081000 filed by P. Tanaka on 2026-10-04 through the claims hotline. Policy HEALTH-996000 started 2026-09-12. The incident: emergency room visit for a fractured wrist, on 2026-10-03. Claimed amount: USD 3,400. No supporting documents were attached; the customer says they were lost in a move. The customer's plan tier is Plus.",
+   "gold": {
+    "routing": "special_investigations",
+    "fraud_review": true,
+    "urgency": 3,
+    "coverage_eligibility": "covered",
+    "net_payable_band": "zero_nothing_payable",
+    "subrogation": false,
+    "expected_touches": 3
+   },
+   "meta": {
+    "cat": "health",
+    "amount": 3400,
+    "policy_days": 26,
+    "docs_ok": false,
+    "fraud": true,
+    "hospital": true,
+    "injury": true,
+    "uninhabitable": false,
+    "tier": "Plus",
+    "deductible": 250,
+    "payable": 0,
+    "incident_iso": "2026-10-03",
+    "filed_iso": "2026-10-04",
+    "policy_start_iso": "2026-09-12",
+    "complications": 1
+   }
+  },
+  {
+   "label": "FRAUD: no docs + limit ask",
+   "id": "ins-991105",
+   "state": "Insurance claim CLM-1081105 filed by T. Vargas on 2026-10-01 through the web portal. Policy TRAVEL-996105 started 2026-09-29. The incident: tour operator cancelled the booked excursion, on 2026-09-29. Claimed amount: USD 6,300. No supporting documents were attached; the customer says they were lost in a move. The customer's plan tier is Basic.",
+   "gold": {
+    "routing": "special_investigations",
+    "fraud_review": true,
+    "urgency": 1,
+    "coverage_eligibility": "review_required",
+    "net_payable_band": "zero_nothing_payable",
+    "subrogation": false,
+    "expected_touches": 3
+   },
+   "meta": {
+    "cat": "travel",
     "amount": 6300,
     "policy_days": 9,
     "docs_ok": false,
     "fraud": true,
     "hospital": false,
     "injury": false,
-    "uninhabitable": false
-   }
-  },
-  {
-   "label": "FRAUD: no docs + huge amount",
-   "id": "ins-990900",
-   "state": "Insurance claim CLM-1080900 filed by L. Alvarez on 2026-10-06 through the claims hotline. Policy PROPERTY-995900 started 2026-09-12. The incident: break-in damaged the back door and stole electronics, on 2026-10-05. Claimed amount: USD 18,500 (the customer asks for the policy limit). No supporting documents were attached; the customer says they were lost in a move. The customer's plan tier is Premium.",
-   "gold": {
-    "routing": "special_investigations",
-    "fraud_review": true,
-    "urgency": 1
-   },
-   "meta": {
-    "cat": "property",
-    "amount": 18500,
-    "policy_days": 26,
-    "docs_ok": false,
-    "fraud": true,
-    "hospital": false,
-    "injury": false,
-    "uninhabitable": false
-   }
-  },
-  {
-   "label": "FRAUD: fresh policy + limit ask",
-   "id": "ins-991008",
-   "state": "Insurance claim CLM-1081008 filed by D. Nakamura on 2026-10-06 through the mobile app. Policy HEALTH-996008 started 2024-11-07. The incident: prescription coverage for a new medication, on 2026-10-04. Claimed amount: USD 26,500. No supporting documents were attached; the customer says they were lost in a move. The customer's plan tier is Standard.",
-   "gold": {
-    "routing": "special_investigations",
-    "fraud_review": true,
-    "urgency": 1
-   },
-   "meta": {
-    "cat": "health",
-    "amount": 26500,
-    "policy_days": 700,
-    "docs_ok": false,
-    "fraud": true,
-    "hospital": false,
-    "injury": false,
-    "uninhabitable": false
-   }
-  },
-  {
-   "label": "FRAUD: no docs + limit ask",
-   "id": "ins-991107",
-   "state": "Insurance claim CLM-1081107 filed by A. Ibrahim on 2026-10-06 through the mobile app. Policy TRAVEL-996107 started 2026-09-12. The incident: tour operator cancelled the booked excursion, on 2026-10-01. Claimed amount: USD 2,800. No supporting documents were attached; the customer says they were lost in a move. The customer's plan tier is Premium.",
-   "gold": {
-    "routing": "special_investigations",
-    "fraud_review": true,
-    "urgency": 1
-   },
-   "meta": {
-    "cat": "travel",
-    "amount": 2800,
-    "policy_days": 26,
-    "docs_ok": false,
-    "fraud": true,
-    "hospital": false,
-    "injury": false,
-    "uninhabitable": false
+    "uninhabitable": false,
+    "tier": "Basic",
+    "deductible": 100,
+    "payable": 0,
+    "incident_iso": "2026-09-29",
+    "filed_iso": "2026-10-01",
+    "policy_start_iso": "2026-09-29",
+    "complications": 2
    }
   },
   {
    "label": "break-in theft",
-   "id": "ins-991200",
-   "state": "Insurance claim CLM-1081200 filed by S. Alvarez on 2026-10-06 through an email to the claims desk. Policy PROPERTY-996200 started 2026-08-24. The incident: kitchen fire damaged cabinets and countertops, on 2026-10-04. Claimed amount: USD 2,100. The customer attached the contractor quote and photos of the damage and incident report reference. The customer's plan tier is Plus.",
+   "id": "ins-991201",
+   "state": "Insurance claim CLM-1081201 filed by A. Dubois on 2026-10-08 through an email to the claims desk. Policy PROPERTY-996201 started 2026-01-21. The incident: break-in damaged the back door and stole electronics, on 2026-10-06. Claimed amount: USD 4,200. No supporting documents were attached; the customer says they were lost in a move. The customer's plan tier is Standard.",
    "gold": {
     "routing": "property_unit",
     "fraud_review": false,
-    "urgency": 0
+    "urgency": 0,
+    "coverage_eligibility": "covered",
+    "net_payable_band": "1000_to_5000",
+    "subrogation": false,
+    "expected_touches": 1
    },
    "meta": {
     "cat": "property",
-    "amount": 2100,
-    "policy_days": 45,
-    "docs_ok": true,
+    "amount": 4200,
+    "policy_days": 260,
+    "docs_ok": false,
     "fraud": false,
     "hospital": false,
     "injury": false,
-    "uninhabitable": false
+    "uninhabitable": false,
+    "tier": "Standard",
+    "deductible": 1000,
+    "payable": 3200,
+    "incident_iso": "2026-10-06",
+    "filed_iso": "2026-10-08",
+    "policy_start_iso": "2026-01-21",
+    "complications": 1
    }
   },
   {
    "label": "flooded engine",
-   "id": "ins-991300",
-   "state": "Insurance claim CLM-1081300 filed by J. Silva on 2026-10-01 through the web portal. Policy MOTOR-996300 started 2026-09-12. The incident: windshield cracked by road debris, on 2026-09-30. Claimed amount: USD 9,600. The customer attached the repair estimate and photos of the damage and police report reference. The customer's plan tier is Premium.",
+   "id": "ins-991301",
+   "state": "Insurance claim CLM-1081301 filed by R. Silva on 2026-10-06 through the web portal. Policy MOTOR-996301 started 2025-09-03. The incident: rear-ended at a traffic light, on 2026-10-01. Claimed amount: USD 2,100. The customer attached the repair estimate and photos of the damage and police report reference. The customer's plan tier is Standard.",
    "gold": {
     "routing": "motor_unit",
     "fraud_review": false,
-    "urgency": 1
+    "urgency": 0,
+    "coverage_eligibility": "covered",
+    "net_payable_band": "1000_to_5000",
+    "subrogation": true,
+    "expected_touches": 0
    },
    "meta": {
     "cat": "motor",
-    "amount": 9600,
-    "policy_days": 26,
-    "docs_ok": true,
-    "fraud": false,
-    "hospital": false,
-    "injury": false,
-    "uninhabitable": false
-   }
-  },
-  {
-   "label": "physiotherapy",
-   "id": "ins-991400",
-   "state": "Insurance claim CLM-1081400 filed by J. Cho on 2026-10-06 through the web portal. Policy HEALTH-996400 started 2025-09-03. The incident: physiotherapy sessions after knee surgery, on 2026-10-05. Claimed amount: USD 1,200. The customer attached the itemized hospital invoice and referral letter and prescription copy. The customer's plan tier is Basic.",
-   "gold": {
-    "routing": "health_benefits",
-    "fraud_review": false,
-    "urgency": 2
-   },
-   "meta": {
-    "cat": "health",
-    "amount": 1200,
+    "amount": 2100,
     "policy_days": 400,
     "docs_ok": true,
     "fraud": false,
     "hospital": false,
+    "injury": false,
+    "uninhabitable": false,
+    "tier": "Standard",
+    "deductible": 500,
+    "payable": 1600,
+    "incident_iso": "2026-10-01",
+    "filed_iso": "2026-10-06",
+    "policy_start_iso": "2025-09-03",
+    "complications": 0
+   }
+  },
+  {
+   "label": "physiotherapy",
+   "id": "ins-991401",
+   "state": "Insurance claim CLM-1081401 filed by L. Park on 2026-10-01 through the claims hotline. Policy HEALTH-996401 started 2026-07-20. The incident: urgent care visit for a severe allergic reaction, on 2026-09-29. Claimed amount: USD 240. The customer attached the itemized hospital invoice and referral letter and prescription copy. The customer's plan tier is Premium.",
+   "gold": {
+    "routing": "health_benefits",
+    "fraud_review": false,
+    "urgency": 3,
+    "coverage_eligibility": "covered",
+    "net_payable_band": "zero_nothing_payable",
+    "subrogation": false,
+    "expected_touches": 0
+   },
+   "meta": {
+    "cat": "health",
+    "amount": 240,
+    "policy_days": 80,
+    "docs_ok": true,
+    "fraud": false,
+    "hospital": true,
     "injury": true,
-    "uninhabitable": false
+    "uninhabitable": false,
+    "tier": "Premium",
+    "deductible": 250,
+    "payable": 0,
+    "incident_iso": "2026-09-29",
+    "filed_iso": "2026-10-01",
+    "policy_start_iso": "2026-07-20",
+    "complications": 0
    }
   },
   {
    "label": "missed cruise",
    "id": "ins-991500",
-   "state": "Insurance claim CLM-1081500 filed by P. Gupta on 2026-10-07 through the mobile app. Policy TRAVEL-996500 started 2026-05-21. The incident: trip interrupted by a family medical emergency, on 2026-10-07. Claimed amount: USD 1,650. The customer attached the airline confirmation and hotel receipt and booking itinerary. The customer's plan tier is Premium.",
+   "state": "Insurance claim CLM-1081500 filed by P. Dubois on 2026-10-06 through the claims hotline. Policy TRAVEL-996500 started 2026-08-24. The incident: flight cancellation forced an unplanned hotel night, on 2026-10-04. Claimed amount: USD 8,800. The customer attached the airline confirmation and hotel receipt and booking itinerary. The customer's plan tier is Basic.",
    "gold": {
     "routing": "travel_unit",
     "fraud_review": false,
-    "urgency": 1
+    "urgency": 1,
+    "coverage_eligibility": "covered",
+    "net_payable_band": "5000_to_15000",
+    "subrogation": false,
+    "expected_touches": 1
    },
    "meta": {
     "cat": "travel",
-    "amount": 1650,
-    "policy_days": 140,
+    "amount": 8800,
+    "policy_days": 45,
     "docs_ok": true,
     "fraud": false,
     "hospital": false,
     "injury": false,
-    "uninhabitable": false
+    "uninhabitable": false,
+    "tier": "Basic",
+    "deductible": 100,
+    "payable": 8700,
+    "incident_iso": "2026-10-04",
+    "filed_iso": "2026-10-06",
+    "policy_start_iso": "2026-08-24",
+    "complications": 1
    }
   },
   {
@@ -354,7 +594,11 @@
    "gold": {
     "routing": "motor_unit",
     "fraud_review": false,
-    "urgency": 0
+    "urgency": 0,
+    "coverage_eligibility": "covered",
+    "net_payable_band": "1000_to_5000",
+    "subrogation": true,
+    "expected_touches": 0
    }
   },
   {
@@ -364,17 +608,25 @@
    "gold": {
     "routing": "property_unit",
     "fraud_review": false,
-    "urgency": 0
+    "urgency": 0,
+    "coverage_eligibility": "covered",
+    "net_payable_band": "5000_to_15000",
+    "subrogation": false,
+    "expected_touches": 0
    }
   },
   {
    "label": "🇮🇳 Hindi health claim",
    "lang": "hi",
-   "state": "बीमा दावा CLM-771003। पॉलिसी HEALTH-7730 का आरंभ 2026-09-20 को हुआ। घटना: गुर्दे की पथरी के इलाज के लिए आपातकालीन कक्ष में भर्ती। दावा राशि: 18,500 अमेरिकी डॉलर। अस्पताल का विस्तृत बिल और पर्चा प्रति संलग्न है।",
+   "state": "बीमा दावा CLM-771003। पॉलिसी HEALTH-7730 का आरंभ 2026-09-20 को हुआ। घटना: गुर्दे की पथरी के इलाज के लिए आपातकालीन कक्ष में भर्ती। दावा राशि: 17,500 अमेरिकी डॉलर। अस्पताल का विस्तृत बिल और पर्चा प्रति संलग्न है।",
    "gold": {
     "routing": "health_benefits",
     "fraud_review": false,
-    "urgency": 3
+    "urgency": 3,
+    "coverage_eligibility": "covered",
+    "net_payable_band": "over_15000",
+    "subrogation": false,
+    "expected_touches": 1
    }
   },
   {
@@ -384,7 +636,11 @@
    "gold": {
     "routing": "travel_unit",
     "fraud_review": false,
-    "urgency": 1
+    "urgency": 1,
+    "coverage_eligibility": "covered",
+    "net_payable_band": "up_to_1000",
+    "subrogation": false,
+    "expected_touches": 0
    }
   }
  ]

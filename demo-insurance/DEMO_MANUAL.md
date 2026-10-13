@@ -50,15 +50,32 @@ network see traffic metadata. Fine for a session with known recipients; revoke w
 5. **Audience drives (2 min):** hand over the free-text box — paste any claim; discuss the
    probability bars. Scoreboard tallies preset hits per engine; Reset clears.
 
-## 4. Numbers you may quote (measured on 500 unseen claims, this machine)
+### The ops floor (the executive close) — `?mode=ops`
 
-| Engine | Accuracy | All-three-correct rows |
+6. **Flip to ops (3 min):** "One claim is a toy; here is the operation." The sealed 500-claim
+   holdout, all engines, measured once before the session. Show the money cards (total claimed,
+   fraud $ flagged, false-flag $), then hand the threshold slider to the audience: every τ move
+   changes the straight-through rate, the unattended accuracy, and the fraud that slips through.
+   Let an adjuster override a row — the counters follow. The calibration strip answers the only
+   question that matters for automation: *when it says 80%, is it right 80% of the time?*
+   Engine D (rules) is on the same table on purpose: it is perfect on the phrasing it was built
+   for and `unparsed` on the Korean claim — that is the incumbent's real shape.
+
+## 4. Numbers you may quote (measured on 500 unseen claims, 7 questions each, this machine)
+
+| Engine | v2 accuracy | All-seven-correct rows |
 |---|---:|---:|
-| Laya out-of-box | 37.8% | 0/500 |
-| Laya fine-tuned (12k claims) | 100.0% | 500/500 |
-| decider-4b (no training) | 74.1% | 256/500 |
+| Laya out-of-box | 35.5% | 0/500 |
+| Laya fine-tuned (12k claims) | 99.9% | 497/500 |
+| decider-4b (no training) | 70.8% | 21/500 |
+| Rules engine (Engine D) | 100.0% *English phrasing only* | 500/500 — `unparsed` on non-English |
 
-Study context: on the prior sealed corpus Laya-ft beat the adapted 8B CLM model on every endpoint
+Ops floor (τ = 0.80): 69.4% straight-through (347 claims, $2.29M), every auto-approved claim
+correct on all seven decisions (347/347), one fraud claim below threshold (the τ-slider's
+cautionary tale), $1.21M fraud-$ flagged with $0 false-flagged.
+
+v1 comparison (3-question era, same corpus seed): 37.8% / 100.0% / 74.1%. Study context: on the
+prior sealed corpus Laya-ft beat the adapted 8B CLM model on every endpoint
 (`LAYA_DECIDER_EXPERIMENT_REPORT.md`).
 
 ## 5. Language handling (measured, and why Engine B is English-only)
