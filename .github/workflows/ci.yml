@@ -37,7 +37,9 @@ jobs:
             demo-insurance/data/support_tickets/validation.jsonl demo-insurance/data/support_tickets/holdout_eval.jsonl demo-insurance/data/support_tickets/demo_presets.json \
             demo-insurance/data/logistics_exceptions/validation.jsonl demo-insurance/data/logistics_exceptions/holdout_eval.jsonl demo-insurance/data/logistics_exceptions/demo_presets.json \
             demo-insurance/data/hr_exceptions/validation.jsonl demo-insurance/data/hr_exceptions/holdout_eval.jsonl demo-insurance/data/hr_exceptions/demo_presets.json
-          sha256sum -c demo-insurance/data/train.sha256 demo-insurance/data/*/train.sha256
+          for d in demo-insurance/data demo-insurance/data/*/; do
+            ( cd "$d" && sha256sum -c train.sha256 )
+          done
           echo "OK: all four corpora regenerate byte-identically (train files by digest)"
 
       - name: Gold replay validation (rules recomputed from raw text must match, 500/500 per domain)
