@@ -94,7 +94,13 @@ class H(BaseHTTPRequestHandler):
         if path in routes:
             ctype, filepath = routes[path]
             try:
-                self._send(200, ctype, open(filepath, "rb").read())
+                payload = open(filepath, "rb").read()
+                self.send_response(200); self._cors()
+                self.send_header("Content-Type", ctype)
+                if "text/html" in ctype:
+                    self.send_header("Cache-Control", "no-store")
+                self.send_header("Content-Length", str(len(payload))); self.end_headers()
+                self.wfile.write(payload)
             except FileNotFoundError:
                 self.send_response(404); self._cors(); self.end_headers()
             return
