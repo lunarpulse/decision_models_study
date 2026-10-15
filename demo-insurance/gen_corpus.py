@@ -217,6 +217,22 @@ def to_train(r):
     return {"state": r["state"], "questions": r["questions"], "expected": r["gold"]}
 
 
+def preset_label(r):
+    """Preset label describing the claim that was ACTUALLY generated (only cat + fraud are
+    forced; docs/policy age/amount are whatever the row drew). Reads meta/state only —
+    no rng calls, so train/validation/holdout bytes are unaffected."""
+    m = r["meta"]
+    thing = r["state"].split("The incident: ", 1)[1].split(", on ")[0]  # English rows only
+    if not m["fraud"]:
+        return f"{m['cat']} · {thing} · " + ("docs attached" if m["docs_ok"] else "no docs")
+    flags = []
+    if not m["docs_ok"]: flags.append("no docs")
+    if m["policy_days"] <= 30: flags.append("fresh policy")
+    if "asks for the policy limit" in r["state"]: flags.append("limit ask")
+    if m["amount"] >= 18500: flags.append("huge amount")
+    return "FRAUD: " + f"{m['cat']} · {thing} · " + " + ".join(flags)
+
+
 rows = {}
 seen = set()
 i = 0
@@ -263,7 +279,7 @@ for k, force in enumerate(forces):
         ok = (m["fraud"] == want_fraud)
         if "ER" in force["desc"]: ok = ok and r["gold"]["urgency"] == 3
         if ok:
-            presets.append({"label": force["desc"], "id": r["id"], "state": r["state"],
+            presets.append({"label": preset_label(r), "id": r["id"], "state": r["state"],
                             "gold": r["gold"], "meta": m})
             break
 

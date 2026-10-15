@@ -1,0 +1,8 @@
+[Unit]
+Description=Insurance claims demo — all services
+# The tunnel is optional (start decision-demo-tunnel.service separately) but is
+# stopped together with the target (PartOf on each unit).
+Wants=decision-demo-laya.service decision-demo-decider.service decision-demo-studio.service
+
+[Install]
+WantedBy=default.target

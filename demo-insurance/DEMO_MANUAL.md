@@ -4,19 +4,76 @@ Session development record (including operator Q&A and the failure ledger): `DEV
 Run from the repo's `demo-insurance/` directory. · Console: **http://127.0.0.1:8901**
 Runs on one machine with a CUDA GPU (~10 GB VRAM with all engines resident; author measurements used an RTX 5090 — see docs/ for provenance).
 
-## 1. Start / stop
+## 1. Running the demo — dev, live, and supervision
+
+**Portable (repo tree, any machine):**
 
 ```bash
-bash start_demo.sh   (from demo-insurance/)   # starts services if down, prints URLs
-bash stop_demo.sh    (from demo-insurance/)    # stops services + cloudflared tunnel
+bash start_demo.sh            # laya :8901, decider :8902, studio :8903 (skips ones already up)
+bash start_demo.sh --tunnel   # + cloudflared quick tunnel; public URL printed and saved to tunnel-url.txt
+bash stop_demo.sh             # prints what it would stop — plan only, kills nothing
+bash stop_demo.sh --yes       # stops all of the above + the studio's train_cli child (PID-attributed)
 ```
+
+Venvs auto-detect from `../.venv-laya` / `../.venv-decider` (run `../setup.sh` once); override
+with `LAYA_PY` / `DECIDER_PY` / `STUDIO_PY` (absolute python paths) and `LAYA_PORT` /
+`DECIDER_PORT` / `STUDIO_PORT`. On the live machine the interpreters live inside the distrobox
+`ai-dev`: `BOX=ai-dev LAYA_PY=/opt/ai-tools/venv-laya/bin/python DECIDER_PY=/opt/ai-tools/venv-decider/bin/python`.
 
 - **laya service** `:8901` — serves the console AND both Laya engines: zero-shot Router
   (auto language routing) + fine-tuned English + fine-tuned multilingual checkpoints.
+  Also proxies `/dec/*` and `/studio/*` — one public origin.
 - **decider service** `:8902` — decider-4b v2.1, always untrained (that is the point of Engine C).
-- Logs: `laya-service.log`, `decider-service.log`. Health dots in the top bar; `?mode=` URLs are
-  shareable (`day1`, `after`, `compare`).
-- First request after a cold start takes ~1–2 s (CUDA warm-up); afterwards 10–30 ms per decision.
+- **studio service** `:8903` — Teach/drift/status for the Domain Builder. Mutating routes need the
+  token in `studio-token.txt` (auto-generated with a random secret on first start, chmod 600, never
+  echoed); the presenter types it once in the console.
+
+**Supervised (live machine):** the same services run as systemd `--user` units
+`decision-demo-{laya,decider,studio,tunnel}.service`, grouped by `decision-demo.target`
+(`deploy/systemd/`; failed services restart after 5 s). One-time setup:
+
+```bash
+demo-insurance/sync_live.sh               # repo -> live tree (see below)
+demo-insurance/deploy/install_units.sh    # copies units + env file; prints start commands, starts nothing
+systemctl --user start decision-demo.target            # the three services
+systemctl --user start decision-demo-tunnel.service    # optional public URL -> tunnel-url.txt
+```
+
+Machine parameters (demo dir, distrobox name, python paths, ports, cloudflared binary) live in
+`deploy/demo.env` — copy `deploy/demo.env.example` and edit; `install_units.sh` installs it as
+`~/.config/systemd/user/decision-demo.env`. The studio unit refuses to start without
+`studio-token.txt`. Note: the token reaches the studio through the environment, so any local user
+can read it from `ps` — acceptable on a single-user demo box; the tunnel link is the real gate.
+
+**Deploying a change:** edit in the repo, then `sync_live.sh` from `demo-insurance/`. It rsyncs
+the repo tree to the live tree (`--checksum --delete`), keeps checkpoints, `studio-runs/`, logs,
+tokens and caches intact, syncs `../docs/LAYA_DECIDER_EXPERIMENT_REPORT.md` into
+`<target>/../docs/` (that is what `/report` serves), and writes the repo HEAD (plus `-dirty` when
+the tree is dirty) to `VERSION` — shown by `/stats` and the footer. `--dry-run` lists pending
+changes and exits non-zero while anything differs. Restart to load new code:
+`systemctl --user restart decision-demo-laya decision-demo-decider decision-demo-studio`
+(the tunnel and its URL keep running).
+
+**Logs:**
+- supervised services: `journalctl --user -u decision-demo-laya` (also `-decider`, `-studio`, `-tunnel`)
+- start_demo.sh runs: `laya-service.log`, `decider-service.log`, `studio-service.log`, `cloudflared.log`
+- studio training: `studio-runs/<domain>/train-<YYYYmmdd-HHMMSS>.log` — the full train_cli output;
+  `/studio/status` shows parsed progress only, so go to the log when a teach fails.
+
+Health dots in the top bar; `?mode=` URLs are shareable (`day1`, `after`, `compare`, `ops`, `domain`).
+First request after a cold start takes ~1–2 s (CUDA warm-up); afterwards 10–30 ms per decision.
+
+### Pre-show checklist
+
+1. Units green: `systemctl --user status decision-demo.target` — laya, decider, studio `active (running)` (tunnel too, if used).
+2. Health ok: `curl -s :8901/health`, `:8901/dec/health`, `:8901/studio/health` all report ok.
+3. GPU room to teach: `/studio/health` free GiB ≥ its `teach_min_free_gib`; `pgrep -af laya.train_cli` finds nothing.
+4. One phone test on mobile data through the tunnel URL — page loads, one preset answers.
+5. Domain card renders in `?mode=domain` (cards, struggle cases, no blank pane).
+6. Wrong-token test: teach with a garbage token is rejected and re-prompts; the real token works.
+7. `VERSION` in the live tree equals the repo HEAD you meant to ship.
+8. Disk and logs sane: `df -h .`, `du -sh studio-runs`, journal not ballooning.
+9. After any restart, run one warm-up predict — first answer is the slow CUDA one (~1–2 s).
 
 ## 2. Sharing online (cloudflared)
 

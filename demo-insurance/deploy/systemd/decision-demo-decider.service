@@ -1,0 +1,13 @@
+[Unit]
+Description=Insurance claims demo — decider service
+PartOf=decision-demo.target
+
+[Service]
+Type=simple
+EnvironmentFile=%h/.config/systemd/user/decision-demo.env
+ExecStart=/bin/sh -c 'if [ -n "$DEMO_BOX" ]; then exec "$DISTROBOX_BIN" enter "$DEMO_BOX" -- "$DECIDER_PY" "$DEMO_DIR/decider_service.py" "$DECIDER_PORT"; else exec "$DECIDER_PY" "$DEMO_DIR/decider_service.py" "$DECIDER_PORT"; fi'
+# The python process lives inside the distrobox container and survives the wrapper
+# being killed, so stop it explicitly (host pkill sees the container processes).
+ExecStop=/bin/sh -c 'pkill -f "decider_service.py $DECIDER_PORT" 2>/dev/null || :'
+Restart=on-failure
+RestartSec=5

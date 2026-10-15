@@ -46,9 +46,24 @@ def _parse(state):
     return m
 
 
+_QIDS = ["fraud_review", "routing", "urgency", "coverage_eligibility",
+         "net_payable_band", "subrogation", "expected_touches"]
+
+_UNPARSED_EV = ["claim not parsed: incident date or amount not found "
+                "(non-English or unfamiliar wording) — no rule answers attempted"]
+
+
 def decide(state, questions=None):
     """Return {answers: {qid: {...}}, evidence: {qid: [strings]}, ms, engine: 'rules-v1'}."""
     p = _parse(state)
+    if p.get("incident") is None or p.get("amount") is None:
+        # Keyword rules are English-only. If the incident date or amount could not be
+        # parsed, EVERY question comes back "unparsed" (the same representation the
+        # routing/coverage branches already use) instead of confidently wrong defaults
+        # (band=zero_nothing_payable, touches, fraud=0, ...).
+        answers = {qid: {"type": "choice", "choice": "unparsed"} for qid in _QIDS}
+        evidence = {qid: list(_UNPARSED_EV) for qid in _QIDS}
+        return {"engine": "rules-v1", "ms": 0.1, "answers": answers, "evidence": evidence}
     answers, evidence = {}, {}
 
     fired = []

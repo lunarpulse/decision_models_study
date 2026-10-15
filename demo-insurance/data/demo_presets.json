@@ -92,7 +92,7 @@
  ],
  "presets": [
   {
-   "label": "plain motor claim, docs attached",
+   "label": "motor · hail damage to the roof and hood · no docs",
    "id": "ins-990000",
    "state": "Insurance claim CLM-1080000 filed by L. Rossi on 2026-10-07 through the mobile app. Policy MOTOR-995000 started 2025-09-03. The incident: hail damage to the roof and hood, on 2026-10-05. Claimed amount: USD 850. No supporting documents were attached; the customer says they were lost in a move. The customer's plan tier is Premium.",
    "gold": {
@@ -123,7 +123,7 @@
    }
   },
   {
-   "label": "motor hail damage",
+   "label": "motor · side-swiped in a parking garage · docs attached",
    "id": "ins-990100",
    "state": "Insurance claim CLM-1080100 filed by J. Dubois on 2026-10-06 through the mobile app. Policy MOTOR-995100 started 2025-09-03. The incident: side-swiped in a parking garage, on 2026-10-05. Claimed amount: USD 9,600. The customer attached the repair estimate and photos of the damage and police report reference. The customer's plan tier is Standard.",
    "gold": {
@@ -154,7 +154,7 @@
    }
   },
   {
-   "label": "kitchen fire",
+   "label": "property · break-in damaged the back door and stole electronics · no docs",
    "id": "ins-990200",
    "state": "Insurance claim CLM-1080200 filed by D. Ferreira on 2026-10-07 through an email to the claims desk. Policy PROPERTY-995200 started 2026-01-21. The incident: break-in damaged the back door and stole electronics, on 2026-10-06. Claimed amount: USD 7,400. No supporting documents were attached; the customer says they were lost in a move. The customer's plan tier is Plus.",
    "gold": {
@@ -185,7 +185,7 @@
    }
   },
   {
-   "label": "burst pipe",
+   "label": "property · kitchen fire damaged cabinets and countertops · docs attached",
    "id": "ins-990300",
    "state": "Insurance claim CLM-1080300 filed by P. Silva on 2026-10-07 through the web portal. Policy PROPERTY-995300 started 2026-10-05. The incident: kitchen fire damaged cabinets and countertops, on 2026-10-07. Claimed amount: USD 7,400. The customer attached the contractor quote and photos of the damage and incident report reference. The customer's plan tier is Premium.",
    "gold": {
@@ -216,7 +216,7 @@
    }
   },
   {
-   "label": "ER fracture",
+   "label": "health · emergency room visit for a fractured wrist · docs attached",
    "id": "ins-990401",
    "state": "Insurance claim CLM-1080401 filed by S. Eriksen on 2026-10-08 through the web portal. Policy HEALTH-995401 started 2026-08-24. The incident: emergency room visit for a fractured wrist, on 2026-10-03. Claimed amount: USD 13,400. The customer attached the itemized hospital invoice and referral letter and prescription copy. The customer's plan tier is Premium.",
    "gold": {
@@ -247,7 +247,7 @@
    }
   },
   {
-   "label": "prescription",
+   "label": "health · emergency room visit for a fractured wrist · docs attached",
    "id": "ins-990501",
    "state": "Insurance claim CLM-1080501 filed by R. Haddad on 2026-10-04 through an email to the claims desk. Policy HEALTH-995501 started 2026-09-21. The incident: emergency room visit for a fractured wrist, on 2026-09-25. Claimed amount: USD 4,200. The customer attached the itemized hospital invoice and referral letter and prescription copy. The customer's plan tier is Plus.",
    "gold": {
@@ -278,7 +278,7 @@
    }
   },
   {
-   "label": "flight cancellation",
+   "label": "travel · delayed connection caused missed cruise departure · docs attached",
    "id": "ins-990600",
    "state": "Insurance claim CLM-1080600 filed by T. Vargas on 2026-10-08 through the web portal. Policy TRAVEL-995600 started 2026-01-21. The incident: delayed connection caused missed cruise departure, on 2026-10-08. Claimed amount: USD 6,300. The customer attached the airline confirmation and hotel receipt and booking itinerary. The customer's plan tier is Basic.",
    "gold": {
@@ -309,7 +309,7 @@
    }
   },
   {
-   "label": "lost baggage",
+   "label": "travel · trip interrupted by a family medical emergency · docs attached",
    "id": "ins-990700",
    "state": "Insurance claim CLM-1080700 filed by J. Wong on 2026-10-08 through an email to the claims desk. Policy TRAVEL-995700 started 2026-10-05. The incident: trip interrupted by a family medical emergency, on 2026-09-29. Claimed amount: USD 4,200. The customer attached the airline confirmation and hotel receipt and booking itinerary. The customer's plan tier is Premium.",
    "gold": {
@@ -340,7 +340,7 @@
    }
   },
   {
-   "label": "FRAUD: no docs + fresh policy",
+   "label": "FRAUD: motor · rear-ended at a traffic light · no docs + fresh policy",
    "id": "ins-990802",
    "state": "Insurance claim CLM-1080802 filed by T. Bennett on 2026-10-07 through an email to the claims desk. Policy MOTOR-995802 started 2026-09-12. The incident: rear-ended at a traffic light, on 2026-10-07. Claimed amount: USD 5,100. No supporting documents were attached; the customer says they were lost in a move. The customer's plan tier is Plus.",
    "gold": {
@@ -371,7 +371,7 @@
    }
   },
   {
-   "label": "FRAUD: no docs + huge amount",
+   "label": "FRAUD: property · break-in damaged the back door and stole electronics · no docs + huge amount",
    "id": "ins-990901",
    "state": "Insurance claim CLM-1080901 filed by R. Wong on 2026-10-07 through the web portal. Policy PROPERTY-995901 started 2025-09-03. The incident: break-in damaged the back door and stole electronics, on 2026-10-02. Claimed amount: USD 26,500. No supporting documents were attached; the customer says they were lost in a move. The customer's plan tier is Premium.",
    "gold": {
@@ -402,7 +402,7 @@
    }
   },
   {
-   "label": "FRAUD: fresh policy + limit ask",
+   "label": "FRAUD: health · emergency room visit for a fractured wrist · no docs + fresh policy",
    "id": "ins-991000",
    "state": "Insurance claim CLM-1081000 filed by P. Tanaka on 2026-10-04 through the claims hotline. Policy HEALTH-996000 started 2026-09-12. The incident: emergency room visit for a fractured wrist, on 2026-10-03. Claimed amount: USD 3,400. No supporting documents were attached; the customer says they were lost in a move. The customer's plan tier is Plus.",
    "gold": {
@@ -433,7 +433,7 @@
    }
   },
   {
-   "label": "FRAUD: no docs + limit ask",
+   "label": "FRAUD: travel · tour operator cancelled the booked excursion · no docs + fresh policy",
    "id": "ins-991105",
    "state": "Insurance claim CLM-1081105 filed by T. Vargas on 2026-10-01 through the web portal. Policy TRAVEL-996105 started 2026-09-29. The incident: tour operator cancelled the booked excursion, on 2026-09-29. Claimed amount: USD 6,300. No supporting documents were attached; the customer says they were lost in a move. The customer's plan tier is Basic.",
    "gold": {
@@ -464,7 +464,7 @@
    }
   },
   {
-   "label": "break-in theft",
+   "label": "property · break-in damaged the back door and stole electronics · no docs",
    "id": "ins-991201",
    "state": "Insurance claim CLM-1081201 filed by A. Dubois on 2026-10-08 through an email to the claims desk. Policy PROPERTY-996201 started 2026-01-21. The incident: break-in damaged the back door and stole electronics, on 2026-10-06. Claimed amount: USD 4,200. No supporting documents were attached; the customer says they were lost in a move. The customer's plan tier is Standard.",
    "gold": {
@@ -495,7 +495,7 @@
    }
   },
   {
-   "label": "flooded engine",
+   "label": "motor · rear-ended at a traffic light · docs attached",
    "id": "ins-991301",
    "state": "Insurance claim CLM-1081301 filed by R. Silva on 2026-10-06 through the web portal. Policy MOTOR-996301 started 2025-09-03. The incident: rear-ended at a traffic light, on 2026-10-01. Claimed amount: USD 2,100. The customer attached the repair estimate and photos of the damage and police report reference. The customer's plan tier is Standard.",
    "gold": {
@@ -526,7 +526,7 @@
    }
   },
   {
-   "label": "physiotherapy",
+   "label": "health · urgent care visit for a severe allergic reaction · docs attached",
    "id": "ins-991401",
    "state": "Insurance claim CLM-1081401 filed by L. Park on 2026-10-01 through the claims hotline. Policy HEALTH-996401 started 2026-07-20. The incident: urgent care visit for a severe allergic reaction, on 2026-09-29. Claimed amount: USD 240. The customer attached the itemized hospital invoice and referral letter and prescription copy. The customer's plan tier is Premium.",
    "gold": {
@@ -557,7 +557,7 @@
    }
   },
   {
-   "label": "missed cruise",
+   "label": "travel · flight cancellation forced an unplanned hotel night · docs attached",
    "id": "ins-991500",
    "state": "Insurance claim CLM-1081500 filed by P. Dubois on 2026-10-06 through the claims hotline. Policy TRAVEL-996500 started 2026-08-24. The incident: flight cancellation forced an unplanned hotel night, on 2026-10-04. Claimed amount: USD 8,800. The customer attached the airline confirmation and hotel receipt and booking itinerary. The customer's plan tier is Basic.",
    "gold": {

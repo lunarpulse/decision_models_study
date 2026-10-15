@@ -22,7 +22,7 @@ a{color:var(--accent)}
 .brand small{color:var(--muted);font-weight:600}
 .spacer{flex:1}
 .dot{display:inline-block;width:.62em;height:.62em;border-radius:999px;background:#9aa7b5;margin-right:.3em;vertical-align:.08em}
-.dot.up{background:var(--ok)} .dot.down{background:var(--bad)}
+.dot.up{background:var(--ok)} .dot.down{background:var(--bad)} .dot.busy{background:var(--warnline)}
 .scell{border:1px solid var(--line);border-radius:9px;background:#fff;padding:.25rem .6rem;font-size:.78em}
 .scell b{font-variant-numeric:tabular-nums}
 .wrap{max-width:1180px;margin:0 auto;padding:1rem}
@@ -33,7 +33,11 @@ h3{font-size:1em;margin:.1em 0 .3em}
 p{margin:.4em 0}
 .lead{font-size:1.02em;color:#2a3846;max-width:70ch}
 .small{font-size:.8em;color:var(--muted)}
+.caveat{font-size:.75em;color:var(--warn)}
 .callout{border:1.5px solid var(--accent);background:var(--accent-soft);border-radius:10px;padding:.7rem .95rem;margin:.7rem 0;font-size:.92em}
+.note{font-size:.8em;color:var(--warn);background:var(--era1-soft);border:1px solid #d9c08f;border-radius:8px;padding:.4rem .6rem;margin:.4rem 0}
+.ctabar{border:1.5px solid var(--ok);background:var(--era2-soft);border-radius:10px;padding:.6rem .9rem;margin:.7rem 0;
+  display:flex;gap:.8rem;flex-wrap:wrap;align-items:baseline;justify-content:space-between}
 .era{border-radius:12px;padding:.8rem 1rem;margin:.8rem 0;border:2px solid}
 .era h2{margin:.05em 0 .2em}
 .era.day1{border-color:var(--warnline);background:var(--era1-soft)}
@@ -42,16 +46,11 @@ p{margin:.4em 0}
 .tab{font:inherit;font-weight:700;border:1.5px solid var(--line);background:#fff;border-radius:999px;
   padding:.4rem 1rem;cursor:pointer}
 .tab.on{background:var(--ink);color:#fff;border-color:var(--ink)}
-.journey{display:flex;gap:.5rem;align-items:stretch;flex-wrap:wrap;margin:.6rem 0}
-.jstep{flex:1;min-width:150px;border:1px solid var(--line);border-radius:10px;background:#fff;padding:.5rem .7rem}
-.jstep b{display:block;font-size:.85em}
-.jstep span{font-size:.75em;color:var(--muted)}
-.jarrow{align-self:center;color:#54708f;font-weight:800}
 .preset{display:block;width:100%;text-align:left;font:inherit;border:1px solid var(--line);border-radius:9px;
-  background:#fff;padding:.5rem .7rem;margin:.35rem 0;cursor:pointer}
+  background:#fff;padding:.5rem .7rem;margin:.35rem 0;cursor:pointer;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .preset:hover{border-color:var(--accent);background:var(--accent-soft)}
 .preset.sel{border-color:var(--accent);background:var(--accent-soft);font-weight:700}
-.preset small{display:block;color:var(--muted)}
+#presets{max-height:min(420px,55vh);overflow-y:auto;padding-right:.25rem}
 textarea{width:100%;min-height:110px;font:inherit;border:1px solid var(--line);border-radius:9px;padding:.6rem}
 button.primary{font:inherit;font-weight:700;background:var(--accent);color:#fff;border:none;border-radius:9px;
   padding:.55rem 1.2rem;cursor:pointer;margin-top:.4rem}
@@ -64,6 +63,8 @@ button.reveal{font:inherit;font-weight:800;background:var(--ok);color:#fff;borde
 .eng .tag{font-size:.68em;font-weight:800;text-transform:uppercase;letter-spacing:.08em;color:var(--muted)}
 .eng .name{font-weight:800;font-size:1.02em}
 .eng .sub{font-size:.75em;color:var(--muted);margin-bottom:.4rem}
+.thinking{color:var(--muted);font-style:italic;animation:pulse 1.2s ease-in-out infinite}
+@keyframes pulse{50%{opacity:.4}}
 .qblock{border-top:1px dashed var(--line);padding:.5rem 0 .2rem;margin-top:.5rem}
 .qlabel{font-size:.78em;font-weight:700;color:#2c4a6e}
 .ansline{display:flex;align-items:center;gap:.5rem;flex-wrap:wrap;margin:.15rem 0 .3rem}
@@ -91,6 +92,7 @@ footer{border-top:1px solid var(--line);margin-top:1.2rem;padding:.7rem 0;font-s
 .stagehdr{margin:.8rem 0 .2rem;padding:.15rem .45rem;background:var(--accent-soft);border-left:3px solid var(--accent);
   font-size:.72em;font-weight:800;letter-spacing:.08em;text-transform:uppercase;color:var(--accent);border-radius:0 6px 6px 0}
 .ev{margin-top:.3rem;padding:.35rem .5rem;background:#f6f8fa;border:1px dashed var(--line);border-radius:6px;color:var(--muted)}
+.tablewrap{overflow-x:auto}
 .opstable{width:100%;border-collapse:collapse;font-size:.92em}
 .opstable th{font-size:.75em;text-transform:uppercase;letter-spacing:.06em;color:var(--muted);text-align:left;padding:.3rem .45rem;border-bottom:2px solid var(--line)}
 .opstable td{padding:.32rem .45rem;border-bottom:1px solid var(--line)}
@@ -100,65 +102,83 @@ footer{border-top:1px solid var(--line);margin-top:1.2rem;padding:.7rem 0;font-s
 .chip-rev{background:var(--era1-soft);color:var(--era1);border:1px solid #d9c08f}
 .mini{font-size:.78em;padding:.12rem .5rem;margin-right:.2rem;border:1px solid var(--line);border-radius:6px;background:#fff;cursor:pointer}
 .mini:hover{border-color:var(--accent);color:var(--accent)}
+.gchip{display:inline-block;font:inherit;font-size:.8em;padding:.05rem .5rem;border-radius:999px;border:1px solid var(--line);
+  background:#f6f8fa;cursor:pointer}
+.gchip:hover{border-color:var(--accent)}
+.gchip.edited{background:#fff3d6;border-color:var(--warnline);font-weight:700}
+.gselect{font:inherit;font-size:.8em;max-width:11em}
 .calrow{display:flex;gap:.25rem;align-items:center;margin:.3rem 0;flex-wrap:wrap}
-.calrow .k{width:5.2em;font-weight:700;font-size:.8em}
+.calrow .k{width:11em;font-weight:700;font-size:.8em}
 .calbin{display:inline-flex;flex-direction:column;align-items:center;min-width:3em;padding:.15rem .25rem;border:1px solid var(--line);border-radius:5px;font-size:.78em;font-weight:700;background:#fff}
 .calbin small{font-weight:400;color:var(--muted);font-size:.85em}
+.pbar{display:inline-block;vertical-align:middle;width:140px;max-width:38vw;height:.6em;background:#e8edf3;border-radius:999px;overflow:hidden}
+.pbar i{display:block;height:100%;background:var(--accent);border-radius:999px;transition:width .5s}
+.dompick{font:inherit;text-align:left;cursor:pointer;border:1px solid var(--line);border-radius:10px;background:#fff;padding:.6rem .8rem}
+.dompick:hover{border-color:var(--accent);background:var(--accent-soft)}
 </style>
 </head>
 <body>
 <div class="topbar">
   <span class="brand">Live Demo · Insurance Claims <small>· decision console</small></span>
   <span class="spacer"></span>
-  <span class="small"><span class="dot" id="dotLaya"></span>Laya service</span>
-  <span class="small"><span class="dot" id="dotDecider"></span>decider service</span>
+  <span class="small"><span class="dot" id="dotLaya" role="img" aria-label="Laya service status"></span>Laya service</span>
+  <span class="small"><span class="dot" id="dotDecider" role="img" aria-label="decider service status"></span>decider service</span>
+  <span class="small"><span class="dot" id="dotStudio" role="img" aria-label="studio status"></span>studio</span>
   <span id="sboard" style="display:flex;gap:.6rem;flex-wrap:wrap"></span>
   <button class="ghost" id="resetScores">Reset</button>
 </div>
 
 <div class="wrap">
   <p class="kicker">Audience console · what goes in, what comes out</p>
-  <h1>One Claim, Two Eras —<br>Watch the Decision Happen</h1>
-  <p class="lead">Real models, running live on this machine. Pick a claim, press
+  <h1 id="heroTitle">One Claim, Two Eras —<br>Watch the Decision Happen</h1>
+  <p class="lead" id="heroLead">Real models, running live on this machine. Pick a claim, press
     <strong>Run decision</strong>, and see exactly what each engine is asked and what it answers —
     with the probabilities your thresholds would act on.</p>
-
-  <div class="tabs" role="tablist">
-    <button class="tab" data-mode="day1" id="tab-day1">Day 1 · nothing trained yet</button>
-    <button class="tab" data-mode="after" id="tab-after">After training · 12,000 past claims</button>
-    <button class="tab" data-mode="compare" id="tab-compare">Side-by-side compare</button>
-    <button class="tab" data-mode="ops" id="tab-ops">🚦 Ops floor · straight-through processing</button>
-    <button class="tab" data-mode="domain" id="tab-domain">🏭 Domain builder · teach it your business</button>
+  <p class="lead" id="heroLine" hidden></p>
+  <div class="ctabar" id="ctabar">
+    <strong>Run this console on 500 of your historical decisions.</strong>
+    <span class="small">Same console, your data, measured in front of you — everything stays on this machine. Talk to the presenter.</span>
   </div>
 
-  <div class="era day1" id="era-day1" hidden>
-    <h2>🕘 Day 1 — the engines know nothing about insurance</h2>
+  <div class="tabs" role="tablist" aria-label="demo modes">
+    <button class="tab" role="tab" id="tab-day1" data-mode="day1" aria-controls="era-day1">Day 1 · nothing trained yet</button>
+    <button class="tab" role="tab" id="tab-after" data-mode="after" aria-controls="era-after">After training · 12,000 past claims</button>
+    <button class="tab" role="tab" id="tab-compare" data-mode="compare" aria-controls="era-compare">Side-by-side compare</button>
+    <button class="tab" role="tab" id="tab-ops" data-mode="ops" aria-controls="era-ops">🚦 Ops floor · straight-through processing</button>
+    <button class="tab" role="tab" id="tab-domain" data-mode="domain" aria-controls="era-domain">🏭 Domain builder · teach it your business</button>
+  </div>
+
+  <div class="era day1" id="era-day1" role="tabpanel" hidden>
+    <h2><span aria-hidden="true">🕘</span> Day 1 — the engines know nothing about insurance</h2>
     <p>No training has happened. Laya is a general-purpose judgment engine straight from the open
       shelf; decider-4b is the bigger generalist. Run claims and watch where they struggle —
       then press the button below and roll the clock forward.</p>
-    <button class="reveal" id="revealBtn">⚡ Train on 12,000 past claims — and re-run this claim →</button>
+    <button class="reveal" id="revealBtn"><span aria-hidden="true">⚡</span> Train on 12,000 past claims — and re-run this claim →</button>
   </div>
-  <div class="era after" id="era-after" hidden>
-    <h2>✅ After training — same engines, ten minutes of learning</h2>
+  <div class="era after" id="era-after" role="tabpanel" hidden>
+    <h2><span aria-hidden="true">✅</span> After training — same engines, ten minutes of learning</h2>
     <p>The fine-tuned Laya has now seen 12,000 labeled past claim decisions (trained on this very
       machine before the session). decider-4b stays untrained on purpose — it shows what a
       generalist can do with no data at all.</p>
   </div>
-  <div class="era" id="era-compare" style="border-color:var(--line);background:#fff" hidden>
-    <h2>⚖️ All three engines, same claim, same moment</h2>
-    <p>Left column = day one. Middle = after training. Right = the zero-training generalist.
-      The scoreboard above tallies preset-claim hits per visible engine.</p>
+  <div class="era" id="era-compare" role="tabpanel" style="border-color:var(--line);background:#fff" hidden>
+    <h2><span aria-hidden="true">⚖️</span> All four engines, same claim, same moment</h2>
+    <p>Day-one Laya · fine-tuned Laya · decider-4b · the rules engine. The scoreboard above tallies
+      preset hits; the matrix below the console spreads every question × every engine.</p>
+    <p class="note">The <strong>rules engine</strong> is hand-coded for English phrasing — on the Korean,
+      Japanese, Hindi and Spanish presets it answers <em>unparsed</em> on every question. Try one and
+      watch its column.</p>
+    <div id="compareMatrix"></div>
   </div>
-  <div class="era" id="era-ops" style="border-color:var(--line);background:#fff" hidden>
-    <h2>🚦 The ops floor — today's intake, decided in one pass</h2>
+  <div class="era" id="era-ops" role="tabpanel" style="border-color:var(--line);background:#fff" hidden>
+    <h2><span aria-hidden="true">🚦</span> The ops floor — today's intake, decided in one pass</h2>
     <p>Every claim from the sealed 500-claim holdout, all four engines, measured once before the
-      session. Set the confidence threshold; claims below it run straight through, the rest go to
-      an adjuster. Approve or override — the counters follow you. The money strip speaks the
-      language your CFO uses.</p>
+      session. Pick an engine and set the auto-approve cutoff; claims below it run straight through,
+      the rest go to an adjuster. Approve or override — the counters follow you.</p>
   </div>
 
-  <div class="era" id="era-domain" style="border-color:var(--line);background:#fff" hidden>
-    <h2>🏭 The Domain Builder — your business, not insurance</h2>
+  <div class="era" id="era-domain" role="tabpanel" style="border-color:var(--line);background:#fff" hidden>
+    <h2><span aria-hidden="true">🏭</span> The Domain Builder — your business, not insurance</h2>
     <p>Pick a domain. A seeded corpus with rule-verifiable answers generates instantly. Watch the
       zero-shot engines struggle on it (measured, not staged), then teach a small model your rules —
       a real fine-tune, live on this machine — and watch the scoreboard flip. Same 7-decision
@@ -167,25 +187,24 @@ footer{border-top:1px solid var(--line);margin-top:1.2rem;padding:.7rem 0;font-s
 
   <div id="domainfloor" hidden style="margin:.4rem 0 1rem"></div>
 
-
   <div id="opsfloor" hidden style="margin:.4rem 0 1rem"></div>
 
-  <div class="statsgrid">
-    <div class="card"><div class="statbig" id="st-zero">…</div><div class="statl">Laya out-of-box · 500 unseen claims (measured before the session)</div></div>
-    <div class="card" style="border-color:#bcd9cb;background:#f4faf7"><div class="statbig" id="st-ft">…</div><div class="statl">Laya fine-tuned · same 500</div></div>
-    <div class="card"><div class="statbig" id="st-dec">…</div><div class="statl">decider-4b, zero training · same 500</div></div>
+  <div class="statsgrid" id="mainStats">
+    <div class="card"><div class="statbig" id="st-zero">…</div><div class="statl">Laya out-of-box · avg per decision · 500 unseen claims <span id="st-zero-sub"></span></div></div>
+    <div class="card" id="cardFt" style="border-color:#bcd9cb;background:#f4faf7"><div class="statbig" id="st-ft">…</div><div class="statl">Laya fine-tuned · same 500 · avg per decision <span id="st-ft-sub"></span></div><div class="caveat" id="cav-ft" hidden></div></div>
+    <div class="card"><div class="statbig" id="st-dec">…</div><div class="statl">decider-4b, zero training · same 500 · avg per decision <span id="st-dec-sub"></span></div></div>
   </div>
 
-  <div class="grid g2" style="display:grid;grid-template-columns:repeat(auto-fit,minmax(300px,1fr));gap:.9rem">
+  <div class="grid g2" id="claimGrid" style="display:grid;grid-template-columns:repeat(auto-fit,minmax(300px,1fr));gap:.9rem">
     <div class="card">
       <h2>Pick a claim</h2>
       <div id="presets"><p class="small">loading presets…</p></div>
       <h3 style="margin-top:.9rem">Or paste any claim text</h3>
       <textarea id="freeText" placeholder="e.g. Insurance claim CLM-… filed by … The incident: … Claimed amount: … Documents attached: …"></textarea>
-      <button class="primary" id="runBtn">Run decision</button>
+      <button class="primary" id="runBtn" disabled>Run decision</button>
     </div>
     <div>
-      <details class="asked" open>
+      <details class="asked">
         <summary>What we asked the models <span class="small">(exact request)</span></summary>
         <p class="small" id="askedState" style="white-space:pre-wrap"></p>
         <details><summary class="small">Questions schema (JSON)</summary><pre class="schema" id="askedSchema"></pre></details>
@@ -196,13 +215,17 @@ footer{border-top:1px solid var(--line);margin-top:1.2rem;padding:.7rem 0;font-s
 
   <p class="callout"><strong>How to read it:</strong> every engine answers every question with a
     probability, never prose. <span style="color:var(--ok);font-weight:700">✓</span> matches the
-    claims manual's rule (shown under each preset); <span style="color:var(--bad);font-weight:700">✗</span>
+    claims manual's rule (hover a preset to see it); <span style="color:var(--bad);font-weight:700">✗</span>
     does not. Pasted free text has no rule answer — judge the plausibility yourself.</p>
 
   <footer>
-    Engines: laya 0.3.28 (Apache-2.0) zero-shot Router + checkpoint fine-tuned with laya-train (soft-ce, 3 epochs, 12,000 claims);
-    decider-4b v2.1 (Apache-2.0), untrained. Rule answers computed by the claims manual.
-    Evidence: <em>Laya + decider-4b experiment report</em>. All inference local to this machine.
+    <div>Engines: laya 0.3.28 (Apache-2.0) — zero-shot Router; insurance fine-tune: laya-train,
+      soft-ce loss, 3 epochs, 12,000 claims. decider-4b (Apache-2.0) — zero-shot generalist plus a
+      LoRA fine-tune (switch engines on the ops floor; both appear in compare).
+      Rules answers computed by the hand-coded claims manual. Studio teach: a real fine-tune,
+      typically ~<span id="etaOut">10</span> min (see <code>/studio/health</code> for live status).</div>
+    <div>Evidence: <a href="/report" target="_blank" rel="noopener">experiment report</a>.
+      All inference local to this machine.<span id="verLine"></span></div>
   </footer>
 </div>
 
@@ -211,16 +234,38 @@ const ENGINES = {
   zero: {tag:"Engine A", name:"Laya — out of the box", sub:"421M · zero training"},
   ft:   {tag:"Engine B", name:"Laya — fine-tuned", sub:"421M · trained on 12,000 claims"},
   dec:  {tag:"Engine C", name:"decider-4b", sub:"4.2B · zero training, generalist"},
-  rules:{tag:"Engine D", name:"Rules engine (incumbent)", sub:"keyword + date parsing · the way automation is built today"},
+  rules:{tag:"Engine D", name:"Rules engine (hand-coded policy)", sub:"keyword + date parsing · the way automation is built today"},
 };
 const MODE_ENGINES = {day1:["zero","dec"], after:["ft","dec"], compare:["zero","ft","dec","rules"], ops:[], domain:[]};
+const SHORT = {zero:"Laya zero", ft:"Laya ft", dec:"decider", rules:"Rules"};
 const QTITLE = {routing:"Route to unit", fraud_review:"Flag for fraud investigation?", urgency:"Priority",
   coverage_eligibility:"Coverage eligibility", net_payable_band:"Net payable band",
   subrogation:"Pursue third party (subrogation)?", expected_touches:"Expected adjuster touches"};
+const ARM_LABEL = {zero:"Laya zero-shot", ft:"Laya fine-tuned", dec:"decider-4b zero-shot",
+  dec_ft:"decider-4b fine-tuned", rules:"Rules engine (hand-coded policy)"};
+const OPS_ARMS = [["ft","Laya fine-tuned"],["dec_ft","decider-4b fine-tuned"],["dec","decider-4b zero-shot"],["zero","Laya zero-shot"]];
+const CAVEAT_100 = "train and test share one generator — reworded probes 0/3; shifted-phrasing study 92.0%";
+const TEACH_ETA_MIN = 10;   // measured teach duration, minutes — retune after the next live run
 let PRESETS = [], QUESTIONS = null, STAGES = [], SCORES = {}, MODE = "day1", LAST = null;
 
 const $ = (id) => document.getElementById(id);
 const fmtP = (p) => (100*p).toFixed(1) + "%";
+const esc = (s) => String(s).replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;").replace(/"/g,"&quot;");
+const humanize = (s) => String(s).replace(/_/g," ").trim();
+const usd = (n) => "$" + Math.round(n).toLocaleString("en-US");
+const mmss = (s) => { s = Math.max(0, Math.round(s||0)); return Math.floor(s/60) + ":" + String(s%60).padStart(2,"0"); };
+// Scores/touches gold is integer-valued; laya emits near-integer floats (1.0001). Same rounding
+// as build_portfolio.correct().
+const scoreEq = (a, g) => Math.round(a) === Math.round(g);
+function wilson(k, n){
+  if (!n) return null;
+  const z = 1.96, p = k/n, d = 1 + z*z/n, c = p + z*z/(2*n),
+        r = z*Math.sqrt(p*(1-p)/n + z*z/(4*n*n));
+  return [100*Math.max(0,(c-r)/d), 100*Math.min(1,(c+r)/d)];
+}
+const fmtCI = (k, n) => { const ci = wilson(k, n);
+  return ci ? `(${(100*k/n).toFixed(1)}%; Wilson 95% CI ${ci[0].toFixed(1)}–${ci[1].toFixed(1)}%)` : ""; };
+
 // Same-origin when served over http (local :8901 or a cloudflared tunnel); decider is proxied
 // through the laya service so one public origin serves everything. file:// falls back to localhost.
 const SAME = location.protocol.startsWith("http");
@@ -228,22 +273,52 @@ const QP = new URLSearchParams(location.search);
 const LAYA = SAME ? location.origin : (QP.get("laya") || "http://127.0.0.1:8901");
 const DECBASE = SAME ? LAYA + "/dec" : (QP.get("dec") || "http://127.0.0.1:8902");
 const DEC = DECBASE + "/predict";
-function setMode(m, keepClaim){
+
+const HERO = {
+  insurance: {title:"One Claim, Two Eras —<br>Watch the Decision Happen",
+    lead:`Real models, running live on this machine. Pick a claim, press <strong>Run decision</strong>, and see exactly what each engine is asked and what it answers — with the probabilities your thresholds would act on.`},
+  domain: {title:"The Domain Builder —<br>Teach a Small Model Your Business",
+    lead:`Pick a business, watch the zero-shot engines struggle on its rules, then teach a small model from a handful of cases — a real fine-tune, live on this machine.`},
+};
+function applyHero(kind){
+  const h = HERO[kind] || HERO.insurance;
+  $("heroTitle").innerHTML = h.title;
+  $("heroLead").innerHTML = h.lead;
+  document.title = kind === "domain" ? "Domain Builder — Decision Console" : "Live Demo — Insurance Claims Decision Console";
+  $("ctabar").hidden = (kind !== "day1" && kind !== "after");
+  $("heroLine").hidden = (kind === "domain" || kind === "compare");
+}
+
+function modeFromLocation(){
+  const m = new URLSearchParams(location.search).get("mode");
+  return ["day1","after","compare","ops","domain"].includes(m) ? m : "ops";
+}
+
+function setMode(m, keepClaim, push){
   MODE = m;
-  document.querySelectorAll(".tab").forEach(t => t.classList.toggle("on", t.dataset.mode === m));
+  document.querySelectorAll(".tab").forEach(t => {
+    t.classList.toggle("on", t.dataset.mode === m);
+    t.setAttribute("aria-selected", t.dataset.mode === m ? "true" : "false");
+  });
   for (const k of ["day1","after","compare","ops","domain"]) $("era-"+k).hidden = (k !== m);
   const wide = (m === "ops" || m === "domain");
   $("opsfloor").hidden = (m !== "ops");
   $("domainfloor").hidden = (m !== "domain");
-  document.querySelector(".statsgrid").style.display = wide ? "none" : "";
-  document.querySelector(".grid.g2").style.display = wide ? "none" : "";
-  try { history.replaceState(null, "", "?mode=" + m); } catch (e) { }
+  // compare keeps the claim picker but drops the measured-stat cards: the matrix is the content
+  $("mainStats").style.display = wide || m === "compare" ? "none" : "";
+  $("claimGrid").style.display = wide ? "none" : "";
+  $("cardFt").hidden = (m === "day1");   // day1: the fine-tuned card would spoil the reveal
+  applyHero(m === "domain" ? "domain" : m === "compare" ? "compare" : "insurance");
+  if (m === "compare" && !$("compareMatrix").innerHTML)
+    $("compareMatrix").innerHTML = `<p class="small">run a claim to fill the question × engine matrix.</p>`;
+  if (push !== false){ try { history.pushState({mode:m}, "", "?mode=" + m); } catch (e) { } }
   renderEngineCards();
   drawScores();
   if (m === "ops") initOps();
   else if (m === "domain") initDomain();
   else if (keepClaim && LAST) runClaim(LAST.state, LAST.gold, LAST.nonLatin, true, LAST.lang);
 }
+window.onpopstate = () => setMode(modeFromLocation(), false, false);
 
 function verdictFor(qid, ans, gold){
   if (!gold || !(qid in gold)) return {cls:"v-na", txt:"no rule answer"};
@@ -251,9 +326,18 @@ function verdictFor(qid, ans, gold){
   let ok;
   if (ans.choice !== undefined) ok = ans.choice === g;
   else if (ans.noul !== undefined) ok = (ans.noul >= 0.5) === !!g;
-  else if (ans.score !== undefined) ok = ans.score === g;
+  else if (ans.score !== undefined) ok = scoreEq(ans.score, g);
   else return {cls:"v-na", txt:"—"};
   return ok ? {cls:"v-ok", txt:"✓ correct"} : {cls:"v-bad", txt:"✗ wrong"};
+}
+function allCorrect(answers, gold){
+  return Object.keys(gold).every(q => {
+    const a = answers[q]; if (!a) return false;
+    if (a.noul !== undefined) return (a.noul >= 0.5) === !!gold[q];
+    if (a.choice !== undefined) return a.choice === gold[q];
+    if (a.score !== undefined) return scoreEq(a.score, gold[q]);
+    return false;
+  });
 }
 
 function barsHTML(ans){
@@ -261,51 +345,65 @@ function barsHTML(ans){
   const entries = Object.entries(probs).sort((a,b)=>b[1]-a[1]);
   let html = "";
   for (const [k,v] of entries.slice(0,8)){
-    html += `<div class="brow${entries[0][0]===k?" top":""}"><span class="k" title="${k}">${k}</span>` +
+    html += `<div class="brow${entries[0][0]===k?" top":""}"><span class="k" title="${esc(k)}">${esc(humanize(k))}</span>` +
             `<span class="track"><span style="display:block;height:100%;background:currentColor;border-radius:999px;opacity:.001"></span><span class="fill" style="width:${Math.max(1,100*v)}%;margin-top:-.85em;display:block"></span></span>` +
             `<span class="p">${fmtP(v)}</span></div>`;
   }
   return html;
 }
 
-function renderEngineCards(data, gold, nonLatin){
+function answerText(a){   // display-only; raw values stay in title tooltips
+  if (a.choice !== undefined) return {txt:esc(humanize(a.choice)), title:esc(String(a.choice))};
+  if (a.noul !== undefined) return {txt:(a.noul>=0.5?`YES · p=${fmtP(a.noul)}`:`NO · p(yes)=${fmtP(a.noul)}`), title:"p(yes)="+a.noul};
+  if (a.score !== undefined){
+    const raw = (typeof a.score === "number") ? a.score : null;
+    return {txt:`level ${raw===null?esc(String(a.score)):Math.round(raw)}`, title:raw===null?"":"raw "+raw};
+  }
+  return {txt:"—", title:""};
+}
+
+const SKELETON_QS = 3;
+function renderEngineCards(run){
   const el = $("engines");
   const visible = MODE_ENGINES[MODE];
   el.innerHTML = "";
   for (const key of visible){
     const meta = ENGINES[key];
-    const d = data ? data[key] : null;
+    const d = run && run.data ? run.data[key] : null;
     const div = document.createElement("div");
     div.className = "eng";
     let inner = `<div class="tag">${meta.tag}</div><div class="name">${meta.name}</div>` +
-                `<div class="sub">${meta.sub}${d ? " · " + d.ms + " ms" : ""}</div>`;
-    if (!data){
+                `<div class="sub">${meta.sub}${d && d.ms !== undefined ? " · " + d.ms + " ms" : ""}</div>`;
+    if (run && run.pending){
+      inner += `<div class="qblock thinking" aria-live="polite">thinking…</div>`;
+      for (let i = 1; i < SKELETON_QS; i++) inner += `<div class="qblock thinking">thinking…</div>`;
+    } else if (!run){
       inner += `<div class="small">Run a claim to see answers.</div>`;
+    } else if (!d){
+      inner += `<div class="qblock"><p class="small" style="color:var(--bad)"><strong>unavailable</strong> — this engine didn't answer (error or timeout). The other engines still ran.</p></div>`;
     } else if (key === "ft" && d.note === "english-only"){
       inner += `<div class="qblock"><p class="small">Fine-tuned on <strong>English claims only</strong> — for other languages see Engine A, whose zero-shot checkpoint covers 100+ languages. (The English fine-tune trades away language robustness: measured 1/3 on a Spanish claim where the untrained base scored 2/3.)</p></div>`;
-    } else if (key === "ft" && !d.answers){
+    } else if (!d.answers){
       inner += `<div class="qblock"><p class="small">No answers returned for this engine.</p></div>`;
     } else {
       if (key === "ft" && d.ft_checkpoint){
-        inner += `<div class="qblock"><span class="lat">trained checkpoint: ${d.ft_checkpoint}</span></div>`;
+        inner += `<div class="qblock"><span class="lat">trained checkpoint: ${esc(d.ft_checkpoint)}</span></div>`;
       }
       const qids = Object.keys(d.answers);
       const stages = (STAGES && STAGES.length) ? STAGES : [{stage:"Decisions", questions:qids}];
       for (const st of stages){
-        inner += `<div class="stagehdr">${st.stage}</div>`;
+        inner += `<div class="stagehdr">${esc(st.stage)}</div>`;
         for (const qid of st.questions){
           const a = d.answers[qid]; if (!a) continue;
-          const v = verdictFor(qid, a, gold);
-          const ansTxt = a.choice !== undefined ? a.choice
-                    : a.noul !== undefined ? (a.noul>=0.5?`YES · p=${fmtP(a.noul)}`:`NO · p(yes)=${fmtP(a.noul)}`)
-                    : `level ${(typeof a.score === "number") ? a.score.toFixed(2) : a.score}`;
-          inner += `<div class="qblock"><div class="qlabel">${QTITLE[qid]||qid}</div>` +
-            `<div class="ansline"><span class="ans">${ansTxt}</span>` +
+          const v = verdictFor(qid, a, run.gold);
+          const at = answerText(a);
+          inner += `<div class="qblock"><div class="qlabel">${QTITLE[qid]||humanize(qid)}</div>` +
+            `<div class="ansline"><span class="ans"${at.title?` title="${at.title}"`:""}>${at.txt}</span>` +
             `<span class="verdict ${v.cls}">${v.txt}</span>` +
             (a.confidence!==undefined?`<span class="lat">confidence ${fmtP(a.confidence)}</span>`:"") +
-            (d.routing_model?`<span class="lat">via ${d.routing_model}</span>`:"") + `</div>` +
+            (d.routing_model && d.routing_model !== "english"?`<span class="lat">via ${esc(d.routing_model)}</span>`:"") + `</div>` +
             `<div class="bars">${barsHTML(a)}</div>` +
-            (key==="rules" && d.evidence && d.evidence[qid] ? `<div class="small ev">${d.evidence[qid].map(e=>"· "+e).join("<br>")}</div>`:"") +
+            (key==="rules" && d.evidence && d.evidence[qid] ? `<div class="small ev">${d.evidence[qid].map(e=>"· "+esc(e)).join("<br>")}</div>`:"") +
             `</div>`;
         }
       }
@@ -313,6 +411,37 @@ function renderEngineCards(data, gold, nonLatin){
     div.innerHTML = inner;
     el.appendChild(div);
   }
+}
+
+function buildCompareMatrix(data, gold){
+  const el = $("compareMatrix"); if (!el) return;
+  const eng = MODE_ENGINES.compare;
+  const rows = (STAGES && STAGES.length) ? STAGES : [{stage:"Decisions", questions:Object.keys(QUESTIONS||{})}];
+  let html = `<h2 style="margin-top:.6rem">Every question × every engine</h2>` +
+    `<div class="tablewrap"><table class="opstable"><thead><tr><th>question</th>` +
+    eng.map(k=>`<th>${esc(ENGINES[k].name)}</th>`).join("") + `</tr></thead><tbody>`;
+  for (const st of rows){
+    html += `<tr><td colspan="${eng.length+1}" class="stagehdr" style="margin:0">${esc(st.stage)}</td></tr>`;
+    for (const qid of st.questions){
+      html += `<tr><td class="small">${QTITLE[qid]||humanize(qid)}</td>`;
+      for (const k of eng){
+        const d = data[k]; const a = (d && d.answers) ? d.answers[qid] : null;
+        if (!a){ html += `<td class="small" style="color:var(--muted)">—</td>`; continue; }
+        const v = verdictFor(qid, a, gold);
+        const conf = a.confidence !== undefined ? a.confidence : (a.noul !== undefined ? Math.max(a.noul, 1-a.noul) : null);
+        const at = answerText(a);
+        const bars = (a.probabilities && Object.keys(a.probabilities).length && (conf === null || conf < 0.95))
+          ? `<details class="small"><summary>bars</summary>${barsHTML(a)}</details>` : "";
+        const mk = v.cls === "v-ok" ? `<span class="verdict v-ok">✓</span>` : v.cls === "v-bad" ? `<span class="verdict v-bad">✗</span>` : "";
+        html += `<td><span class="ans" style="font-size:.85em"${at.title?` title="${at.title}"`:""}>${at.txt}</span> ${mk}` +
+          (conf !== null ? `<div class="lat">confidence ${fmtP(conf)}</div>` : "") + bars + `</td>`;
+      }
+      html += `</tr>`;
+    }
+  }
+  html += `</tbody></table></div><p class="small">Probability bars collapse under each answer and are
+    omitted when the engine is ≥ 95% confident.</p>`;
+  el.innerHTML = html;
 }
 
 function tallyEngine(key, data, gold){
@@ -333,7 +462,7 @@ function drawScores(){
   const el = $("sboard");
   el.innerHTML = MODE_ENGINES[MODE].map(key => {
     const s = SCORES[key] || {ok:0,total:0};
-    return `<span class="scell">${ENGINES[key].name.replace("Laya — ","Laya ")}: ` +
+    return `<span class="scell">${SHORT[key] || ENGINES[key].name}: ` +
       `<b>${s.total ? Math.round(100*s.ok/s.total) : 0}%</b> <span style="color:var(--muted)">(${s.ok}/${s.total})</span></span>`;
   }).join("");
 }
@@ -341,50 +470,66 @@ function drawScores(){
 async function runClaim(state, gold, nonLatin, silent, lang){
   LAST = {state, gold, nonLatin, lang};
   $("askedState").textContent = state;
+  if (lang) $("askedState").lang = lang; else $("askedState").removeAttribute("lang");
   $("askedSchema").textContent = JSON.stringify(QUESTIONS, null, 1);
   if (!silent) $("runBtn").disabled = true;
-  renderEngineCards(null, gold, nonLatin);
-  try {
-    const SIG = { signal: AbortSignal.timeout(60000) };
-    const [lr, dr, rr] = await Promise.all([
-      fetch(LAYA + "/predict", {method:"POST", headers:{"Content-Type":"application/json"},
-        body: JSON.stringify({state, questions: QUESTIONS, lang}), ...SIG}).then(r=>r.json()),
-      fetch(DEC, {method:"POST", headers:{"Content-Type":"application/json"},
-        body: JSON.stringify({state, questions: QUESTIONS}), ...SIG}).then(r=>r.json()),
-      fetch(LAYA + "/rules", {method:"POST", headers:{"Content-Type":"application/json"},
-        body: JSON.stringify({state, questions: QUESTIONS}), ...SIG}).then(r=>r.json()).catch(()=>null),
-    ]);
-    if (lr.error || dr.error){ throw new Error(lr.error || dr.error); }
-    const data = {zero: lr.zero, ft: lr.ft, dec: dr.decider, rules: rr};
-    renderEngineCards(data, gold, nonLatin);
-    for (const key of MODE_ENGINES[MODE]) tallyEngine(key, data[key], gold);
-  } catch (e) {
-    $("engines").insertAdjacentHTML("beforeend",
-      `<div class="eng"><div class="name" style="color:var(--bad)">service error</div><div class="small">${e}</div></div>`);
+  renderEngineCards({pending:true});
+  if (MODE === "compare") $("compareMatrix").innerHTML = `<p class="small">thinking…</p>`;
+  const SIG = { signal: AbortSignal.timeout(60000) };
+  const post = (url, body) => fetch(url, {method:"POST", headers:{"Content-Type":"application/json"},
+    body: JSON.stringify(body), ...SIG}).then(r => r.json());
+  const [lrR, drR, rrR] = await Promise.allSettled([
+    post(LAYA + "/predict", {state, questions: QUESTIONS, lang}),
+    post(DEC, {state, questions: QUESTIONS}),
+    post(LAYA + "/rules", {state, questions: QUESTIONS}),
+  ]);
+  const okArm = (r, name) => (r.status === "fulfilled" && r.value && !r.value.error && r.value[name]) ? r.value[name] : null;
+  const lr = lrR.status === "fulfilled" ? lrR.value : null;
+  const data = {
+    zero: lr && !lr.error && lr.zero ? {answers: lr.zero.answers, ms: lr.zero.ms, routing_model: lr.zero.routing_model} : null,
+    ft:   lr && !lr.error && lr.ft ? {answers: lr.ft.answers, ms: lr.ft.ms, routing_model: lr.ft.routing_model,
+                                      ft_checkpoint: lr.ft.ft_checkpoint, note: lr.ft.note} : null,
+    dec:  okArm(drR, "decider"),
+    rules:(rrR.status === "fulfilled" && rrR.value && !rrR.value.error) ? rrR.value : null,
+  };
+  renderEngineCards({data, gold});
+  for (const key of MODE_ENGINES[MODE]) if (data[key]) tallyEngine(key, data[key], gold);
+  if (MODE === "compare"){
+    buildCompareMatrix(data, gold);
+    const first = $("engines").querySelector(".eng");
+    if (first && first.getBoundingClientRect().top > window.innerHeight * 0.6)
+      first.scrollIntoView({block:"start"});   // keep the decisions above the fold
   }
-  $("runBtn").disabled = false;
+  $("runBtn").disabled = !QUESTIONS;
 }
 
 function isNonLatin(s){
   return /[\u3131-\uD79F\u3040-\u30FF\u4E00-\u9FFF\u0900-\u097F\u0600-\u06FF\u0590-\u05FF\u0E00-\u0E7F]/.test(s);
 }
 
+function goldDisp(v){ return typeof v === "boolean" ? (v ? "yes" : "no") : humanize(v); }
+
 function loadPresets(){
-  fetch(LAYA + "/presets").then(r=>r.json()).then(d => {
+  const el = $("presets");
+  $("runBtn").disabled = true;
+  el.innerHTML = `<p class="small">loading presets…</p>`;
+  fetch(LAYA + "/presets").then(r => { if (!r.ok) throw new Error("HTTP " + r.status); return r.json(); }).then(d => {
     PRESETS = d.presets; QUESTIONS = d.questions; STAGES = d.stages || [];
     const groups = {"Standard claims":[], "Fraud-flag scenarios":[], "Multilingual (auto-routed)":[]};
     for (const p of PRESETS){
-      if (/FRAUD/.test(p.label)) groups["Fraud-flag scenarios"].push(p);
-      else if (/Korean|Japanese|Hindi|Spanish/.test(p.label)) groups["Multilingual (auto-routed)"].push(p);
+      if (/FRAUD/i.test(p.label)) groups["Fraud-flag scenarios"].push(p);
+      else if (p.lang || /Korean|Japanese|Hindi|Spanish/.test(p.label)) groups["Multilingual (auto-routed)"].push(p);
       else groups["Standard claims"].push(p);
     }
-    const el = $("presets"); el.innerHTML = "";
+    el.innerHTML = "";
     for (const [g, items] of Object.entries(groups)){
       el.insertAdjacentHTML("beforeend", `<h3>${g}</h3>`);
       for (const p of items){
         const b = document.createElement("button");
         b.className = "preset";
-        b.innerHTML = `${p.label}<small>rule answer: ${Object.entries(p.gold||{}).map(([k,v])=>`${k}=${v}`).join(" · ")}</small>`;
+        const goldTxt = Object.entries(p.gold||{}).map(([k,v]) => `${humanize(k)}=${goldDisp(v)}`).join(" · ");
+        b.innerHTML = `<span ${p.lang ? `lang="${esc(p.lang)}"` : ""}>${esc(p.label)}</span>`;
+        b.title = "rule answers: " + goldTxt;
         b.onclick = () => {
           document.querySelectorAll(".preset").forEach(x=>x.classList.remove("sel"));
           b.classList.add("sel"); $("freeText").value = "";
@@ -393,6 +538,12 @@ function loadPresets(){
         el.appendChild(b);
       }
     }
+    $("runBtn").disabled = false;
+  }).catch(e => {
+    el.innerHTML = `<p class="small" style="color:var(--bad)">couldn't load presets (${esc(String(e))}).</p>`;
+    const b = document.createElement("button");
+    b.className = "ghost"; b.textContent = "Retry"; b.onclick = loadPresets;
+    el.appendChild(b);
   });
 }
 
@@ -401,134 +552,208 @@ $("resetScores").onclick = () => { SCORES = {}; drawScores(); };
 $("revealBtn").onclick = () => setMode("after", true);
 document.querySelectorAll(".tab").forEach(t => t.onclick = () => setMode(t.dataset.mode, false));
 
+function setDot(el, cls, label){
+  el.className = "dot " + cls;
+  el.title = label;
+  el.setAttribute("aria-label", label);
+}
 async function health(){
-  for (const [url, dot] of [[LAYA, "dotLaya"], [DECBASE, "dotDecider"]]){
+  for (const [base, dot, label] of [[LAYA, "dotLaya", "Laya service"], [DECBASE, "dotDecider", "decider service"], [LAYA + "/studio", "dotStudio", "studio"]]){
     const el = $(dot);
     if (!el) continue;                       // a missing indicator must never break the page
-    try { const r = await fetch(url + "/health", {signal: AbortSignal.timeout(10000)});
-          el.className = "dot " + (r.ok ? "up" : "down"); }
-    catch { el.className = "dot down"; }
+    try {
+      const r = await fetch(base + "/health", {signal: AbortSignal.timeout(10000)});
+      if (!r.ok) throw new Error("HTTP " + r.status);
+      const j = await r.json().catch(() => ({}));
+      if (dot === "dotStudio"){
+        const job = j.job || j.state || "idle";
+        const training = job === "training" || job === "evaluating";
+        const gpu = j.gpu ? ` — ${Number(j.gpu.free_gib).toFixed(1)} GiB GPU free` : "";
+        setDot(el, training ? "busy" : "up", `studio ${job}${gpu}`);
+      } else {
+        setDot(el, "up", label + " up");
+      }
+    } catch (e) {
+      setDot(el, "down", label + " down (" + e.message + ")");
+    }
   }
 }
 
+function fillStat(id, subId, avg, k, n){
+  $(id).textContent = fmtP(avg);
+  if (subId && k !== undefined && n) $(subId).textContent = "· all 7 correct: " + k + "/" + n + " " + fmtCI(k, n);
+}
 fetch(LAYA + "/stats").then(r=>r.json()).then(s => {
-  $("st-zero").textContent = (100*s.zero).toFixed(1) + "%";
-  $("st-ft").textContent = (100*s.ft).toFixed(1) + "%";
-  $("st-dec").textContent = (100*s.dec).toFixed(1) + "%";
+  const n = s.n_rows || 500, rac = s.rows_all_correct || {};
+  fillStat("st-zero", "st-zero-sub", s.zero, rac.zero, n);
+  fillStat("st-ft", "st-ft-sub", s.ft, rac.ft, n);
+  fillStat("st-dec", "st-dec-sub", s.dec, rac.dec, n);
+  if (s.ft === 1 && $("cav-ft")){ $("cav-ft").hidden = false; $("cav-ft").textContent = CAVEAT_100; }
   if (s.rules !== undefined){
-    document.querySelector(".statsgrid").insertAdjacentHTML("beforeend",
-      `<div class="card"><div class="statbig">${(100*s.rules).toFixed(1)}%</div><div class="statl">Rules engine (Engine D) · same 500 — perfect on the phrasing it was built for, <em>unparsed</em> on anything else</div></div>`);
+    const sub = (rac.rules !== undefined && n) ? `all 7 correct: ${rac.rules}/${n} ${fmtCI(rac.rules, n)}` : "";
+    document.getElementById("mainStats").insertAdjacentHTML("beforeend",
+      `<div class="card"><div class="statbig">${fmtP(s.rules)}</div><div class="statl">${esc(ARM_LABEL.rules)} · same 500 · avg per decision ${sub ? "· " + esc(sub) : ""} — perfect on the phrasing it was built for, <em>unparsed</em> on anything else</div><div class="caveat">${esc(CAVEAT_100)}</div></div>`);
   }
+  const hl = $("heroLine");
+  if (hl && s.zero !== undefined && s.ft !== undefined){
+    hl.innerHTML = `Measured on ${n} sealed holdout claims: Laya out-of-the-box gets <b>${fmtP(s.zero)}</b> of decisions right (${rac.zero ?? "?"}/${n} all seven); after ten minutes of fine-tuning: <b>${fmtP(s.ft)}</b> avg, <b>${rac.ft ?? "?"}/${n}</b> all seven. <span class="small">Same engines, no code changes — only training.</span>`;
+    if (MODE !== "domain" && MODE !== "compare") hl.hidden = false;   // applyHero owns visibility in those modes
+  }
+  if (s.version) $("verLine").textContent = " · version " + esc(s.version);
 }).catch(()=>{ $("st-zero").textContent=$("st-ft").textContent=$("st-dec").textContent="n/a"; });
-
+$("etaOut").textContent = TEACH_ETA_MIN;
 
 
 // ======================= Ops floor (STP + adjuster queue) =======================
-let OPS = null, OPS_TAU = 0.8, OPS_ACTIONS = {};
-const usd = (n) => "$" + Math.round(n).toLocaleString("en-US");
+let OPS = null, OPS_TAU = 0.8, OPS_ACTIONS = {}, OPS_ARM = "ft", CAL_RENDERED = false;
 
-async function initOps(){
-  if (!OPS){
-    $("opsfloor").innerHTML = `<p class="small">loading the measured 500-claim portfolio…</p>`;
-    try {
-      OPS = await fetch(LAYA + "/portfolio").then(r=>r.json());
-    } catch (e) {
-      $("opsfloor").innerHTML = `<div class="card"><p>portfolio data not available (${e}). Run <code>python build_portfolio.py</code> once.</p></div>`;
-      return;
-    }
-  }
-  drawOps();
+function opsAnswers(c){ return (c.arms[OPS_ARM] || {}).answers || {}; }
+function opsFraudP(c){
+  const a = opsAnswers(c).fraud_review;
+  if (!a) return null;
+  if (a.noul !== undefined) return a.noul;
+  if (a.probabilities) return Math.max(...Object.values(a.probabilities));
+  return null;
+}
+function opsCertaintyNote(){
+  const claims = OPS.claims;
+  const ps = claims.map(opsFraudP).filter(p => p !== null);
+  if (!ps.length) return "";
+  if (ps.every(p => p === 0 || p === 1))
+    return "this engine is certain on every claim here — τ has no effect (see calibration caveat)";
+  return "";
 }
 
-function opsRow(c, i){
-  const ftA = c.arms.ft.answers, g = c.gold, m = c.meta;
-  const pF = ftA.fraud_review ? ftA.fraud_review.noul : 0;
-  const stpOk = pF < OPS_TAU && ftA.expected_touches && ftA.expected_touches.score <= 1
-                && ftA.coverage_eligibility && ftA.coverage_eligibility.choice === "covered";
-  const act = OPS_ACTIONS[c.id] || (stpOk ? "auto" : "review");
-  const routingOK = ftA.routing && ftA.routing.choice === g.routing;
-  const fraudOK = (pF >= 0.5) === !!m.fraud;
-  const touched = act !== "auto";
-  return `<tr>
-    <td class="small">${c.id.replace("ins-","")}</td>
-    <td class="small">${m.cat}</td>
-    <td class="small" style="text-align:right">${usd(m.amount)}</td>
-    <td class="small">${ftA.routing ? ftA.routing.choice : "—"} ${routingOK?"✓":"✗"}</td>
-    <td class="small" style="text-align:right">${fmtP(pF)} ${fraudOK?"✓":"✗"}</td>
-    <td class="small" style="text-align:center">${ftA.expected_touches ? ftA.expected_touches.score : "—"}/${g.expected_touches}</td>
-    <td><span class="chip ${act==="auto"?"chip-auto":"chip-rev"}">${act==="auto"?"auto-approved":"adjuster review"}</span></td>
-    <td class="small">
-      <button class="mini" onclick="opsAct('${c.id}','auto')">Approve</button>
-      <button class="mini" onclick="opsAct('${c.id}','flag')">Flag fraud</button>
-      <button class="mini" onclick="opsAct('${c.id}','review')">To review</button>
-    </td></tr>`;
-}
-
-function opsAct(id, act){ OPS_ACTIONS[id] = act; drawOps(); }
-
-function drawOps(){
-  const el = $("opsfloor");
-  const claims = OPS.claims, S = OPS.summary;
-  // counters over current actions/threshold
-  let auto = 0, rev = 0, touched = 0, autoAll = 0, autoN = 0, missed = 0, stp$ = 0, tot$ = 0, flaggedOK$ = 0, flaggedFP$ = 0;
-  for (const c of claims){
-    const ftA = c.arms.ft.answers, m = c.meta;
-    const pF = ftA.fraud_review ? ftA.fraud_review.noul : 0;
-    const stpOk = pF < OPS_TAU && ftA.expected_touches && ftA.expected_touches.score <= 1
-                  && ftA.coverage_eligibility && ftA.coverage_eligibility.choice === "covered";
-    const act = OPS_ACTIONS[c.id] || (stpOk ? "auto" : "review");
-    tot$ += m.amount;
-    if (act === "auto"){ auto++; stp$ += m.amount;
-      autoN++; if (Object.keys(c.gold).every(q => { const a = ftA[q]; const g = c.gold[q];
-          if (!a) return false; if (a.noul !== undefined) return (a.noul>=0.5)===!!g;
-          return (a.choice !== undefined ? a.choice : a.score) === g; })) autoAll++;
-      if (m.fraud) missed++;
-    } else { rev++; touched++; }
-    if (pF >= OPS_TAU){ if (m.fraud) flaggedOK$ += m.amount; else flaggedFP$ += m.amount; }
-  }
-  const money = S["money_tau_" + String(OPS_TAU).replace(".","_")] || S["money_tau_0.8"] || {};
-  el.innerHTML = `
-  <div class="statsgrid" style="grid-template-columns:repeat(auto-fit,minmax(170px,1fr))">
-    <div class="card"><div class="statbig">${claims.length}</div><div class="statl">claims in the sealed holdout</div></div>
-    <div class="card"><div class="statbig">${usd(tot$)}</div><div class="statl">total claimed</div></div>
-    <div class="card" style="border-color:#bcd9cb;background:#f4faf7"><div class="statbig">${(100*auto/claims.length).toFixed(1)}%</div><div class="statl">straight-through at τ=${OPS_TAU.toFixed(2)} (${auto} claims, ${usd(stp$)})</div></div>
-    <div class="card"><div class="statbig">${autoN ? (100*autoAll/autoN).toFixed(1)+"%" : "—"}</div><div class="statl">auto-approved claims with every decision correct (${autoAll}/${autoN})</div></div>
-    <div class="card" style="${missed? "border-color:#d9a5a5;background:#fdf4f4":""}"><div class="statbig">${missed}</div><div class="statl">fraud claims that slipped into auto-approve</div></div>
-    <div class="card"><div class="statbig">${usd(flaggedOK$)}</div><div class="statl">fraud $ flagged at τ (${usd(flaggedFP$)} false-flagged)</div></div>
-  </div>
+function buildOpsShell(){
+  $("opsfloor").innerHTML = `
+  <div id="opsCounters" class="statsgrid" style="grid-template-columns:repeat(auto-fit,minmax(170px,1fr))"><p class="small">loading the measured 500-claim portfolio…</p></div>
   <div class="card" style="margin:.6rem 0">
     <div style="display:flex;gap:1rem;align-items:center;flex-wrap:wrap">
-      <label><strong>Auto-approve threshold τ:</strong> <input type="range" id="tauSlider" min="50" max="95" value="${Math.round(OPS_TAU*100)}"> <span id="tauVal">${OPS_TAU.toFixed(2)}</span></label>
-      <label><strong>Claims/year:</strong> <input type="number" id="volIn" value="120000" style="width:6.5em"> </label>
-      <span class="small">Projected: <b id="roiOut">—</b> auto-approved claims/yr · <b id="roiFraud">—</b> fraud-$ held/yr</span>
+      <label><strong>Engine:</strong> <select id="opsEngine">${OPS_ARMS.map(([v,l]) => `<option value="${v}">${l}</option>`).join("")}</select></label>
+      <label><strong>Auto-approve cutoff (τ):</strong> <input type="range" id="tauSlider" min="50" max="95" value="${Math.round(OPS_TAU*100)}"> <span id="tauVal">${OPS_TAU.toFixed(2)}</span></label>
+      <label><strong>Claims/year:</strong> <input type="number" id="volIn" value="120000" style="width:6.5em"></label>
     </div>
+    <p class="small" id="opsProj" style="margin:.4rem 0 0">—</p>
+    <p class="note" id="tauNote" hidden></p>
   </div>
   <div class="card" style="margin:.6rem 0">
     <h3>Adjuster queue — highest fraud probability first</h3>
-    <table class="opstable"><thead><tr><th>claim</th><th>cat</th><th>amount</th><th>routing (ft)</th><th>p(fraud)</th><th>touches pred/gold</th><th>current action</th><th>adjuster</th></tr></thead>
-    <tbody>${claims.slice().sort((a,b)=> (b.arms.ft.answers.fraud_review.noul||0)-(a.arms.ft.answers.fraud_review.noul||0)).slice(0,14).map(opsRow).join("")}</tbody></table>
+    <div class="tablewrap"><table class="opstable"><thead id="opsQueueHead"></thead><tbody id="opsQueueBody"></tbody></table></div>
     <p class="small">Override buttons change the counters above — the STP rate, the accuracy of what ran unattended, and the fraud that slipped through. That interplay is the buy/no-buy decision.</p>
   </div>
   <div class="card">
-    <h3>Calibration — when an engine says ${OPS_TAU.toFixed(0)}%, how often is it right?</h3>
-    ${Object.entries(OPS.summary.calibration || {}).map(([arm, bins]) => `
-      <div class="calrow"><span class="k">${arm}</span>
-      ${bins.map(b => `<span class="calbin" title="p ${b.lo}–${b.hi}: said ${(100*b.avg_p).toFixed(0)}%, right ${(100*b.acc).toFixed(0)}% of ${b.n}">${(100*b.acc).toFixed(0)}<small>${b.n}</small></span>`).join("")}
-      </div>`).join("")}
-    <p class="small">Each cell: empirical accuracy of fraud-review answers in that probability bin (n below). Perfect calibration sits on the diagonal.</p>
+    <h3>Calibration — fraud flag</h3>
+    <div id="opsCal"></div>
+    <p class="small">share of claims in this probability bin that were actually fraud (n below); perfect calibration sits on the diagonal.</p>
+    <p class="small caveat" id="calCaveat"></p>
   </div>`;
-  $("tauSlider").oninput = (e) => { OPS_TAU = e.target.value/100; $("tauVal").textContent = OPS_TAU.toFixed(2); drawOps(); };
-  $("volIn").oninput = (e) => {
-    const v = +e.target.value || 0; const per = claims.length ? v/claims.length : 0;
-    $("roiOut").textContent = Math.round(per*auto).toLocaleString("en-US");
-    $("roiFraud").textContent = usd(per*flaggedOK$);
-  };
-  $("volIn").oninput({target:$("volIn")});
+  $("tauSlider").oninput = (e) => { OPS_TAU = e.target.value/100; $("tauVal").textContent = OPS_TAU.toFixed(2); updateOps(); };
+  $("opsEngine").onchange = (e) => { OPS_ARM = e.target.value; updateOps(); };
+  $("volIn").oninput = () => updateOps();
+}
+
+function opsRow(c){
+  const g = c.gold, m = c.meta, ftA = opsAnswers(c);
+  const pF = opsFraudP(c);
+  const touches = ftA.expected_touches ? ftA.expected_touches.score : null;
+  const covered = ftA.coverage_eligibility && ftA.coverage_eligibility.choice === "covered";
+  const stpOk = pF !== null && pF < OPS_TAU && touches !== null && touches <= 1 && covered;
+  const act = OPS_ACTIONS[c.id] || (stpOk ? "auto" : "review");
+  const routing = ftA.routing ? ftA.routing.choice : null;
+  const routingOK = routing !== null && routing === g.routing;
+  const fraudOK = pF === null ? false : ((pF >= 0.5) === !!m.fraud);
+  return `<tr>
+    <td class="small">${esc(c.id.replace("ins-",""))}</td>
+    <td class="small">${esc(m.cat)}</td>
+    <td class="small" style="text-align:right">${usd(m.amount)}</td>
+    <td class="small" title="${esc(String(routing))}">${routing===null?"—":esc(humanize(routing))} ${routingOK?"✓":"✗"}</td>
+    <td class="small" style="text-align:right"${pF!==null?` title="raw ${pF}"`:""}>${pF===null?"—":fmtP(pF)} ${fraudOK?"✓":"✗"}</td>
+    <td class="small" style="text-align:center"${touches!==null?` title="raw ${touches}"`:""}>${touches===null?"—":Math.round(touches)}/${g.expected_touches}</td>
+    <td><span class="chip ${act==="auto"?"chip-auto":"chip-rev"}">${act==="auto"?"auto-approved":"adjuster review"}</span></td>
+    <td class="small">
+      <button class="mini" onclick="opsAct('${esc(c.id)}','auto')">Approve</button>
+      <button class="mini" onclick="opsAct('${esc(c.id)}','flag')">Flag fraud</button>
+      <button class="mini" onclick="opsAct('${esc(c.id)}','review')">To review</button>
+    </td></tr>`;
+}
+function opsAct(id, act){ OPS_ACTIONS[id] = act; updateOps(); }
+
+function renderOpsCal(){
+  if (CAL_RENDERED || !OPS.summary.calibration) return;
+  CAL_RENDERED = true;
+  let anySharp = false;
+  $("opsCal").innerHTML = Object.entries(OPS.summary.calibration).map(([arm, bins]) => {
+    const sharp = bins.length && bins.every(b => b.avg_p === 0 || b.avg_p === 1);
+    if (sharp && (arm === "ft" || arm === "dec_ft")) anySharp = true;
+    return `<div class="calrow"><span class="k" title="${arm}">${esc(ARM_LABEL[arm] || arm)}</span>` +
+      bins.map(b => `<span class="calbin" title="p ${b.lo}–${b.hi}: said ${(100*b.avg_p).toFixed(0)}%, actually fraud ${(100*b.acc).toFixed(0)}% of ${b.n}">${(100*b.acc).toFixed(0)}<small>${b.n}</small></span>`).join("") +
+      `</div>`;
+  }).join("");
+  $("calCaveat").textContent = anySharp
+    ? "the fine-tuned engines are certain on every claim here (every probability is exactly 0 or 1) — read them as decisions, not odds, until recalibrated on real data."
+    : "";
+}
+
+function updateOps(){
+  const claims = OPS.claims;
+  let auto = 0, rev = 0, autoAll = 0, missed = 0, stp$ = 0, tot$ = 0, rev$ = 0, flaggedOK$ = 0, flaggedFP$ = 0;
+  for (const c of claims){
+    const m = c.meta, ftA = opsAnswers(c);
+    const pF = opsFraudP(c);
+    const touches = ftA.expected_touches ? ftA.expected_touches.score : null;
+    const covered = ftA.coverage_eligibility && ftA.coverage_eligibility.choice === "covered";
+    const stpOk = pF !== null && pF < OPS_TAU && touches !== null && touches <= 1 && covered;
+    const act = OPS_ACTIONS[c.id] || (stpOk ? "auto" : "review");
+    tot$ += m.amount;
+    if (act === "auto"){
+      auto++; stp$ += m.amount;
+      if (ftA && Object.keys(c.gold).length && allCorrect(ftA, c.gold)) autoAll++;
+      if (m.fraud) missed++;
+    } else { rev++; rev$ += m.amount; }
+    if (pF !== null && pF >= OPS_TAU){ if (m.fraud) flaggedOK$ += m.amount; else flaggedFP$ += m.amount; }
+  }
+  const vol = +$("volIn").value || 0, per = claims.length ? vol/claims.length : 0;
+  const fraudShare = claims.length ? claims.filter(c => c.meta.fraud).length / claims.length : 0;
+  const autoAllPct = auto ? (100*autoAll/auto).toFixed(1)+"%" : "—";
+  $("opsCounters").innerHTML = `
+    <div class="card"><div class="statbig">${claims.length}</div><div class="statl">claims in the sealed holdout</div></div>
+    <div class="card"><div class="statbig">${usd(tot$)}</div><div class="statl">total claimed</div></div>
+    <div class="card" style="border-color:#bcd9cb;background:#f4faf7"><div class="statbig">${(100*auto/claims.length).toFixed(1)}%</div><div class="statl">straight-through at τ=${OPS_TAU.toFixed(2)} (${auto} claims, ${usd(stp$)})</div></div>
+    <div class="card"><div class="statbig">${autoAllPct}</div><div class="statl">auto-approved claims with every decision correct (${autoAll}/${auto})</div></div>
+    <div class="card" style="${missed? "border-color:#d9a5a5;background:#fdf4f4":""}"><div class="statbig">${missed}</div><div class="statl">fraud claims that slipped into auto-approve</div></div>
+    <div class="card"><div class="statbig">${usd(flaggedOK$)}</div><div class="statl">fraud $ flagged at τ (${usd(flaggedFP$)} false-flagged)</div></div>`;
+  $("opsProj").textContent = `Illustrative at this synthetic mix (${(100*fraudShare).toFixed(1)}% fraud): ` +
+    `${Math.round(per*auto).toLocaleString("en-US")} claims/yr straight through; ` +
+    `${usd(per*rev$)}/yr routed to review instead of auto-paid.`;
+  const note = opsCertaintyNote();
+  $("tauNote").hidden = !note;
+  $("tauNote").textContent = note;
+  $("opsQueueHead").innerHTML = `<tr><th>claim</th><th>cat</th><th>amount</th><th>routing (${esc(ARM_LABEL[OPS_ARM])})</th><th>p(fraud)</th><th>touches pred/gold</th><th>current action</th><th>adjuster</th></tr>`;
+  $("opsQueueBody").innerHTML = claims.slice()
+    .sort((a,b) => (opsFraudP(b) ?? -1) - (opsFraudP(a) ?? -1)).slice(0,14).map(opsRow).join("");
+}
+async function initOps(){
+  if (!$("opsEngine")){ buildOpsShell(); CAL_RENDERED = false; }
+  if (!OPS){
+    try {
+      OPS = await fetch(LAYA + "/portfolio?lite=1").then(r => {
+        if (!r.ok) throw new Error("HTTP " + r.status); return r.json();
+      });
+      renderOpsCal();
+    } catch (e) {
+      $("opsfloor").innerHTML = `<div class="card"><p>portfolio data not available (${esc(String(e))}).</p></div>`;
+      const b = document.createElement("button");
+      b.className = "ghost"; b.textContent = "Retry"; b.onclick = () => { OPS = null; initOps(); };
+      $("opsfloor").appendChild(b);
+      return;
+    }
+  }
+  updateOps();
 }
 
 
 // ======================= Domain Builder (teach it your business) =======================
-let DOMS = null, DOM_STATE = {domain: null, cases: null, edits: {}};
+let DOMS = null, DOM_STATE = {domain: null, questions: null, cases: null, edits: {}};
 const DOM_META = {
   support_tickets:      {icon:"🎫", blurb:"SaaS helpdesk: route, abuse-flag, prioritize, refund eligibility & band, vendor recovery, agent touches"},
   logistics_exceptions: {icon:"🚚", blurb:"Shipping exceptions: damage/loss/customs/carrier desks, contract-abuse flags, liability & recovery bands"},
@@ -537,74 +762,160 @@ const DOM_META = {
 
 function studioURL(p){ return LAYA + "/studio" + p; }
 
+function optsFor(q){
+  if (!q) return ["0","1","2","3","4"].map(v => ({v, l:v}));
+  if (q.type === "noul") return [{v:"no", l:"no"}, {v:"yes", l:"yes"}];
+  if (Array.isArray(q.criteria)) return q.criteria.map((c,i) => ({v:String(i), l:i + " · " + String(c).slice(0,44)}));
+  if (q.criteria && typeof q.criteria === "object") return Object.keys(q.criteria).map(k => ({v:k, l:humanize(k)}));
+  return ["0","1","2","3","4"].map(v => ({v, l:v}));
+}
+
+function teachSelectHTML(c, qid, g){
+  const key = c.id + "|" + qid;
+  const edited = key in DOM_STATE.edits;
+  const val = String(edited ? DOM_STATE.edits[key] : (typeof g === "boolean" ? (g ? "yes" : "no") : g));
+  return `<select class="gselect" data-case="${esc(c.id)}" data-qid="${esc(qid)}">` +
+    optsFor(DOM_STATE.questions ? DOM_STATE.questions[qid] : null).map(o =>
+      `<option value="${esc(o.v)}" ${o.v === val ? "selected" : ""}>${esc(o.l)}</option>`).join("") +
+    `</select>`;
+}
 function renderDomTeach(){
   const el = $("domainfloor");
   const qs = DOM_STATE.questions || {};
   el.querySelector("#teachTable").innerHTML = `<thead><tr><th>case</th>${
-    Object.keys(DOM_STATE.cases[0].gold).map(q => `<th>${q}</th>`).join("")}</tr></thead><tbody>` +
+    Object.keys(DOM_STATE.cases[0].gold).map(q => `<th>${esc(humanize(q))}</th>`).join("")}</tr></thead><tbody>` +
     DOM_STATE.cases.map(c => {
       const cells = Object.entries(c.gold).map(([qid, g]) => {
-        const gv = typeof g === "boolean" ? (g ? "yes" : "no") : g;
-        const val = DOM_STATE.edits[c.id + "|" + qid] ?? gv;
-        const q = qs[qid] || {};
-        const opts = q.type === "noul" ? ["no","yes"] : (Array.isArray(q.criteria) ? q.criteria : Object.keys(q.criteria || {}));
-        return `<td><select data-case="${c.id}" data-qid="${qid}">${opts.map(o =>
-          `<option value="${o}" ${String(o) === String(val) ? "selected" : ""}>${o}</option>`).join("")}</select></td>`;
+        const key = c.id + "|" + qid;
+        const edited = key in DOM_STATE.edits;
+        return `<td><button type="button" class="gchip${edited ? " edited" : ""}" data-case="${esc(c.id)}" data-qid="${esc(qid)}"
+          title="${edited ? "edited (rule gold: " + esc(goldDisp(g)) + ")" : "rule gold — click to edit"}: ${esc(c.state)}">${esc(goldDisp(edited ? DOM_STATE.edits[key] : g))}</button></td>`;
       }).join("");
-      return `<tr><td class="small">${(c.state || "").slice(0, 80)}…</td>${cells}</tr>`;
+      return `<tr><td class="small" title="${esc(c.state)}">${esc(c.state.slice(0, 60))}…</td>${cells}</tr>`;
     }).join("") + `</tbody>`;
-  el.querySelectorAll("#teachTable select").forEach(s => {
-    s.onchange = () => {
-      const orig = DOM_STATE.cases.find(c => c.id === s.dataset.case);
-      const g = orig.gold[s.dataset.qid];
-      const gv = typeof g === "boolean" ? (g ? "yes" : "no") : g;
-      if (String(s.value) === String(gv)) delete DOM_STATE.edits[s.dataset.case + "|" + s.dataset.qid];
-      else DOM_STATE.edits[s.dataset.case + "|" + s.dataset.qid] = s.value;
-      const n = Object.keys(DOM_STATE.edits).length;
-      el.querySelector("#editBadge").textContent = n
-        ? `${n} deliberate edit${n > 1 ? "s" : ""} — propagates to every structurally identical case in the training set`
-        : "no edits — the rule gold stands (bulk-accepted)";
+  el.querySelectorAll("#teachTable .gchip").forEach(chip => {
+    chip.onclick = () => {
+      const c = DOM_STATE.cases.find(x => x.id === chip.dataset.case);
+      const qid = chip.dataset.qid;
+      const td = chip.parentElement;
+      td.innerHTML = teachSelectHTML(c, qid, c.gold[qid]);
+      const sel = td.querySelector("select");
+      sel.focus();
+      const commit = () => {
+        const g = c.gold[qid];
+        const gv = typeof g === "boolean" ? (g ? "yes" : "no") : String(g);
+        if (String(sel.value) === gv) delete DOM_STATE.edits[c.id + "|" + qid];
+        else DOM_STATE.edits[c.id + "|" + qid] = sel.value;
+        renderDomTeach();
+        updateEditBadge();
+      };
+      sel.onchange = commit;
+      sel.onblur = commit;
     };
   });
+}
+function updateEditBadge(){
+  const el = $("domainfloor");
+  const n = Object.keys(DOM_STATE.edits).length;
+  const badge = el.querySelector("#editBadge");
+  if (badge) badge.textContent = n
+    ? `${n} deliberate edit${n > 1 ? "s" : ""} — propagates to every structurally identical case in the training set`
+    : "no edits — the rule gold stands (bulk-accepted)";
+}
+
+function statusHTML(s){
+  const st = s.state || "unknown";
+  const elapsed = mmss(s.elapsed_s);
+  const p = s.progress;
+  if (p && typeof p === "object" && !Array.isArray(p) && p.epochs){
+    const frac = Math.min(1, ((p.epoch - 1 + (p.steps ? (p.step||0)/p.steps : 0)) / p.epochs));
+    return `<div style="display:flex;gap:.6rem;align-items:center;flex-wrap:wrap">` +
+      `<span class="pbar"><i style="width:${(100*frac).toFixed(1)}%"></i></span>` +
+      `<span class="small">${esc(st)} · ${elapsed} elapsed · epoch ${p.epoch}/${p.epochs} · step ${p.step ?? "?"}/${p.steps}</span></div>`;
+  }
+  const last = Array.isArray(p) ? (p[p.length-1] || "") : (s.messages && s.messages.length ? s.messages[s.messages.length-1] : "");
+  return `<span class="small">[${esc(st)}] ${elapsed} elapsed · ${esc(String(last).slice(0, 110))}</span>`;
+}
+function classifiedFail(s){
+  const kind = s.error_kind;
+  if (kind === "out_of_gpu_memory"){
+    const free = s.free_gib !== undefined ? `${s.free_gib} GiB` : "?? GiB";
+    const need = s.need_gib !== undefined ? `${s.need_gib} GiB` : "?? GiB";
+    return `Not enough GPU memory free (${free} of ${need} needed) — no audience traffic is lost; free VRAM (stop another training run) and press Teach again.`;
+  }
+  if (kind === "lost") return "training lost — studio restarted. Press Teach again when ready.";
+  if (kind === "train_failed") return "training failed — the run crashed on the server (full log: studio-runs/" + esc(DOM_STATE.domain||"") + "/). Nothing else broke; you can retry.";
+  return "training failed: " + esc(s.error || "unknown error");
+}
+// Polls /studio/status while a run is in flight; renders progress into statusEl and
+// re-enables btn (if given) when the run finishes, fails, or is lost.
+function startStatusPoll(statusEl, btn, watchOnly){
+  const stop = () => clearInterval(poll);
+  const finish = (msg, reopen) => { stop(); if (statusEl) statusEl.innerHTML = msg; if (reopen && btn) btn.disabled = false; };
+  const poll = setInterval(async () => {
+    let s;
+    try { s = await fetch(studioURL("/status")).then(x => x.json()); } catch (e) { return; }  // transient blip: keep polling
+    if (!s) return;
+    if (s.state === "done"){
+      if (watchOnly) finish(`<span class="small">teach run finished — reload this page to teach or explore.</span>`, true);
+      else { stop(); if (statusEl) statusEl.textContent = ""; if (btn) btn.disabled = false; domResults(s.result); }
+      return;
+    }
+    if (s.state === "failed"){ finish(classifiedFail(s), true); return; }
+    if (s.state === "idle" || s.error_kind === "lost"){
+      finish(`<span class="small" style="color:var(--bad)">training lost — studio restarted. Press Teach again when ready.</span>`, true);
+      return;
+    }
+    if (statusEl) statusEl.innerHTML = statusHTML(s);
+  }, 2000);
+  return stop;
 }
 
 async function domTeach(){
   const el = $("domainfloor");
+  const btn = el.querySelector("#teachBtn");
+  const stat = el.querySelector("#teachStatus");
   const edits = Object.entries(DOM_STATE.edits).map(([k, to]) => {
     const [case_id, qid] = k.split("|");
     return {case_id, qid, to};
   });
   const tok = sessionStorage.getItem("studioToken") || prompt("Studio token (presenter only):") || "";
-  sessionStorage.setItem("studioToken", tok);
-  el.querySelector("#teachBtn").disabled = true;
+  btn.disabled = true;
+  const fail = (msg) => { stat.innerHTML = msg; btn.disabled = false; };
   let r;
   try {
-    r = await fetch(studioURL("/train"), {method:"POST", headers:{"Content-Type":"application/json","X-Studio-Token":tok},
+    r = await fetch(studioURL("/train"), {method:"POST",
+      headers:{"Content-Type":"application/json","X-Studio-Token":tok},
       body: JSON.stringify({domain: DOM_STATE.domain, cases: DOM_STATE.cases, edits})}).then(x => x.json());
-  } catch (e) { el.querySelector("#teachStatus").textContent = "service unreachable: " + e; return; }
-  if (r.error){ el.querySelector("#teachStatus").textContent = r.error.includes("token") ? r.error + " — wrong token" : r.error;
-    el.querySelector("#teachBtn").disabled = false; return; }
-  el.querySelector("#teachStatus").textContent = `training on ${r.rows} rows (1,500 corpus + your cases ×20)…`;
-  const poll = setInterval(async () => {
-    const s = await fetch(studioURL("/status")).then(x => x.json()).catch(() => null);
-    if (!s) return;
-    const last = (s.progress || []).slice(-1)[0] || "";
-    el.querySelector("#teachStatus").textContent = `[${s.state}] ${String(last).slice(0, 110)}`;
-    if (s.state === "done"){ clearInterval(poll); el.querySelector("#teachBtn").disabled = false; domResults(s.result); }
-    else if (s.state === "failed"){ clearInterval(poll); el.querySelector("#teachStatus").textContent = "training failed: " + (s.error || "");
-      el.querySelector("#teachBtn").disabled = false; }
-  }, 2000);
+  } catch (e) {
+    sessionStorage.setItem("studioToken", tok);
+    fail(`network error — studio unreachable (${esc(String(e))}). Teach is re-enabled; press it to retry.`);
+    return;
+  }
+  if (r && (r.error_kind === "token" || (r.error && /token/i.test(r.error)))){
+    sessionStorage.removeItem("studioToken");
+    fail("403 — wrong or missing studio token. Teach is re-enabled; press it and enter the token again.");
+    return;
+  }
+  sessionStorage.setItem("studioToken", tok);
+  if (r && r.error_kind === "throttled"){ fail("429 — too many attempts. Wait a minute, then press Teach again."); return; }
+  if (r && r.error_kind === "busy"){ fail("409 — a teach run is already in progress. Wait for it to finish."); return; }
+  if (r && r.error_kind === "out_of_gpu_memory"){ fail(esc(classifiedFail(r))); return; }
+  if (r && r.error_kind === "unknown_domain"){ fail("unknown domain — reload the page and pick the domain again."); return; }
+  if (r && r.error){ fail("couldn't start: " + esc(r.error)); return; }
+  stat.innerHTML = statusHTML({state:"training", elapsed_s:0});
+  startStatusPoll(stat, btn, false);
 }
 
 function domEvalTable(rows, title, note){
   const okAll = rows.filter(r => r.ok_all).length;
-  return `<div class="card" style="margin:.5rem 0"><h3>${title} — ${okAll}/${rows.length} fully correct</h3>
-    <table class="opstable"><thead><tr><th>case</th>${
-      Object.keys(rows[0].questions).map(q => `<th>${q}</th>`).join("")}</tr></thead>
-    <tbody>${rows.map(r => `<tr><td class="small">${(r.label || r.id)}</td>${
+  return `<div class="card" style="margin:.5rem 0"><h3>${esc(title)} — ${okAll}/${rows.length} fully correct</h3>
+    <div class="tablewrap"><table class="opstable"><thead><tr><th>case</th>${
+      Object.keys(rows[0].questions).map(q => `<th>${esc(humanize(q))}</th>`).join("")}</tr></thead>
+    <tbody>${rows.map(r => `<tr><td class="small">${esc(r.label || r.id)}</td>${
       Object.values(r.questions).map(v => `<td style="text-align:center">${v.ok ? "✓" : "✗"}</td>`).join("")
-    }</tr>`).join("")}</tbody></table>
-    ${note ? `<p class="small">${note}</p>` : ""}</div>`;
+    }</tr>`).join("")}</tbody></table></div>
+    ${note ? `<p class="small">${esc(note)}</p>` : ""}</div>`;
 }
 
 async function domResults(res){
@@ -612,10 +923,10 @@ async function domResults(res){
   const freshOK = res.fresh_holdout.filter(r => r.ok_all).length;
   el.insertAdjacentHTML("beforeend", `
     <div class="card" style="border-color:#bcd9cb;background:#f4faf7">
-      <h3>⚡ Taught in ${Math.round(res.train_seconds)}s (real fine-tune, ${res.train_rows} rows)</h3>
+      <h3><span aria-hidden="true">⚡</span> Taught in ${Math.round(res.train_seconds)}s (real fine-tune, ${res.train_rows} rows)</h3>
       <div class="statsgrid" style="display:grid">
         <div class="card"><div class="statbig">${(100*res.before.filter(r=>r.ok_all).length/res.before.length).toFixed(0)}%</div><div class="statl">before · zero-shot on the teach cases</div></div>
-        <div class="card" style="border-color:#bcd9cb"><div class="statbig">${(100*res.after.filter(r=>r.ok_all).length/res.after.length).toFixed(0)}%</div><div class="statl">after · taught engine, same cases</div></div>
+        <div class="card" style="border-color:#bcd9cb"><div class="statbig">${(100*res.after.filter(r=>r.ok_all).length/res.after.length).toFixed(0)}%</div><div class="statl">after · taught engine, on the cases it was taught</div></div>
         <div class="card"><div class="statbig">${(100*freshOK/res.fresh_holdout.length).toFixed(0)}%</div><div class="statl">fresh 30-case sample <em>(same-generator holdout — see the paraphrase probe)</em></div></div>
       </div>
       <p class="small">Calibration caveat: freshly taught confidences are razor-sharp (the calibration fit hits its
@@ -623,13 +934,24 @@ async function domResults(res){
     </div>
     ${domEvalTable(res.paraphrase_probes, "Paraphrase probe — hand-reworded cases (out-of-template)",
       "Missing one of these is the honest point: 12 taught cases buy in-template perfection, not robustness. Teach 30+ and watch this table.")}
-    <button class="primary" id="driftBtn">⏭ A year later — the policy changes (deductibles double). What happens?</button>
+    <button class="primary" id="driftBtn"><span aria-hidden="true">⏭</span> A year later — the policy changes (deductibles double). What happens?</button>
     <div id="driftOut"></div>`);
   $("driftBtn").onclick = async () => {
     $("driftOut").innerHTML = "<p class='small'>measuring decay on 30 drifted cases…</p>";
-    const d = await fetch(studioURL("/drift"), {method:"POST", headers:{"Content-Type":"application/json"},
-      body: JSON.stringify({domain: DOM_STATE.domain})}).then(x => x.json());
-    if (d.error){ $("driftOut").innerHTML = `<p class="small">${d.error}</p>`; return; }
+    const tok = sessionStorage.getItem("studioToken") || prompt("Studio token (presenter only):") || "";
+    let d;
+    try {
+      d = await fetch(studioURL("/drift"), {method:"POST",
+        headers:{"Content-Type":"application/json","X-Studio-Token":tok},
+        body: JSON.stringify({domain: DOM_STATE.domain})}).then(x => x.json());
+    } catch (e) { $("driftOut").innerHTML = `<p class="small">network error (${esc(String(e))}) — press the button to retry.</p>`; return; }
+    if (d && (d.error_kind === "token" || (d.error && /token/i.test(d.error)))){
+      sessionStorage.removeItem("studioToken");
+      $("driftOut").innerHTML = `<p class="small">403 — wrong token. Press the button again to re-enter it.</p>`; return;
+    }
+    sessionStorage.setItem("studioToken", tok);
+    if (d && d.error_kind === "busy"){ $("driftOut").innerHTML = `<p class="small">409 — a teach run is in progress; try after it finishes.</p>`; return; }
+    if (d && d.error){ $("driftOut").innerHTML = `<p class="small">${esc(d.error)}</p>`; return; }
     const tOK = d.taught.filter(r => r.ok_all).length, zOK = d.zero.filter(r => r.ok_all).length;
     $("driftOut").innerHTML = `<div class="card" style="border-color:#d9a5a5;background:#fdf4f4">
       <h3>The taught engine drops to ${(100*tOK/d.taught.length).toFixed(0)}% on the drifted policy
@@ -641,50 +963,80 @@ async function domResults(res){
 
 async function domPick(name){
   const el = $("domainfloor");
-  DOM_STATE = {domain: name, edits: {}};
-  el.innerHTML = `<h2>${DOM_META[name].icon} ${name.replace(/_/g," ")}</h2><p class="small">${DOM_META[name].blurb}</p>
-    <p class="small">loading the measured portfolio…</p>`;
-  const [presets, portfolio] = await Promise.all([
-    fetch(studioURL(`/presets?domain=${name}`)).then(r => r.json()),
-    fetch(studioURL(`/portfolio?domain=${name}`)).then(r => r.json()),
+  DOM_STATE = {domain: name, questions: null, cases: null, edits: {}};
+  const head = `<h2><span aria-hidden="true">${DOM_META[name]?DOM_META[name].icon:"🗂"}</span> ${esc(name.replace(/_/g," "))}</h2><p class="small">${esc(DOM_META[name]?DOM_META[name].blurb:"")}</p>`;
+  el.innerHTML = head + `<p class="small">loading the measured portfolio…</p>`;
+  const [presetsR, portfolioR] = await Promise.allSettled([
+    fetch(studioURL(`/presets?domain=${name}`)).then(r => { if (!r.ok) throw new Error("HTTP " + r.status); return r.json(); }),
+    fetch(studioURL(`/portfolio?domain=${name}&lite=1`)).then(r => { if (!r.ok) throw new Error("HTTP " + r.status); return r.json(); }),
   ]);
-  if (portfolio.error){ el.innerHTML += `<p>${portfolio.error}</p>`; return; }
+  if (presetsR.status !== "fulfilled" || portfolioR.status !== "fulfilled"){
+    const why = presetsR.status !== "fulfilled" ? "presets" : "portfolio";
+    el.innerHTML = head + `<p class="small" style="color:var(--bad)">couldn't load the domain ${why} (${esc(String(presetsR.reason || portfolioR.reason))}).</p>`;
+    const b = document.createElement("button"); b.className = "ghost"; b.textContent = "Retry";
+    b.onclick = () => domPick(name); el.appendChild(b);
+    return;
+  }
+  const presets = presetsR.value, portfolio = portfolioR.value;
+  if (portfolio.error){ el.innerHTML = head + `<p>${esc(portfolio.error)}</p>`; return; }
   DOM_STATE.questions = presets.questions;
   const S = portfolio.summary;
   const pct = (arm) => { const a = S.accuracy[arm] || {}; const v = Object.values(a);
     return v.length ? (100*v.reduce((x,y)=>x+y,0)/v.length).toFixed(1) + "%" : "—"; };
   const wrong = portfolio.claims.filter(c => Object.entries(c.gold).some(([q, g]) => {
     const a = c.arms.zero.answers[q] || {};
-    const v = a.type === "noul" ? (a.noul > 0.5 ? 1 : 0) : (a.choice !== undefined ? a.choice : a.score);
-    const gv = typeof g === "boolean" ? (g ? 1 : 0) : g;
-    return v !== gv;
+    if (a.noul !== undefined) return (a.noul > 0.5 ? 1 : 0) !== (g ? 1 : 0);
+    if (a.choice !== undefined) return a.choice !== g;
+    if (a.score !== undefined) return !scoreEq(a.score, g);
+    return true;
   })).slice(0, 3);
   const struggleHTML = wrong.map(c => `<div class="card" style="margin:.4rem 0">
-    <p class="small" style="white-space:pre-wrap">${c.state.slice(0, 200)}…</p>
+    <p class="small" style="white-space:pre-wrap">${esc(c.state.slice(0, 200))}…</p>
     <p class="small"><b>zero-shot:</b> ${Object.entries(c.arms.zero.answers).slice(0,4).map(([q,a]) =>
-      `${q}=${a.choice ?? a.score ?? (a.noul > 0.5 ? "yes" : "no")}`).join(" · ")}
-      <span style="color:var(--bad)">— gold: ${Object.entries(c.gold).slice(0,4).map(([q,g]) => `${q}=${typeof g === "boolean" ? (g?"yes":"no") : g}`).join(" · ")}</span></p></div>`).join("");
-  el.innerHTML = `<h2>${DOM_META[name].icon} ${name.replace(/_/g," ")}</h2><p class="small">${DOM_META[name].blurb}</p>
+      `${esc(humanize(q))}=${esc(a.choice !== undefined ? humanize(a.choice) : a.score !== undefined ? Math.round(a.score) : (a.noul > 0.5 ? "yes" : "no"))}`).join(" · ")}
+      <span style="color:var(--bad)">— gold: ${Object.entries(c.gold).slice(0,4).map(([q,g]) => `${esc(humanize(q))}=${esc(goldDisp(g))}`).join(" · ")}</span></p></div>`).join("");
+  const all7 = (arm) => (S.all_correct && S.all_correct[arm] !== undefined && S.n) ? `all 7 correct: ${S.all_correct[arm]}/${S.n} ${fmtCI(S.all_correct[arm], S.n)}` : "";
+  const pctCard = (arm, label) => {
+    const p = pct(arm), a7 = all7(arm);
+    return `<div class="card"><div class="statbig">${p}</div><div class="statl">${label}${a7 ? " · " + esc(a7) : ""}</div>${p === "100.0%" ? `<div class="caveat">${esc(CAVEAT_100)}</div>` : ""}</div>`;
+  };
+  el.innerHTML = head + `
     <div class="statsgrid" style="display:grid">
-      <div class="card"><div class="statbig">${pct("zero")}</div><div class="statl">Laya zero-shot · 500 unseen cases (measured)</div></div>
-      <div class="card"><div class="statbig">${pct("dec")}</div><div class="statl">decider-4b zero-shot · same 500</div></div>
-      <div class="card"><div class="statbig">${pct("dec_ft")}</div><div class="statl">decider-4b trained on <em>insurance</em> — cross-domain transfer, same 500</div></div>
-      <div class="card"><div class="statbig">${pct("rules")}</div><div class="statl">Rules engine · perfect on the phrasing it was built for</div></div>
+      ${pctCard("zero", "Laya zero-shot · 500 unseen cases (measured)")}
+      ${pctCard("dec", "decider-4b zero-shot · same 500")}
+      ${pctCard("dec_ft", "decider-4b after insurance training (format + journey transfer)")}
+      ${pctCard("rules", ARM_LABEL.rules + " · perfect on the phrasing it was built for")}
     </div>
     <h3>Watch them struggle (cases picked from measured zero-shot errors)</h3>${struggleHTML}
     <div class="card"><h3>Now teach it — bulk-accept the rule gold, optionally edit one decision</h3>
       <p class="small" id="editBadge">no edits — the rule gold stands (bulk-accepted)</p>
-      <table class="opstable" id="teachTable"></table>
-      <div style="display:flex;gap:.8rem;align-items:center;margin-top:.6rem">
-        <button class="primary" id="teachBtn">⚡ Teach (real fine-tune, ~1-2 min)</button>
-        <span class="small" id="teachStatus"></span>
+      <div class="tablewrap"><table class="opstable" id="teachTable"></table></div>
+      <div style="display:flex;gap:.8rem;align-items:center;margin-top:.6rem;flex-wrap:wrap">
+        <button class="primary" id="teachBtn" disabled><span aria-hidden="true">⚡</span> Teach (real fine-tune, ~${TEACH_ETA_MIN} min) — presenter-only</button>
+        <span class="small" id="teachStatus">loading teach cases…</span>
       </div>
     </div>`;
-  const sess = await fetch(studioURL("/session"), {method:"POST", headers:{"Content-Type":"application/json"},
-    body: JSON.stringify({domain: name})}).then(r => r.json());
+  let sess;
+  try {
+    sess = await fetch(studioURL("/session"), {method:"POST", headers:{"Content-Type":"application/json"},
+      body: JSON.stringify({domain: name})}).then(r => r.json());
+  } catch (e) {
+    sess = {error: String(e)};
+  }
+  const stat = el.querySelector("#teachStatus"), btn = el.querySelector("#teachBtn");
+  const sessFail = (msg) => {
+    stat.innerHTML = esc(msg) + ` `;
+    const b = document.createElement("button"); b.className = "mini"; b.textContent = "Retry";
+    b.onclick = () => domPick(name); stat.appendChild(b);
+  };
+  if (sess.error_kind === "busy"){ sessFail("a teach run is already in progress — the studio trains one job at a time; retry after it finishes."); return; }
+  if (sess.error_kind === "out_of_gpu_memory"){ sessFail("the studio is low on GPU memory right now — teach cases can't load; retry in a moment."); return; }
+  if (sess.error || !sess.cases){ sessFail("couldn't load teach cases (" + (sess.error || sess.error_kind || "empty response") + ")."); return; }
   DOM_STATE.cases = sess.cases;
   renderDomTeach();
-  $("teachBtn").onclick = domTeach;
+  btn.disabled = false;
+  stat.textContent = "ready — bulk-accept the gold or edit a cell, then Teach.";
+  btn.onclick = domTeach;
 }
 
 async function initDomain(){
@@ -696,22 +1048,36 @@ async function initDomain(){
     const r = await fetch(studioURL("/domains")).then(x => x.json());
     DOMS = r.domains;
   } catch (e) {
-    el.innerHTML = `<div class="card"><p>Studio service unreachable (${e}). Start it with
+    el.innerHTML = `<div class="card"><p>Studio service unreachable (${esc(String(e))}). Start it with
       <code>STUDIO_TOKEN=… python studio_service.py</code> (localhost :8903; the console proxies through :8901).</p></div>`;
     return;
   }
   el.innerHTML = `<h2>🏭 Pick a business — any business</h2>
     <div class="statsgrid" style="display:grid;grid-template-columns:repeat(auto-fit,minmax(260px,1fr))">
-    ${Object.keys(DOMS).map(k => `<div class="card dompick" style="cursor:pointer">
-      <h3>${(DOM_META[k]||{icon:"🗂"}).icon} ${k.replace(/_/g," ")}</h3>
-      <p class="small">${(DOM_META[k]||{blurb:""}).blurb}</p></div>`).join("")}
+    ${Object.keys(DOMS).map(k => `<button type="button" class="dompick" data-dom="${esc(k)}">
+      <h3><span aria-hidden="true">${(DOM_META[k]||{icon:"🗂"}).icon}</span> ${esc(k.replace(/_/g," "))}</h3>
+      <p class="small">${esc((DOM_META[k]||{blurb:""}).blurb)}</p></button>`).join("")}
     </div>
     <p class="small">Every domain ships the same 7-decision journey: route · flag · prioritize · eligibility ·
       money band · third party · touches. Seeded corpora, rule-verifiable gold, 500/500 replay-validated.</p>`;
-  el.querySelectorAll(".dompick").forEach((c, i) => c.onclick = () => domPick(Object.keys(DOMS)[i]));
+  el.querySelectorAll(".dompick").forEach(c => c.onclick = () => domPick(c.dataset.dom));
+  // If a teach job is already training (e.g. the presenter started it elsewhere), say so up front.
+  try {
+    const s = await fetch(studioURL("/status")).then(x => x.json());
+    if (s && (s.state === "training" || s.state === "evaluating")){
+      if (!el.querySelector("#studioBusy")){
+        el.insertAdjacentHTML("afterbegin", `<div class="card" id="studioBusy" style="border-color:#d9c08f;background:var(--era1-soft)">
+          <h3>A teach run is already in progress</h3>
+          <div id="studioBusyStatus">${statusHTML(s)}</div>
+          <p class="small">The studio trains one job at a time — Teach stays unavailable until it finishes (presenter-only action).</p></div>`);
+        startStatusPoll(el.querySelector("#studioBusyStatus"), null, true);
+      }
+    }
+  } catch (e) { /* status unavailable: proceed without the banner */ }
 }
-const m = new URLSearchParams(location.search).get("mode");
-setMode(["day1","after","compare","ops","domain"].includes(m) ? m : "day1", false);
+
+const m0 = modeFromLocation();
+setMode(m0, false, false);
 health(); loadPresets(); setInterval(health, 15000);
 setTimeout(() => {   // never a silent blank floor: if this build failed to build it, say so
   const el = document.getElementById("domainfloor");

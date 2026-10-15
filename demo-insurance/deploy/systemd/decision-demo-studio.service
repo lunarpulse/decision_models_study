@@ -1,0 +1,17 @@
+[Unit]
+Description=Insurance claims demo — studio service (teach/drift)
+PartOf=decision-demo.target
+
+[Service]
+Type=simple
+EnvironmentFile=%h/.config/systemd/user/decision-demo.env
+# Refuse to start without a token (start_demo.sh generates one); pass token + roots as env.
+ExecStart=/bin/sh -c 'T="$DEMO_DIR/studio-token.txt"; [ -s "$T" ] || { echo "[decision-demo-studio] token file missing or empty: $T — run start_demo.sh once to generate it"; exit 1; }; export DEMO_ROOT="$DEMO_DIR" STUDIO_PY="$STUDIO_PY" STUDIO_TOKEN="$(cat "$T")"; if [ -n "$DEMO_BOX" ]; then exec "$DISTROBOX_BIN" enter "$DEMO_BOX" -- "$STUDIO_PY" "$DEMO_DIR/studio_service.py" "$STUDIO_PORT"; else exec "$STUDIO_PY" "$DEMO_DIR/studio_service.py" "$STUDIO_PORT"; fi'
+# The python process lives inside the distrobox container and survives the wrapper
+# being killed, so stop it explicitly (host pkill sees the container processes).
+# Its training child is killed via the PID files the studio writes
+# (studio-runs/<domain>/train.pid) — never by cmdline pattern, which would hit
+# unrelated laya.train_cli runs (measurements) on this machine.
+ExecStop=/bin/sh -c 'pkill -f "studio_service.py $STUDIO_PORT" 2>/dev/null || :; for f in "$DEMO_DIR"/studio-runs/*/train.pid; do [ -s "$f" ] || continue; T=$(cat "$f"); case $(tr "\\0" " " < "/proc/$T/cmdline" 2>/dev/null) in *laya.train_cli*) kill "$T" 2>/dev/null;; esac; done'
+Restart=on-failure
+RestartSec=5

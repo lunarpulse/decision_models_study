@@ -1,0 +1,14 @@
+[Unit]
+Description=Insurance claims demo — cloudflared quick tunnel (public URL)
+PartOf=decision-demo.target
+
+[Service]
+Type=simple
+EnvironmentFile=%h/.config/systemd/user/decision-demo.env
+ExecStartPre=/bin/sh -c ': > "$DEMO_DIR/cloudflared.log"'
+ExecStart=/bin/sh -c 'exec "$CLOUDFLARED_BIN" tunnel --url "http://127.0.0.1:${LAYA_PORT}" >> "$DEMO_DIR/cloudflared.log" 2>&1'
+# Extract the trycloudflare URL into tunnel-url.txt (60s grace; never fails the unit —
+# a missing URL is visible as an absent/stale tunnel-url.txt, details in cloudflared.log).
+ExecStartPost=/bin/sh -c 'i=0; while [ "$i" -lt 30 ]; do U=$(grep -oE "https://[a-z0-9-]+[.]trycloudflare[.]com" "$DEMO_DIR/cloudflared.log" 2>/dev/null | tail -n 1); if [ -n "$U" ]; then printf "%s\n" "$U" > "$DEMO_DIR/tunnel-url.txt"; echo "[decision-demo-tunnel] public URL: $U"; exit 0; fi; i=$((i+1)); sleep 2; done; echo "[decision-demo-tunnel] no trycloudflare URL after 60s — see $DEMO_DIR/cloudflared.log"; exit 0'
+Restart=on-failure
+RestartSec=5
