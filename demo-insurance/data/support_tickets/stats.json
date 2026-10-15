@@ -3,7 +3,7 @@
  "rows_all_correct": {
   "dec": 16,
   "dec_ft": 176,
-  "zero": 0,
+  "zero": 5,
   "rules": 500
  },
  "per_question": {
@@ -28,11 +28,11 @@
   "zero": {
    "routing": 0.74,
    "abuse_review": 0.846,
-   "urgency": 0.0,
+   "urgency": 0.432,
    "refund_eligibility": 0.308,
    "refund_band": 0.158,
    "vendor_recovery": 0.854,
-   "expected_touches": 0.0
+   "expected_touches": 0.408
   },
   "rules": {
    "routing": 1.0,
@@ -44,8 +44,8 @@
    "expected_touches": 1.0
   }
  },
- "elapsed_s": 92.1,
- "zero": 0.4151,
+ "elapsed_s": 91.3,
+ "zero": 0.5351,
  "dec": 0.6066,
  "decft": 0.8137,
  "rules": 1.0

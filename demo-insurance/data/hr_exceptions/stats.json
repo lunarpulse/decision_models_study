@@ -3,7 +3,7 @@
  "rows_all_correct": {
   "dec": 40,
   "dec_ft": 261,
-  "zero": 0,
+  "zero": 10,
   "rules": 500
  },
  "per_question": {
@@ -28,11 +28,11 @@
   "zero": {
    "routing": 0.502,
    "policy_circumvention_review": 0.808,
-   "urgency": 0.0,
+   "urgency": 0.462,
    "exception_eligibility": 0.774,
    "exception_band": 0.23,
    "external_party_involved": 0.92,
-   "expected_touches": 0.0
+   "expected_touches": 0.394
   },
   "rules": {
    "routing": 1.0,
@@ -44,8 +44,8 @@
    "expected_touches": 1.0
   }
  },
- "elapsed_s": 92.1,
- "zero": 0.462,
+ "elapsed_s": 91.7,
+ "zero": 0.5843,
  "dec": 0.7094,
  "decft": 0.8994,
  "rules": 1.0

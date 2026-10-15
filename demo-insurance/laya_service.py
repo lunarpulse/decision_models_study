@@ -5,6 +5,7 @@ CORS open for file:// frontend. Run under the repo's .venv-laya/bin/python.
 import json, time, sys, re, os, pathlib, urllib.parse, urllib.request, urllib.error
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 
+_DEC_PORT = os.environ.get("DECIDER_PORT", "8902")
 _STUDIO_PORT = os.environ.get("STUDIO_PORT", "8903")
 
 ROOT = pathlib.Path(os.environ.get("DEMO_ROOT", pathlib.Path(__file__).resolve().parent))

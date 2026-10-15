@@ -28,11 +28,11 @@
   "zero": {
    "routing": 0.54,
    "contract_abuse_review": 0.278,
-   "urgency": 0.0,
+   "urgency": 0.388,
    "liability_eligibility": 0.112,
    "recovery_band": 0.168,
    "subcarrier_recovery": 0.954,
-   "expected_touches": 0.0
+   "expected_touches": 0.412
   },
   "rules": {
    "routing": 1.0,
@@ -44,8 +44,8 @@
    "expected_touches": 1.0
   }
  },
- "elapsed_s": 92.9,
- "zero": 0.2931,
+ "elapsed_s": 91.6,
+ "zero": 0.4074,
  "dec": 0.6969,
  "decft": 0.9331,
  "rules": 1.0

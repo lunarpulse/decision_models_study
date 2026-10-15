@@ -61,29 +61,59 @@ network see traffic metadata. Fine for a session with known recipients; revoke w
    Engine D (rules) is on the same table on purpose: it is perfect on the phrasing it was built
    for and `unparsed` on the Korean claim — that is the incumbent's real shape.
 
+### The Domain Builder (the closer) — `?mode=domain`
+
+7. **Pick a business (2 min):** support tickets, logistics exceptions, HR exceptions. A seeded
+   corpus with rule-verifiable gold generates instantly (500/500 replay-validated per domain,
+   enforced in CI). The measured-struggle screen shows zero-shot engines failing real cases from
+   that domain — picked from measured errors, not staged. Point at the fourth card: the
+   decider-4b *trained on insurance* scoring high here with zero domain training — the journey
+   itself transfers.
+8. **Teach it (10 min — a talk beat):** bulk-accept the rule gold, then deliberately change ONE
+   decision on ONE case ("our policy differs"). Press ⚡ Teach: a real fine-tune runs on this
+   machine (~1,500 corpus rows relabeled under your edit + your 12 cases ×20, 2 epochs). The
+   progress line ticks live. Result: the scoreboard flips, *and* the hand-written paraphrase
+   probe humbles it — in-template perfection, out-of-template honesty. Calibration caveat is on
+   the card.
+9. **The retainer (1 min):** press "A year later" — deductibles double, and the taught engine's
+   measured decay shows on screen. The fix is a 30-case re-teach. That loop is the recurring
+   business.
+
+Studio notes for the operator: `STUDIO_TOKEN=… python studio_service.py` (localhost :8903,
+proxied through :8901). Training needs the token — anonymous tunnel visitors can watch but not
+teach. One training job at a time. GPU: peak ~32 GiB of 32.6 with the full live stack resident —
+teach during talk beats, not during latency demos.
+
 ## 4. Numbers you may quote (measured on 500 unseen claims, 7 questions each, this machine)
 
-| Engine | v2 accuracy | All-seven-correct rows |
+| Engine | accuracy | All-seven-correct rows |
 |---|---:|---:|
-| Laya out-of-box | 35.5% | 0/500 |
+| Laya out-of-box | 46.4% | 1/500 |
 | decider-4b (no training) | 70.8% | 21/500 |
-| Laya fine-tuned (12k claims) | 99.9% | 497/500 |
-| **decider-4b + LoRA (same 12k claims)** | **100.0%** | **500/500** |
+| **Laya fine-tuned (12k claims)** | **100.0%** | **500/500** |
+| **decider-4b + LoRA (same 12k)** | **100.0%** | **500/500** |
 | Rules engine (Engine D) | 100.0% *English phrasing only* | 500/500 — `unparsed` on non-English |
 
+(An earlier run quoted 99.9%/497: a comparator bug — laya emits near-integer score floats like
+1.0001 — not a model error; see DEVELOPMENT_LOG ledger #10.)
+
+**Cross-domain transfer (decider-4b LoRA trained ONLY on insurance, never on these domains):**
+support tickets 81.4% · logistics exceptions 93.3% · HR exceptions 89.9% (zero-shot base:
+60.7% / 69.7% / 70.9%; laya zero-shot: 53.5% / 40.7% / 58.4%). The 7-decision journey itself
+transfers — one supervised process buys most of the next one.
+
 **The parity result (what fine-tuning does to the decider):** the same 12,000 rows that took
-Laya from 35.5% to 99.9% took decider-4b from 70.8% to **100.0%** (LoRA rank 64, 2 epochs,
-71 minutes on this GPU, merged to bf16) — and unlike the Laya fine-tune it **kept its
-languages**: 140/140 preset questions including Korean, Japanese, Hindi and Spanish. Caveats,
-stated plainly: train and holdout come from the same templated generator (in-distribution);
-its post-training confidences hit the calibration floor (T=0.05, razor-sharp — treat
-thresholds on it as uncalibrated until recalibrated on real data); no general-benchmark
-regression was re-run on the merged weights.
+Laya from 46.4% to 100.0% took decider-4b from 70.8% to **100.0%** (LoRA rank 64, 2 epochs,
+71 minutes, merged to bf16) — and it **kept its languages**: 140/140 preset questions including
+Korean, Japanese, Hindi and Spanish. Caveats, stated plainly: train and holdout come from the
+same templated generator (in-distribution); post-training confidences hit the calibration floor
+(razor-sharp — treat thresholds as uncalibrated until recalibrated on real data); no
+general-benchmark regression was re-run on the merged weights.
 
 Ops floor (τ = 0.80, fine-tuned Laya as the working engine): 69.4% straight-through (347
-claims, $2.29M), every auto-approved claim correct on all seven decisions (347/347), one
-fraud claim below threshold (the τ-slider's cautionary tale), $1.21M fraud-$ flagged with
-$0 false-flagged.
+claims, $2.29M), every auto-approved claim correct on all seven decisions (347/347), one fraud
+claim below threshold (the τ-slider's cautionary tale), $1.21M fraud-$ flagged with $0
+false-flagged.
 
 v1 comparison (3-question era, same corpus seed): 37.8% / 100.0% / 74.1%. Study context: on the
 prior sealed corpus Laya-ft beat the adapted 8B CLM model on every endpoint

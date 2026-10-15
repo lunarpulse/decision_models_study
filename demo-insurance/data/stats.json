@@ -3,8 +3,8 @@
  "rows_all_correct": {
   "dec": 21,
   "dec_ft": 500,
-  "zero": 0,
-  "ft": 497,
+  "zero": 1,
+  "ft": 500,
   "rules": 500
  },
  "per_question": {
@@ -29,20 +29,20 @@
   "zero": {
    "routing": 0.58,
    "fraud_review": 0.508,
-   "urgency": 0.0,
+   "urgency": 0.382,
    "coverage_eligibility": 0.35,
    "net_payable_band": 0.136,
    "subrogation": 0.914,
-   "expected_touches": 0.0
+   "expected_touches": 0.378
   },
   "ft": {
    "routing": 1.0,
    "fraud_review": 1.0,
-   "urgency": 0.998,
+   "urgency": 1.0,
    "coverage_eligibility": 1.0,
    "net_payable_band": 1.0,
    "subrogation": 1.0,
-   "expected_touches": 0.996
+   "expected_touches": 1.0
   },
   "rules": {
    "routing": 1.0,
@@ -54,9 +54,9 @@
    "expected_touches": 1.0
   }
  },
- "elapsed_s": 111.0,
- "zero": 0.3554,
- "ft": 0.9991,
+ "elapsed_s": 107.5,
+ "zero": 0.464,
+ "ft": 1.0,
  "dec": 0.7077,
  "decft": 1.0,
  "rules": 1.0

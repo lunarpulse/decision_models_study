@@ -81,9 +81,10 @@ def correct(qid, gold, ans):
         return int(ans.get("noul", 0) > 0.5) == g
     v = ans.get("choice", ans.get("score"))
     if v is None:
-        v = ans.get("score_key")
+        return False
+    if ans.get("type") == "score":
+        return int(round(float(v))) == g   # laya emits near-integer floats (e.g. 1.0001)
     return v == g
-
 
 def calibration(pairs, bins=10):
     out = []

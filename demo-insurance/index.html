@@ -522,9 +522,6 @@ function drawOps(){
   $("volIn").oninput({target:$("volIn")});
 }
 
-const m = new URLSearchParams(location.search).get("mode");
-setMode(["day1","after","compare","ops","domain"].includes(m) ? m : "day1", false);
-health(); loadPresets(); setInterval(health, 15000);
 
 // ======================= Domain Builder (teach it your business) =======================
 let DOMS = null, DOM_STATE = {domain: null, cases: null, edits: {}};
@@ -709,6 +706,9 @@ async function initDomain(){
       money band · third party · touches. Seeded corpora, rule-verifiable gold, 500/500 replay-validated.</p>`;
   el.querySelectorAll(".dompick").forEach((c, i) => c.onclick = () => domPick(Object.keys(DOMS)[i]));
 }
+const m = new URLSearchParams(location.search).get("mode");
+setMode(["day1","after","compare","ops","domain"].includes(m) ? m : "day1", false);
+health(); loadPresets(); setInterval(health, 15000);
 </script>
 </body>
 </html>

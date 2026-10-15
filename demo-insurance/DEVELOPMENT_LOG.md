@@ -183,6 +183,46 @@ layer, STP/adjuster ops floor, rules-engine baseline — plus supervised parity 
 5. **VRAM sequencing**: portfolio builder originally loaded decider *after* the laya arms and
    OOM'd (live stack 18 GB resident); reordered to load/free the 8.4 GB decider first.
 
+## Phase 7 — Domain Builder (demo v3): plan → independent review → factory, three domains, live studio (2026-10-15)
+
+1. **Plan reviewed independently** (`docs/PLAN_DOMAIN_BUILDER.md`, v2): a reviewer agent found two
+   blocking flaws (unspecified studio training pipeline; eligibility archetype unmapped — the loan
+   domain forces a credit decision) and majors (open GPU-job trigger behind the tunnel, unmeasured
+   VRAM claims, flag-set divergence from train_laya.sh, hard-coded qid/meta couplings). All folded
+   in: loans deferred, studio token-gated, timing/VRAM measured not asserted, factory domains ship
+   2k train rows with SHA-digest CI.
+2. **Domain factory** (`domain_factory.py` + `domains.py`): insurance generator left untouched
+   (rng order frozen); new domains use fresh streams and a canonical draw order. Shipped
+   `support_tickets`, `logistics_exceptions`, `hr_exceptions` — same 7-archetype journey,
+   domain-worded. Replay validators: **3500/3500 (500/500 per question set) for each domain**,
+   now enforced in CI alongside byte-reproducible regeneration.
+3. **Unplanned finding — cross-domain transfer**: the decider-4b LoRA trained *only on insurance*
+   scores 81.4% / 93.3% / 89.9% on support / logistics / HR holdouts (zero-shot: 60.7% / 69.7% /
+   70.9%). The 7-archetype journey transfers; one supervised domain buys most of the next ones.
+4. **Teaching Studio** (`studio_service.py`, :8903, localhost; proxied through :8901): session →
+   12 stratified teach cases (6 measured zero-shot errors + 6) → bulk-accept + deliberate edit →
+   real fine-tune (train_cli, flag-identical to train_laya.sh, `--micro-batch 2 --epochs 2`,
+   subprocess with expandable segments) → before/after eval + paraphrase probes + drift beat
+   (deductibles doubled → measured decay → re-teach = the retainer story).
+5. **Measured (this machine, live stack resident)**: teach-case session 15 s; training
+   162 s/epoch at micro-batch 4 (1 epoch under-trained: 6/12), 2 epochs at micro-batch 2 ≈ 10 min
+   wall — over the plan's 2.5-min target; VRAM peak 32.1 GiB of 32.6 (zero headroom — the
+   micro-batch reduction buys ~1 GiB); live insurance /predict during training stayed in the
+   tens of ms. The taught checkpoint scores **59/60 on the support-tickets holdout** (12 cases +
+   1,500 corpus rows, 2 epochs) and **0/3 on the hand-written paraphrase probes** — the honesty
+   beat works: in-template perfection, out-of-template humility.
+6. **Comparator bug, found the hard way (ledger #10)**: laya emits near-integer score floats
+   (1.0001); exact-equality against int gold silently failed *every* score question — the first
+   studio eval read 0/12 while the model was near-perfect, and the insurance portfolio's "497/500"
+   was the same artifact (truly 500/500). Fixed with rounding in every comparator; all portfolios
+   rebuilt. Lesson: when an eval reports exactly-zero agreement, suspect the comparator before the
+   model.
+7. Also fixed en route: session returned 6 cases not 12 (zero-shot almost never gets all 7 right,
+   so the "all-correct" pool was empty — fill from the error pool); studio died twice under the
+   tool-call process-group reaper (relaunched as a managed service — same lesson as ledger #9);
+   edited teach-cases were scored against the rule gold instead of the edited policy (the model
+   had *learned* the edit; the eval hadn't).
+
 ## Final state at log time
 
 - Services: `laya_service.py` :8901 (zero-shot Router + English fine-tune; 0.0.0.0; serves console,

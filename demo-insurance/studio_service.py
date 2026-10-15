@@ -57,12 +57,23 @@ def stratified_cases(domain, n=12, err_n=6):
             v = a.get("choice", a.get("score"))
             if a.get("type") == "noul":
                 v = int(a.get("noul", 0) > 0.5)
+            elif a.get("type") == "score" and v is not None:
+                v = int(round(float(v)))
             gv = g if not isinstance(g, bool) else int(g)
             wrong += (v != gv)
         (errs if wrong else oks).append(r)
     rng.shuffle(errs); rng.shuffle(oks)
     cases = errs[:err_n] + oks[: n - err_n]
+    for r in errs[err_n:]:          # fill up if too few all-correct rows
+        if len(cases) >= n:
+            break
+        cases.append(r)
     rng.shuffle(cases)
+    try:
+        import torch
+        torch.cuda.empty_cache()    # free the stratification pass before any training subprocess
+    except Exception:
+        pass
     return [{"id": r["id"], "state": r["state"], "gold": r["gold"], "meta": r["meta"]} for r in cases]
 
 
@@ -122,6 +133,8 @@ def run_eval(domain, eng, cases, probes):
             v = a.get("choice", a.get("score"))
             if a.get("type") == "noul":
                 v = int(a.get("noul", 0) > 0.5)
+            elif a.get("type") == "score" and v is not None:
+                v = int(round(float(v)))
             gv = g if not isinstance(g, bool) else int(g)
             ok = v == gv
             ok_all &= ok
@@ -134,7 +147,7 @@ def run_eval(domain, eng, cases, probes):
     return results
 
 
-def train_worker(domain, rows):
+def train_worker(domain, rows, edits):
     global _ft
     try:
         run_dir = OUT / domain
@@ -148,9 +161,11 @@ def train_worker(domain, rows):
         t0 = time.time()
         cmd = [PY, "-m", "laya.train_cli", "--data", str(data_path),
                "--base", "convaiinnovations/laya", "--out", str(ckpt),
-               "--loss", "soft-ce", "--shuffle-options", "--epochs", "1", "--device", "cuda"]
+               "--loss", "soft-ce", "--shuffle-options", "--epochs", "2", "--device", "cuda",
+               "--micro-batch", "2"]
         proc = subprocess.Popen(cmd, cwd=str(run_dir), stdout=subprocess.PIPE,
-                                stderr=subprocess.STDOUT, text=True)
+                                stderr=subprocess.STDOUT, text=True,
+                                env={**os.environ, "PYTORCH_CUDA_ALLOC_CONF": "expandable_segments:True"})
         for line in proc.stdout:
             line = line.strip()
             if line:
@@ -165,6 +180,12 @@ def train_worker(domain, rows):
         _ft[domain] = eng
         _job["progress"].append("checkpoint loaded; evaluating")
         cases = stratified_cases(domain)
+        edit_map = {(e["case_id"], e["qid"]): e["to"] for e in edits}
+        for c in cases:
+            for (cid, qid), to in edit_map.items():
+                if cid == c["id"]:
+                    g = c["gold"][qid]
+                    c["gold"][qid] = (to in ("yes", "True", True)) if isinstance(g, bool) else to
         fresh = [{"id": r["id"], "state": r["state"], "gold": r["gold"]}
                  for r in (json.loads(l) for l in open(DATA / domain / "holdout_eval.jsonl"))][:30]
         probes = json.load(open(DATA / domain / "demo_presets.json")).get("paraphrase_probes", [])
@@ -246,7 +267,7 @@ class H(BaseHTTPRequestHandler):
                 rows = build_training_set(body["domain"], body["cases"], body.get("edits", []))
                 _job = {"state": "training", "domain": body["domain"],
                         "started": time.strftime("%H:%M:%S"), "progress": [], "error": None}
-            threading.Thread(target=train_worker, args=(body["domain"], rows), daemon=True).start()
+            threading.Thread(target=train_worker, args=(body["domain"], rows, body.get("edits", [])), daemon=True).start()
             self._send(200, {"started": True, "rows": len(rows)})
             return
         if p == "/studio/predict":
