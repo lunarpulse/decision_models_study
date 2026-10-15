@@ -1,0 +1,601 @@
+{
+ "domain": "support_tickets",
+ "questions": {
+  "routing": {
+   "type": "choice",
+   "instructions": "Route this support ticket to the team that should handle it. Choose exactly one team. Rule: if the ticket shows at least two abuse warning signs (no supporting evidence attached, an account younger than 30 days, or an unusually large refund demand over USD 18,500), route to trust and safety regardless of the issue type.",
+   "criteria": {
+    "billing_desk": "Invoices, charges, proration, refunds of payments.",
+    "technical_desk": "Product failures: errors, outages, data loss, integrations.",
+    "account_security": "Logins, 2FA, device and identity issues.",
+    "product_team": "Purchased add-ons, seats and entitlements not delivered.",
+    "trust_and_safety": "Tickets with repeated abuse warning signs needing review."
+   }
+  },
+  "abuse_review": {
+   "type": "noul",
+   "instructions": "Should this ticket be flagged for trust & safety review before any refund is issued? Answer yes only when at least two abuse warning signs appear: no supporting evidence, an account opened within 30 days of the ticket, or a refund demand over USD 18,500."
+  },
+  "urgency": {
+   "type": "score",
+   "instructions": "How urgently must this ticket be worked? critical: data loss or an outage affecting the whole workspace. urgent: the customer is locked out, stuck, or lost their MFA device. priority: account-security matters or a refund over USD 8,800. routine: everything else.",
+   "criteria": [
+    "routine",
+    "priority",
+    "urgent",
+    "critical"
+   ]
+  },
+  "refund_eligibility": {
+   "type": "choice",
+   "instructions": "Is this refund request eligible? Rules: the issue must fall inside the account's lifetime (an issue first reported before the account was opened is outside the window). An issue reported within 2 days of the account opening needs manual review. The reporting add-on is only sold on Plus or Premium plans — on Basic or Standard the purchase is voided and not refundable. Otherwise the request is eligible.",
+   "criteria": {
+    "eligible": "Issue inside the account window and no plan exclusion applies.",
+    "outside_window_account_not_active": "The issue predates the account.",
+    "review_required_fresh_account": "Issue within 2 days of account opening; review first.",
+    "not_eligible_plan_exclusion": "Reporting add-on purchased on Basic/Standard (void sale)."
+   }
+  },
+  "refund_band": {
+   "type": "choice",
+   "instructions": "After the processing fee is applied, which band does the refund fall into? Fees: billing USD 25, technical USD 10, account USD 0, product team USD 50. If the request is not eligible or is held for trust & safety review, nothing is payable yet (USD 0).",
+   "criteria": {
+    "zero_nothing_payable": "Not eligible, needs review, or held for abuse review.",
+    "up_to_1000": "Refund USD 1 - 1,000 after the fee.",
+    "1000_to_5000": "Refund USD 1,001 - 5,000 after the fee.",
+    "5000_to_15000": "Refund USD 5,001 - 15,000 after the fee.",
+    "over_15000": "Refund over USD 15,000 after the fee."
+   }
+  },
+  "vendor_recovery": {
+   "type": "noul",
+   "instructions": "Should the refund be recovered from a vendor (chargeback to the payment gateway or the shipping partner)? Answer yes only when a specific vendor is identified as the cause: a gateway double charge, or a shipping-partner integration failure with request logs attached."
+  },
+  "expected_touches": {
+   "type": "score",
+   "instructions": "How many agent touches will this ticket need? 0-1: complete, evidenced, low-value ticket (straight-through candidate). 2: one complication - missing evidence, a refund over USD 8,800, or an eligibility check. 3: two complications. 4+: flagged for trust & safety or three complications.",
+   "criteria": [
+    "0-1 touches (straight-through candidate)",
+    "2 touches",
+    "3 touches",
+    "4+ touches / T&S investigator assigned"
+   ]
+  }
+ },
+ "stages": [
+  {
+   "stage": "1 · Intake & triage",
+   "questions": [
+    "routing",
+    "urgency"
+   ]
+  },
+  {
+   "stage": "2 · Refund & eligibility",
+   "questions": [
+    "refund_eligibility",
+    "refund_band"
+   ]
+  },
+  {
+   "stage": "3 · Investigation",
+   "questions": [
+    "abuse_review",
+    "vendor_recovery"
+   ]
+  },
+  {
+   "stage": "4 · Operations",
+   "questions": [
+    "expected_touches"
+   ]
+  }
+ ],
+ "presets": [
+  {
+   "label": "plain billing refund, evidence attached",
+   "id": "tck-990000",
+   "state": "Support ticket TCK-1080000 opened by S. Ibrahim on 2026-10-07 via the in-app chat. Account BILLING-995000 opened 2026-09-21. The issue: charge for a cancelled add-on, first reported 2026-10-06. Requested refund: USD 1,200. The customer attached the invoice copy and payment confirmation and plan statement. The customer's plan is Basic.",
+   "gold": {
+    "routing": "billing_desk",
+    "abuse_review": false,
+    "urgency": 0,
+    "refund_eligibility": "eligible",
+    "refund_band": "1000_to_5000",
+    "vendor_recovery": false,
+    "expected_touches": 0
+   },
+   "meta": {
+    "cat": "billing",
+    "amount": 1200,
+    "age_days": 17,
+    "docs_ok": true,
+    "flag": false,
+    "tier": "Basic",
+    "deductible": 25,
+    "payable": 1175,
+    "incident_iso": "2026-10-06",
+    "filed_iso": "2026-10-07",
+    "start_iso": "2026-09-21",
+    "complications": 0,
+    "eligibility": "eligible"
+   }
+  },
+  {
+   "label": "gateway double charge",
+   "id": "tck-990100",
+   "state": "Support ticket TCK-1080100 opened by D. Ferreira on 2026-10-06 via the priority phone line. Account BILLING-995100 opened 2024-11-07. The issue: duplicate charge on the monthly invoice, first reported 2026-09-27. Requested refund: USD 5,100. No supporting evidence was attached; the customer says the files were lost. The customer's plan is Plus.",
+   "gold": {
+    "routing": "billing_desk",
+    "abuse_review": false,
+    "urgency": 0,
+    "refund_eligibility": "eligible",
+    "refund_band": "5000_to_15000",
+    "vendor_recovery": false,
+    "expected_touches": 1
+   },
+   "meta": {
+    "cat": "billing",
+    "amount": 5100,
+    "age_days": 700,
+    "docs_ok": false,
+    "flag": false,
+    "tier": "Plus",
+    "deductible": 25,
+    "payable": 5075,
+    "incident_iso": "2026-09-27",
+    "filed_iso": "2026-10-06",
+    "start_iso": "2024-11-07",
+    "complications": 1,
+    "eligibility": "eligible"
+   }
+  },
+  {
+   "label": "API 500 errors",
+   "id": "tck-990200",
+   "state": "Support ticket TCK-1080200 opened by A. Zhang on 2026-10-04 via the priority phone line. Account TECHNICAL-995200 opened 2026-09-29. The issue: data loss after the sync rollback, first reported 2026-10-03. Requested refund: USD 11,200. The customer attached the error log excerpt and screenshot of the failure and request IDs. The customer's plan is Standard.",
+   "gold": {
+    "routing": "technical_desk",
+    "abuse_review": false,
+    "urgency": 3,
+    "refund_eligibility": "eligible",
+    "refund_band": "5000_to_15000",
+    "vendor_recovery": false,
+    "expected_touches": 1
+   },
+   "meta": {
+    "cat": "technical",
+    "amount": 11200,
+    "age_days": 9,
+    "docs_ok": true,
+    "flag": false,
+    "tier": "Standard",
+    "deductible": 10,
+    "payable": 11190,
+    "incident_iso": "2026-10-03",
+    "filed_iso": "2026-10-04",
+    "start_iso": "2026-09-29",
+    "complications": 1,
+    "eligibility": "eligible"
+   }
+  },
+  {
+   "label": "workspace outage",
+   "id": "tck-990305",
+   "state": "Support ticket TCK-1080305 opened by M. Rossi on 2026-10-06 via the support portal. Account TECHNICAL-995305 opened 2026-05-21. The issue: outage affecting the whole workspace, first reported 2026-09-27. Requested refund: USD 480. The customer attached the error log excerpt and screenshot of the failure and request IDs. The customer's plan is Standard.",
+   "gold": {
+    "routing": "technical_desk",
+    "abuse_review": false,
+    "urgency": 3,
+    "refund_eligibility": "eligible",
+    "refund_band": "up_to_1000",
+    "vendor_recovery": false,
+    "expected_touches": 0
+   },
+   "meta": {
+    "cat": "technical",
+    "amount": 480,
+    "age_days": 140,
+    "docs_ok": true,
+    "flag": false,
+    "tier": "Standard",
+    "deductible": 10,
+    "payable": 470,
+    "incident_iso": "2026-09-27",
+    "filed_iso": "2026-10-06",
+    "start_iso": "2026-05-21",
+    "complications": 0,
+    "eligibility": "eligible"
+   }
+  },
+  {
+   "label": "sync rollback data loss",
+   "id": "tck-990402",
+   "state": "Support ticket TCK-1080402 opened by T. Ferreira on 2026-10-06 via the support portal. Account TECHNICAL-995402 opened 2026-07-20. The issue: data loss after the sync rollback, first reported 2026-10-04. Requested refund: USD 240. The customer attached the error log excerpt and screenshot of the failure and request IDs. The customer's plan is Premium.",
+   "gold": {
+    "routing": "technical_desk",
+    "abuse_review": false,
+    "urgency": 3,
+    "refund_eligibility": "eligible",
+    "refund_band": "up_to_1000",
+    "vendor_recovery": false,
+    "expected_touches": 0
+   },
+   "meta": {
+    "cat": "technical",
+    "amount": 240,
+    "age_days": 80,
+    "docs_ok": true,
+    "flag": false,
+    "tier": "Premium",
+    "deductible": 10,
+    "payable": 230,
+    "incident_iso": "2026-10-04",
+    "filed_iso": "2026-10-06",
+    "start_iso": "2026-07-20",
+    "complications": 0,
+    "eligibility": "eligible"
+   }
+  },
+  {
+   "label": "locked out after 2FA failures",
+   "id": "tck-990500",
+   "state": "Support ticket TCK-1080500 opened by D. Bennett on 2026-10-08 via the priority phone line. Account ACCOUNT-995500 opened 2026-01-21. The issue: email change requested without the verification code, first reported 2026-10-06. Requested refund: USD 9,600. The customer attached the identity confirmation and recent activity export and support PIN. The customer's plan is Standard.",
+   "gold": {
+    "routing": "account_security",
+    "abuse_review": false,
+    "urgency": 1,
+    "refund_eligibility": "eligible",
+    "refund_band": "5000_to_15000",
+    "vendor_recovery": false,
+    "expected_touches": 1
+   },
+   "meta": {
+    "cat": "account",
+    "amount": 9600,
+    "age_days": 260,
+    "docs_ok": true,
+    "flag": false,
+    "tier": "Standard",
+    "deductible": 0,
+    "payable": 9600,
+    "incident_iso": "2026-10-06",
+    "filed_iso": "2026-10-08",
+    "start_iso": "2026-01-21",
+    "complications": 1,
+    "eligibility": "eligible"
+   }
+  },
+  {
+   "label": "unrecognized device",
+   "id": "tck-990601",
+   "state": "Support ticket TCK-1080601 opened by R. Okafor on 2026-10-08 via the in-app chat. Account ACCOUNT-995601 opened 2026-05-21. The issue: email change requested without the verification code, first reported 2026-10-03. Requested refund: USD 850. The customer attached the identity confirmation and recent activity export and support PIN. The customer's plan is Basic.",
+   "gold": {
+    "routing": "account_security",
+    "abuse_review": false,
+    "urgency": 1,
+    "refund_eligibility": "eligible",
+    "refund_band": "up_to_1000",
+    "vendor_recovery": false,
+    "expected_touches": 0
+   },
+   "meta": {
+    "cat": "account",
+    "amount": 850,
+    "age_days": 140,
+    "docs_ok": true,
+    "flag": false,
+    "tier": "Basic",
+    "deductible": 0,
+    "payable": 850,
+    "incident_iso": "2026-10-03",
+    "filed_iso": "2026-10-08",
+    "start_iso": "2026-05-21",
+    "complications": 0,
+    "eligibility": "eligible"
+   }
+  },
+  {
+   "label": "seats paid and not provisioned",
+   "id": "tck-990700",
+   "state": "Support ticket TCK-1080700 opened by K. Park on 2026-10-07 via the support portal. Account FEATURE-995700 opened 2026-07-20. The issue: marketplace template bought but not downloadable, first reported 2026-10-06. Requested refund: USD 22,000. The customer attached the purchase confirmation and sales email excerpt and addon invoice. The customer's plan is Basic.",
+   "gold": {
+    "routing": "product_team",
+    "abuse_review": false,
+    "urgency": 1,
+    "refund_eligibility": "eligible",
+    "refund_band": "over_15000",
+    "vendor_recovery": false,
+    "expected_touches": 1
+   },
+   "meta": {
+    "cat": "feature",
+    "amount": 22000,
+    "age_days": 80,
+    "docs_ok": true,
+    "flag": false,
+    "tier": "Basic",
+    "deductible": 50,
+    "payable": 21950,
+    "incident_iso": "2026-10-06",
+    "filed_iso": "2026-10-07",
+    "start_iso": "2026-07-20",
+    "complications": 1,
+    "eligibility": "eligible"
+   }
+  },
+  {
+   "label": "reporting add-on on a low plan",
+   "id": "tck-990801",
+   "state": "Support ticket TCK-1080801 opened by M. Tanaka on 2026-10-04 via the priority phone line. Account FEATURE-995801 opened 2026-10-05. The issue: onboarding credit promised by sales not applied, first reported 2026-09-25. Requested refund: USD 4,200. The customer attached the purchase confirmation and sales email excerpt and addon invoice. The customer's plan is Plus.",
+   "gold": {
+    "routing": "product_team",
+    "abuse_review": false,
+    "urgency": 0,
+    "refund_eligibility": "outside_window_account_not_active",
+    "refund_band": "zero_nothing_payable",
+    "vendor_recovery": false,
+    "expected_touches": 1
+   },
+   "meta": {
+    "cat": "feature",
+    "amount": 4200,
+    "age_days": 3,
+    "docs_ok": true,
+    "flag": false,
+    "tier": "Plus",
+    "deductible": 50,
+    "payable": 0,
+    "incident_iso": "2026-09-25",
+    "filed_iso": "2026-10-04",
+    "start_iso": "2026-10-05",
+    "complications": 1,
+    "eligibility": "outside_window_account_not_active"
+   }
+  },
+  {
+   "label": "ABUSE: no evidence + fresh account",
+   "id": "tck-990904",
+   "state": "Support ticket TCK-1080904 opened by M. Ueda on 2026-10-08 via the support portal. Account BILLING-995904 opened 2026-09-29. The issue: plan upgrade billed at the wrong rate, first reported 2026-10-08. Requested refund: USD 4,200. No supporting evidence was attached; the customer says the files were lost. The customer's plan is Plus.",
+   "gold": {
+    "routing": "trust_and_safety",
+    "abuse_review": true,
+    "urgency": 0,
+    "refund_eligibility": "eligible",
+    "refund_band": "zero_nothing_payable",
+    "vendor_recovery": false,
+    "expected_touches": 3
+   },
+   "meta": {
+    "cat": "billing",
+    "amount": 4200,
+    "age_days": 9,
+    "docs_ok": false,
+    "flag": true,
+    "tier": "Plus",
+    "deductible": 25,
+    "payable": 0,
+    "incident_iso": "2026-10-08",
+    "filed_iso": "2026-10-08",
+    "start_iso": "2026-09-29",
+    "complications": 1,
+    "eligibility": "eligible"
+   }
+  },
+  {
+   "label": "ABUSE: no evidence + huge demand",
+   "id": "tck-991001",
+   "state": "Support ticket TCK-1081001 opened by A. Tanaka on 2026-10-07 via the priority phone line. Account TECHNICAL-996001 opened 2026-09-21. The issue: third-party integration failure in the shipping partner's plugin, first reported 2026-10-06. Requested refund: USD 26,500. The customer attached the error log excerpt and screenshot of the failure and request IDs. The customer's plan is Standard.",
+   "gold": {
+    "routing": "trust_and_safety",
+    "abuse_review": true,
+    "urgency": 1,
+    "refund_eligibility": "eligible",
+    "refund_band": "zero_nothing_payable",
+    "vendor_recovery": true,
+    "expected_touches": 3
+   },
+   "meta": {
+    "cat": "technical",
+    "amount": 26500,
+    "age_days": 17,
+    "docs_ok": true,
+    "flag": true,
+    "tier": "Standard",
+    "deductible": 10,
+    "payable": 0,
+    "incident_iso": "2026-10-06",
+    "filed_iso": "2026-10-07",
+    "start_iso": "2026-09-21",
+    "complications": 1,
+    "eligibility": "eligible"
+   }
+  },
+  {
+   "label": "ABUSE: fresh account + limit demand",
+   "id": "tck-991102",
+   "state": "Support ticket TCK-1081102 opened by M. Ibrahim on 2026-10-06 via email to the help desk. Account FEATURE-996102 opened 2026-10-05. The issue: priority support tier bought and still throttled, first reported 2026-10-01. Requested refund: USD 26,500 (the customer demands an immediate full refund plus compensation). The customer attached the purchase confirmation and sales email excerpt and addon invoice. The customer's plan is Basic.",
+   "gold": {
+    "routing": "trust_and_safety",
+    "abuse_review": true,
+    "urgency": 1,
+    "refund_eligibility": "outside_window_account_not_active",
+    "refund_band": "zero_nothing_payable",
+    "vendor_recovery": false,
+    "expected_touches": 3
+   },
+   "meta": {
+    "cat": "feature",
+    "amount": 26500,
+    "age_days": 3,
+    "docs_ok": true,
+    "flag": true,
+    "tier": "Basic",
+    "deductible": 50,
+    "payable": 0,
+    "incident_iso": "2026-10-01",
+    "filed_iso": "2026-10-06",
+    "start_iso": "2026-10-05",
+    "complications": 2,
+    "eligibility": "outside_window_account_not_active"
+   }
+  },
+  {
+   "label": "ABUSE: no evidence + limit demand",
+   "id": "tck-991200",
+   "state": "Support ticket TCK-1081200 opened by D. Silva on 2026-10-08 via the priority phone line. Account ACCOUNT-996200 opened 2026-10-05. The issue: login loop after the SSO migration, first reported 2026-10-07. Requested refund: USD 3,400. No supporting evidence was attached; the customer says the files were lost. The customer's plan is Plus.",
+   "gold": {
+    "routing": "trust_and_safety",
+    "abuse_review": true,
+    "urgency": 2,
+    "refund_eligibility": "review_required_fresh_account",
+    "refund_band": "zero_nothing_payable",
+    "vendor_recovery": false,
+    "expected_touches": 3
+   },
+   "meta": {
+    "cat": "account",
+    "amount": 3400,
+    "age_days": 3,
+    "docs_ok": false,
+    "flag": true,
+    "tier": "Plus",
+    "deductible": 0,
+    "payable": 0,
+    "incident_iso": "2026-10-07",
+    "filed_iso": "2026-10-08",
+    "start_iso": "2026-10-05",
+    "complications": 2,
+    "eligibility": "review_required_fresh_account"
+   }
+  },
+  {
+   "label": "shipping-partner plugin failure",
+   "id": "tck-991300",
+   "state": "Support ticket TCK-1081300 opened by K. Zhang on 2026-10-06 via email to the help desk. Account TECHNICAL-996300 opened 2026-08-24. The issue: dashboard fails to load beyond a blank page, first reported 2026-10-05. Requested refund: USD 6,300. The customer attached the error log excerpt and screenshot of the failure and request IDs. The customer's plan is Plus.",
+   "gold": {
+    "routing": "technical_desk",
+    "abuse_review": false,
+    "urgency": 0,
+    "refund_eligibility": "eligible",
+    "refund_band": "5000_to_15000",
+    "vendor_recovery": false,
+    "expected_touches": 0
+   },
+   "meta": {
+    "cat": "technical",
+    "amount": 6300,
+    "age_days": 45,
+    "docs_ok": true,
+    "flag": false,
+    "tier": "Plus",
+    "deductible": 10,
+    "payable": 6290,
+    "incident_iso": "2026-10-05",
+    "filed_iso": "2026-10-06",
+    "start_iso": "2026-08-24",
+    "complications": 0,
+    "eligibility": "eligible"
+   }
+  },
+  {
+   "label": "MFA device lost",
+   "id": "tck-991400",
+   "state": "Support ticket TCK-1081400 opened by T. Vargas on 2026-10-06 via the in-app chat. Account ACCOUNT-996400 opened 2026-10-05. The issue: MFA device lost during a phone upgrade, first reported 2026-10-06. Requested refund: USD 4,200. The customer attached the identity confirmation and recent activity export and support PIN. The customer's plan is Basic.",
+   "gold": {
+    "routing": "account_security",
+    "abuse_review": false,
+    "urgency": 2,
+    "refund_eligibility": "review_required_fresh_account",
+    "refund_band": "zero_nothing_payable",
+    "vendor_recovery": false,
+    "expected_touches": 1
+   },
+   "meta": {
+    "cat": "account",
+    "amount": 4200,
+    "age_days": 3,
+    "docs_ok": true,
+    "flag": false,
+    "tier": "Basic",
+    "deductible": 0,
+    "payable": 0,
+    "incident_iso": "2026-10-06",
+    "filed_iso": "2026-10-06",
+    "start_iso": "2026-10-05",
+    "complications": 1,
+    "eligibility": "review_required_fresh_account"
+   }
+  },
+  {
+   "label": "sandbox upgrade not applied",
+   "id": "tck-991501",
+   "state": "Support ticket TCK-1081501 opened by P. Haddad on 2026-10-06 via the in-app chat. Account FEATURE-996501 opened 2025-09-03. The issue: priority support tier bought and still throttled, first reported 2026-09-27. Requested refund: USD 8,800. The customer attached the purchase confirmation and sales email excerpt and addon invoice. The customer's plan is Premium.",
+   "gold": {
+    "routing": "product_team",
+    "abuse_review": false,
+    "urgency": 1,
+    "refund_eligibility": "eligible",
+    "refund_band": "5000_to_15000",
+    "vendor_recovery": false,
+    "expected_touches": 1
+   },
+   "meta": {
+    "cat": "feature",
+    "amount": 8800,
+    "age_days": 400,
+    "docs_ok": true,
+    "flag": false,
+    "tier": "Premium",
+    "deductible": 50,
+    "payable": 8750,
+    "incident_iso": "2026-09-27",
+    "filed_iso": "2026-10-06",
+    "start_iso": "2025-09-03",
+    "complications": 1,
+    "eligibility": "eligible"
+   }
+  }
+ ],
+ "paraphrase_probes": [
+  {
+   "label": "reworded gateway double charge",
+   "state": "Written in by a client on 2026-10-06 through the in-app chat: they maintain the account BILLING-1180 since 2026-03-02, and last week (2026-09-29) their card was debited twice by the gateway for one invoice. They ask for USD 2,100 back and provided the bank statement plus the invoice PDF. Their plan is Plus.",
+   "gold": {
+    "routing": "billing_desk",
+    "abuse_review": false,
+    "urgency": 0,
+    "refund_eligibility": "eligible",
+    "refund_band": "1000_to_5000",
+    "vendor_recovery": true,
+    "expected_touches": 0
+   }
+  },
+  {
+   "label": "reworded no-evidence fresh abuse case",
+   "state": "A user emails the help desk on 2026-10-07 demanding USD 22,000 immediately. The account TECH-2210 was created on 2026-09-25, the problems reportedly began that same week, and no logs or screenshots were sent - the user says they cannot access them anymore. Plan tier: Basic.",
+   "gold": {
+    "routing": "trust_and_safety",
+    "abuse_review": true,
+    "urgency": 1,
+    "refund_eligibility": "review_required_fresh_account",
+    "refund_band": "zero_nothing_payable",
+    "vendor_recovery": false,
+    "expected_touches": 3
+   }
+  },
+  {
+   "label": "reworded reporting add-on exclusion",
+   "state": "Ticket from 2026-10-05, portal: customer on the Standard plan states they paid for the reporting add-on three days ago (issue first reported 2026-10-02) but it never activated; account FEAT-3300 has existed since 2025-11-04. Refund wanted: USD 3,400, and the addon invoice and purchase confirmation are attached.",
+   "gold": {
+    "routing": "product_team",
+    "abuse_review": false,
+    "urgency": 0,
+    "refund_eligibility": "not_eligible_plan_exclusion",
+    "refund_band": "zero_nothing_payable",
+    "vendor_recovery": false,
+    "expected_touches": 1
+   }
+  }
+ ]
+}
