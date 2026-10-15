@@ -5,7 +5,7 @@ CORS open for file:// frontend. Run under the repo's .venv-laya/bin/python.
 import json, time, sys, re, os, pathlib, urllib.parse, urllib.request, urllib.error
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 
-_DEC_PORT = os.environ.get("DECIDER_PORT", "8902")
+_STUDIO_PORT = os.environ.get("STUDIO_PORT", "8903")
 
 ROOT = pathlib.Path(os.environ.get("DEMO_ROOT", pathlib.Path(__file__).resolve().parent))
 FT_PATH = os.environ.get("LAYA_FT_CKPT", str(ROOT / "laya-ft-ckpt"))
@@ -76,6 +76,20 @@ class H(BaseHTTPRequestHandler):
             except Exception as e:
                 self._send(502, "application/json", json.dumps({"ok": False, "error": repr(e)[:120]}).encode())
             return
+        if path.startswith("/studio/"):  # proxy GETs to the Teaching Studio
+            try:
+                full = urllib.parse.urlsplit(self.path)
+                url = f"http://127.0.0.1:{_STUDIO_PORT}{full.path}"
+                if full.query:
+                    url += "?" + full.query
+                with urllib.request.urlopen(url, timeout=60) as r2:
+                    code, payload = 200, r2.read()
+            except urllib.error.HTTPError as e:
+                code, payload = e.code, e.read()
+            except Exception as e:
+                code, payload = 502, json.dumps({"error": repr(e)[:200]}).encode()
+            self._send(code, "application/json", payload)
+            return
         if path in routes:
             ctype, filepath = routes[path]
             try:
@@ -100,6 +114,24 @@ class H(BaseHTTPRequestHandler):
                 req = urllib.request.Request(f"http://127.0.0.1:{_DEC_PORT}/predict", data=body,
                                              headers={"Content-Type": "application/json"})
                 with urllib.request.urlopen(req, timeout=120) as r2:
+                    code, payload = 200, r2.read()
+            except urllib.error.HTTPError as e:
+                code, payload = e.code, e.read()
+            except Exception as e:
+                code, payload = 502, json.dumps({"error": repr(e)[:200]}).encode()
+            self._send(code, "application/json", payload)
+            return
+        if path.startswith("/studio/"):  # proxy to the Teaching Studio (single-origin tunneling)
+            sub = path[len("/studio/"):]
+            try:
+                n = int(self.headers.get("Content-Length", 0))
+                body = self.rfile.read(n) if n else None
+                hdrs = {"Content-Type": "application/json"}
+                if self.headers.get("X-Studio-Token"):
+                    hdrs["X-Studio-Token"] = self.headers["X-Studio-Token"]
+                req = urllib.request.Request(f"http://127.0.0.1:{_STUDIO_PORT}/studio/{sub}",
+                                             data=body, headers=hdrs)
+                with urllib.request.urlopen(req, timeout=1800) as r2:
                     code, payload = 200, r2.read()
             except urllib.error.HTTPError as e:
                 code, payload = e.code, e.read()

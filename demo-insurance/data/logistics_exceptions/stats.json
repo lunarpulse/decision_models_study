@@ -1,0 +1,52 @@
+{
+ "n_rows": 500,
+ "rows_all_correct": {
+  "dec": 3,
+  "dec_ft": 335,
+  "zero": 0,
+  "rules": 500
+ },
+ "per_question": {
+  "dec": {
+   "routing": 0.748,
+   "contract_abuse_review": 0.78,
+   "urgency": 0.742,
+   "liability_eligibility": 0.88,
+   "recovery_band": 0.302,
+   "subcarrier_recovery": 0.968,
+   "expected_touches": 0.458
+  },
+  "dec_ft": {
+   "routing": 0.902,
+   "contract_abuse_review": 0.972,
+   "urgency": 0.808,
+   "liability_eligibility": 1.0,
+   "recovery_band": 0.962,
+   "subcarrier_recovery": 0.954,
+   "expected_touches": 0.934
+  },
+  "zero": {
+   "routing": 0.54,
+   "contract_abuse_review": 0.278,
+   "urgency": 0.0,
+   "liability_eligibility": 0.112,
+   "recovery_band": 0.168,
+   "subcarrier_recovery": 0.954,
+   "expected_touches": 0.0
+  },
+  "rules": {
+   "routing": 1.0,
+   "contract_abuse_review": 1.0,
+   "urgency": 1.0,
+   "liability_eligibility": 1.0,
+   "recovery_band": 1.0,
+   "subcarrier_recovery": 1.0,
+   "expected_touches": 1.0
+  }
+ },
+ "elapsed_s": 92.9,
+ "zero": 0.2931,
+ "dec": 0.6969,
+ "decft": 0.9331,
+ "rules": 1.0
+}

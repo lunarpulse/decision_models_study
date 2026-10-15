@@ -1,0 +1,52 @@
+{
+ "n_rows": 500,
+ "rows_all_correct": {
+  "dec": 16,
+  "dec_ft": 176,
+  "zero": 0,
+  "rules": 500
+ },
+ "per_question": {
+  "dec": {
+   "routing": 0.61,
+   "abuse_review": 0.79,
+   "urgency": 0.59,
+   "refund_eligibility": 0.362,
+   "refund_band": 0.486,
+   "vendor_recovery": 1.0,
+   "expected_touches": 0.408
+  },
+  "dec_ft": {
+   "routing": 0.692,
+   "abuse_review": 0.95,
+   "urgency": 0.818,
+   "refund_eligibility": 0.704,
+   "refund_band": 0.686,
+   "vendor_recovery": 1.0,
+   "expected_touches": 0.846
+  },
+  "zero": {
+   "routing": 0.74,
+   "abuse_review": 0.846,
+   "urgency": 0.0,
+   "refund_eligibility": 0.308,
+   "refund_band": 0.158,
+   "vendor_recovery": 0.854,
+   "expected_touches": 0.0
+  },
+  "rules": {
+   "routing": 1.0,
+   "abuse_review": 1.0,
+   "urgency": 1.0,
+   "refund_eligibility": 1.0,
+   "refund_band": 1.0,
+   "vendor_recovery": 1.0,
+   "expected_touches": 1.0
+  }
+ },
+ "elapsed_s": 92.1,
+ "zero": 0.4151,
+ "dec": 0.6066,
+ "decft": 0.8137,
+ "rules": 1.0
+}

@@ -1,0 +1,601 @@
+{
+ "domain": "hr_exceptions",
+ "questions": {
+  "routing": {
+   "type": "choice",
+   "instructions": "Route this HR exception to the desk that should handle it. Choose exactly one desk. Rule: if the request shows at least two circumvention warning signs (no supporting documents, an employment shorter than 30 days, or an amount over USD 18,500), route to ethics review regardless of request type.",
+   "criteria": {
+    "leave_desk": "Leave requests: sabbaticals, extensions, carry-overs, blackout periods.",
+    "benefits_desk": "Benefits: reimbursements, enrolments, stipends, treatment top-ups.",
+    "payroll_desk": "Pay: overtime, retroactive raises, reimbursements, allowances.",
+    "conduct_review": "Conduct matters: conflicts of interest, gifts, duplicated claims.",
+    "ethics_review": "Requests with repeated circumvention warning signs."
+   }
+  },
+  "policy_circumvention_review": {
+   "type": "noul",
+   "instructions": "Should this request be flagged for ethics review before any exception is granted? Answer yes only when at least two warning signs appear: no supporting documents, an employment started within 30 days of the request, or an amount over USD 18,500."
+  },
+  "urgency": {
+   "type": "score",
+   "instructions": "How urgently must this exception be worked? critical: a final salary payment is blocked. urgent: a waiting period, an open window or a blackout period is about to decide the outcome. priority: payroll matters or an amount over USD 8,800. routine: everything else.",
+   "criteria": [
+    "routine",
+    "priority",
+    "urgent",
+    "critical"
+   ]
+  },
+  "exception_eligibility": {
+   "type": "choice",
+   "instructions": "Is this exception within policy? Rules: the request must have first been raised during employment (a request first raised before the employment started is outside the window). A request raised within 2 days of joining needs manual review. The wellness stipend covers listed classes only - non-listed classes are out of scope on Basic and Standard tiers. Otherwise the request is within policy.",
+   "criteria": {
+    "within_policy": "Raised during employment, no scope exclusion applies.",
+    "outside_window_before_employment": "The request predates the employment.",
+    "outside_policy_scope": "Non-listed wellness classes on Basic/Standard.",
+    "review_required_new_starter": "Raised within 2 days of joining; review first."
+   }
+  },
+  "exception_band": {
+   "type": "choice",
+   "instructions": "After the administrative fee is applied, which band does the approved amount fall into? Fees: leave USD 0, benefits USD 50, payroll USD 25, conduct USD 0. If the request is outside policy or is held for ethics review, nothing is payable yet (USD 0).",
+   "criteria": {
+    "zero_nothing_payable": "Outside policy, needs review, or held for ethics review.",
+    "up_to_1000": "Payable USD 1 - 1,000 after the fee.",
+    "1000_to_5000": "Payable USD 1,001 - 5,000 after the fee.",
+    "5000_to_15000": "Payable USD 5,001 - 15,000 after the fee.",
+    "over_15000": "Payable over USD 15,000 after the fee."
+   }
+  },
+  "external_party_involved": {
+   "type": "noul",
+   "instructions": "Is an external party identified in this request (a vendor gift to declare, or a training booked through an external provider with an invoice)? Answer yes only when a specific vendor or provider is named in the request."
+  },
+  "expected_touches": {
+   "type": "score",
+   "instructions": "How many HR-handler touches will this exception need? 0-1: complete, documented, low-value request (straight-through candidate). 2: one complication - missing documents, an amount over USD 8,800, or an eligibility check. 3: two complications. 4+: flagged for ethics review or three complications.",
+   "criteria": [
+    "0-1 touches (straight-through candidate)",
+    "2 touches",
+    "3 touches",
+    "4+ touches / ethics investigator assigned"
+   ]
+  }
+ },
+ "stages": [
+  {
+   "stage": "1 · Intake & triage",
+   "questions": [
+    "routing",
+    "urgency"
+   ]
+  },
+  {
+   "stage": "2 · Eligibility & payment",
+   "questions": [
+    "exception_eligibility",
+    "exception_band"
+   ]
+  },
+  {
+   "stage": "3 · Investigation",
+   "questions": [
+    "policy_circumvention_review",
+    "external_party_involved"
+   ]
+  },
+  {
+   "stage": "4 · Operations",
+   "questions": [
+    "expected_touches"
+   ]
+  }
+ ],
+ "presets": [
+  {
+   "label": "parental leave extension",
+   "id": "hre-990000",
+   "state": "HR exception HRE-1080000 raised by K. Okafor on 2026-10-04 via the manager escalation line. Employee record LEAVE-995000 active since 2026-08-24. The request: leave during a declared blackout period, first raised 2026-10-03. Amount involved: USD 1,200. The employee attached the manager approval email and leave calendar export and HR case notes. Policy tier: Plus.",
+   "gold": {
+    "routing": "leave_desk",
+    "policy_circumvention_review": false,
+    "urgency": 2,
+    "exception_eligibility": "within_policy",
+    "exception_band": "1000_to_5000",
+    "external_party_involved": false,
+    "expected_touches": 0
+   },
+   "meta": {
+    "cat": "leave",
+    "amount": 1200,
+    "age_days": 45,
+    "docs_ok": true,
+    "flag": false,
+    "tier": "Plus",
+    "deductible": 0,
+    "payable": 1200,
+    "incident_iso": "2026-10-03",
+    "filed_iso": "2026-10-04",
+    "start_iso": "2026-08-24",
+    "complications": 0,
+    "eligibility": "within_policy"
+   }
+  },
+  {
+   "label": "sabbatical beyond cap",
+   "id": "hre-990101",
+   "state": "HR exception HRE-1080101 raised by T. Larsen on 2026-10-08 via the works council inbox. Employee record LEAVE-995101 active since 2026-10-05. The request: parental leave extension request, first raised 2026-10-03. Amount involved: USD 1,650. The employee attached the manager approval email and leave calendar export and HR case notes. Policy tier: Premium.",
+   "gold": {
+    "routing": "leave_desk",
+    "policy_circumvention_review": false,
+    "urgency": 0,
+    "exception_eligibility": "outside_window_before_employment",
+    "exception_band": "zero_nothing_payable",
+    "external_party_involved": false,
+    "expected_touches": 1
+   },
+   "meta": {
+    "cat": "leave",
+    "amount": 1650,
+    "age_days": 3,
+    "docs_ok": true,
+    "flag": false,
+    "tier": "Premium",
+    "deductible": 0,
+    "payable": 0,
+    "incident_iso": "2026-10-03",
+    "filed_iso": "2026-10-08",
+    "start_iso": "2026-10-05",
+    "complications": 1,
+    "eligibility": "outside_window_before_employment"
+   }
+  },
+  {
+   "label": "glasses above allowance",
+   "id": "hre-990200",
+   "state": "HR exception HRE-1080200 raised by P. Dubois on 2026-10-08 via email to the people desk. Employee record BENEFITS-995200 active since 2025-09-03. The request: partner enrolment outside the open window, first raised 2026-09-29. Amount involved: USD 5,100. The employee attached the itemized receipt and benefit plan statement and provider invoice. Policy tier: Premium.",
+   "gold": {
+    "routing": "benefits_desk",
+    "policy_circumvention_review": false,
+    "urgency": 2,
+    "exception_eligibility": "within_policy",
+    "exception_band": "5000_to_15000",
+    "external_party_involved": false,
+    "expected_touches": 0
+   },
+   "meta": {
+    "cat": "benefits",
+    "amount": 5100,
+    "age_days": 400,
+    "docs_ok": true,
+    "flag": false,
+    "tier": "Premium",
+    "deductible": 50,
+    "payable": 5050,
+    "incident_iso": "2026-09-29",
+    "filed_iso": "2026-10-08",
+    "start_iso": "2025-09-03",
+    "complications": 0,
+    "eligibility": "within_policy"
+   }
+  },
+  {
+   "label": "dental before waiting period",
+   "id": "hre-990300",
+   "state": "HR exception HRE-1080300 raised by K. Silva on 2026-10-07 via the manager escalation line. Employee record BENEFITS-995300 active since 2026-09-12. The request: wellness stipend for non-listed classes, first raised 2026-09-28. Amount involved: USD 13,400. The employee attached the itemized receipt and benefit plan statement and provider invoice. Policy tier: Plus.",
+   "gold": {
+    "routing": "benefits_desk",
+    "policy_circumvention_review": false,
+    "urgency": 1,
+    "exception_eligibility": "within_policy",
+    "exception_band": "5000_to_15000",
+    "external_party_involved": false,
+    "expected_touches": 1
+   },
+   "meta": {
+    "cat": "benefits",
+    "amount": 13400,
+    "age_days": 26,
+    "docs_ok": true,
+    "flag": false,
+    "tier": "Plus",
+    "deductible": 50,
+    "payable": 13350,
+    "incident_iso": "2026-09-28",
+    "filed_iso": "2026-10-07",
+    "start_iso": "2026-09-12",
+    "complications": 1,
+    "eligibility": "within_policy"
+   }
+  },
+  {
+   "label": "non-listed wellness class",
+   "id": "hre-990400",
+   "state": "HR exception HRE-1080400 raised by R. Larsen on 2026-10-04 via email to the people desk. Employee record BENEFITS-995400 active since 2024-11-07. The request: dental implant coverage before the waiting period ends, first raised 2026-09-29. Amount involved: USD 4,200. The employee attached the itemized receipt and benefit plan statement and provider invoice. Policy tier: Premium.",
+   "gold": {
+    "routing": "benefits_desk",
+    "policy_circumvention_review": false,
+    "urgency": 2,
+    "exception_eligibility": "within_policy",
+    "exception_band": "1000_to_5000",
+    "external_party_involved": false,
+    "expected_touches": 0
+   },
+   "meta": {
+    "cat": "benefits",
+    "amount": 4200,
+    "age_days": 700,
+    "docs_ok": true,
+    "flag": false,
+    "tier": "Premium",
+    "deductible": 50,
+    "payable": 4150,
+    "incident_iso": "2026-09-29",
+    "filed_iso": "2026-10-04",
+    "start_iso": "2024-11-07",
+    "complications": 0,
+    "eligibility": "within_policy"
+   }
+  },
+  {
+   "label": "unlogged overtime",
+   "id": "hre-990500",
+   "state": "HR exception HRE-1080500 raised by M. Silva on 2026-10-01 via email to the people desk. Employee record PAYROLL-995500 active since 2026-10-05. The request: commuting allowance during a fully remote month, first raised 2026-09-30. Amount involved: USD 1,200. The employee attached the timesheet export and payslip copy and assignment letter. Policy tier: Basic.",
+   "gold": {
+    "routing": "payroll_desk",
+    "policy_circumvention_review": false,
+    "urgency": 1,
+    "exception_eligibility": "outside_window_before_employment",
+    "exception_band": "zero_nothing_payable",
+    "external_party_involved": false,
+    "expected_touches": 1
+   },
+   "meta": {
+    "cat": "payroll",
+    "amount": 1200,
+    "age_days": 3,
+    "docs_ok": true,
+    "flag": false,
+    "tier": "Basic",
+    "deductible": 25,
+    "payable": 0,
+    "incident_iso": "2026-09-30",
+    "filed_iso": "2026-10-01",
+    "start_iso": "2026-10-05",
+    "complications": 1,
+    "eligibility": "outside_window_before_employment"
+   }
+  },
+  {
+   "label": "final salary blocked",
+   "id": "hre-990618",
+   "state": "HR exception HRE-1080618 raised by R. Alvarez on 2026-10-08 via the HR self-service portal. Employee record PAYROLL-995618 active since 2026-09-21. The request: underpayment blocking a final salary payment, first raised 2026-09-29. Amount involved: USD 2,100. The employee attached the timesheet export and payslip copy and assignment letter. Policy tier: Premium.",
+   "gold": {
+    "routing": "payroll_desk",
+    "policy_circumvention_review": false,
+    "urgency": 3,
+    "exception_eligibility": "within_policy",
+    "exception_band": "1000_to_5000",
+    "external_party_involved": false,
+    "expected_touches": 0
+   },
+   "meta": {
+    "cat": "payroll",
+    "amount": 2100,
+    "age_days": 17,
+    "docs_ok": true,
+    "flag": false,
+    "tier": "Premium",
+    "deductible": 25,
+    "payable": 2075,
+    "incident_iso": "2026-09-29",
+    "filed_iso": "2026-10-08",
+    "start_iso": "2026-09-21",
+    "complications": 0,
+    "eligibility": "within_policy"
+   }
+  },
+  {
+   "label": "tax equalization abroad",
+   "id": "hre-990700",
+   "state": "HR exception HRE-1080700 raised by A. Okafor on 2026-10-08 via the manager escalation line. Employee record PAYROLL-995700 active since 2026-09-21. The request: expense reimbursement without receipts, first raised 2026-10-03. Amount involved: USD 7,400. The employee attached the timesheet export and payslip copy and assignment letter. Policy tier: Plus.",
+   "gold": {
+    "routing": "payroll_desk",
+    "policy_circumvention_review": false,
+    "urgency": 1,
+    "exception_eligibility": "within_policy",
+    "exception_band": "5000_to_15000",
+    "external_party_involved": false,
+    "expected_touches": 0
+   },
+   "meta": {
+    "cat": "payroll",
+    "amount": 7400,
+    "age_days": 17,
+    "docs_ok": true,
+    "flag": false,
+    "tier": "Plus",
+    "deductible": 25,
+    "payable": 7375,
+    "incident_iso": "2026-10-03",
+    "filed_iso": "2026-10-08",
+    "start_iso": "2026-09-21",
+    "complications": 0,
+    "eligibility": "within_policy"
+   }
+  },
+  {
+   "label": "gift above threshold",
+   "id": "hre-990800",
+   "state": "HR exception HRE-1080800 raised by A. Cho on 2026-10-04 via the manager escalation line. Employee record CONDUCT-995800 active since 2025-09-03. The request: expense claims duplicated across two projects, first raised 2026-09-25. Amount involved: USD 4,200. No supporting documents were attached; the employee says they were never given copies. Policy tier: Basic.",
+   "gold": {
+    "routing": "conduct_review",
+    "policy_circumvention_review": false,
+    "urgency": 0,
+    "exception_eligibility": "within_policy",
+    "exception_band": "1000_to_5000",
+    "external_party_involved": false,
+    "expected_touches": 1
+   },
+   "meta": {
+    "cat": "conduct",
+    "amount": 4200,
+    "age_days": 400,
+    "docs_ok": false,
+    "flag": false,
+    "tier": "Basic",
+    "deductible": 0,
+    "payable": 4200,
+    "incident_iso": "2026-09-25",
+    "filed_iso": "2026-10-04",
+    "start_iso": "2025-09-03",
+    "complications": 1,
+    "eligibility": "within_policy"
+   }
+  },
+  {
+   "label": "duplicated expense claims",
+   "id": "hre-990900",
+   "state": "HR exception HRE-1080900 raised by M. Ibrahim on 2026-10-04 via the manager escalation line. Employee record CONDUCT-995900 active since 2026-10-05. The request: expense claims duplicated across two projects, first raised 2026-10-04. Amount involved: USD 11,200. The employee attached the conflict-of-interest declaration and expense audit extract and procurement log excerpt. Policy tier: Standard.",
+   "gold": {
+    "routing": "conduct_review",
+    "policy_circumvention_review": false,
+    "urgency": 1,
+    "exception_eligibility": "outside_window_before_employment",
+    "exception_band": "zero_nothing_payable",
+    "external_party_involved": false,
+    "expected_touches": 2
+   },
+   "meta": {
+    "cat": "conduct",
+    "amount": 11200,
+    "age_days": 3,
+    "docs_ok": true,
+    "flag": false,
+    "tier": "Standard",
+    "deductible": 0,
+    "payable": 0,
+    "incident_iso": "2026-10-04",
+    "filed_iso": "2026-10-04",
+    "start_iso": "2026-10-05",
+    "complications": 2,
+    "eligibility": "outside_window_before_employment"
+   }
+  },
+  {
+   "label": "ABUSE: no docs + brand new employee",
+   "id": "hre-991007",
+   "state": "HR exception HRE-1081007 raised by P. Gupta on 2026-10-08 via email to the people desk. Employee record LEAVE-996007 active since 2026-09-29. The request: parental leave extension request, first raised 2026-10-08. Amount involved: USD 13,400. No supporting documents were attached; the employee says they were never given copies. Policy tier: Basic.",
+   "gold": {
+    "routing": "ethics_review",
+    "policy_circumvention_review": true,
+    "urgency": 1,
+    "exception_eligibility": "within_policy",
+    "exception_band": "zero_nothing_payable",
+    "external_party_involved": false,
+    "expected_touches": 3
+   },
+   "meta": {
+    "cat": "leave",
+    "amount": 13400,
+    "age_days": 9,
+    "docs_ok": false,
+    "flag": true,
+    "tier": "Basic",
+    "deductible": 0,
+    "payable": 0,
+    "incident_iso": "2026-10-08",
+    "filed_iso": "2026-10-08",
+    "start_iso": "2026-09-29",
+    "complications": 2,
+    "eligibility": "within_policy"
+   }
+  },
+  {
+   "label": "ABUSE: no docs + policy-max demand",
+   "id": "hre-991103",
+   "state": "HR exception HRE-1081103 raised by K. Rossi on 2026-10-06 via the manager escalation line. Employee record BENEFITS-996103 active since 2026-10-05. The request: training booked through the external provider, first raised 2026-09-27. Amount involved: USD 8,800. No supporting documents were attached; the employee says they were never given copies. Policy tier: Basic.",
+   "gold": {
+    "routing": "ethics_review",
+    "policy_circumvention_review": true,
+    "urgency": 1,
+    "exception_eligibility": "outside_window_before_employment",
+    "exception_band": "zero_nothing_payable",
+    "external_party_involved": false,
+    "expected_touches": 3
+   },
+   "meta": {
+    "cat": "benefits",
+    "amount": 8800,
+    "age_days": 3,
+    "docs_ok": false,
+    "flag": true,
+    "tier": "Basic",
+    "deductible": 50,
+    "payable": 0,
+    "incident_iso": "2026-09-27",
+    "filed_iso": "2026-10-06",
+    "start_iso": "2026-10-05",
+    "complications": 3,
+    "eligibility": "outside_window_before_employment"
+   }
+  },
+  {
+   "label": "ABUSE: new employee + max demand",
+   "id": "hre-991210",
+   "state": "HR exception HRE-1081210 raised by A. Yoon on 2026-10-01 via the HR self-service portal. Employee record PAYROLL-996210 active since 2026-09-12. The request: retroactive raise backdated two quarters, first raised 2026-09-26. Amount involved: USD 26,500. The employee attached the timesheet export and payslip copy and assignment letter. Policy tier: Standard.",
+   "gold": {
+    "routing": "ethics_review",
+    "policy_circumvention_review": true,
+    "urgency": 1,
+    "exception_eligibility": "within_policy",
+    "exception_band": "zero_nothing_payable",
+    "external_party_involved": false,
+    "expected_touches": 3
+   },
+   "meta": {
+    "cat": "payroll",
+    "amount": 26500,
+    "age_days": 26,
+    "docs_ok": true,
+    "flag": true,
+    "tier": "Standard",
+    "deductible": 25,
+    "payable": 0,
+    "incident_iso": "2026-09-26",
+    "filed_iso": "2026-10-01",
+    "start_iso": "2026-09-12",
+    "complications": 1,
+    "eligibility": "within_policy"
+   }
+  },
+  {
+   "label": "ABUSE: no docs + max demand",
+   "id": "hre-991334",
+   "state": "HR exception HRE-1081334 raised by J. Okafor on 2026-10-01 via the works council inbox. Employee record CONDUCT-996334 active since 2026-09-12. The request: outside consulting for a direct competitor, first raised 2026-09-29. Amount involved: USD 2,800. No supporting documents were attached; the employee says they were never given copies. Policy tier: Plus.",
+   "gold": {
+    "routing": "ethics_review",
+    "policy_circumvention_review": true,
+    "urgency": 0,
+    "exception_eligibility": "within_policy",
+    "exception_band": "zero_nothing_payable",
+    "external_party_involved": false,
+    "expected_touches": 3
+   },
+   "meta": {
+    "cat": "conduct",
+    "amount": 2800,
+    "age_days": 26,
+    "docs_ok": false,
+    "flag": true,
+    "tier": "Plus",
+    "deductible": 0,
+    "payable": 0,
+    "incident_iso": "2026-09-29",
+    "filed_iso": "2026-10-01",
+    "start_iso": "2026-09-12",
+    "complications": 1,
+    "eligibility": "within_policy"
+   }
+  },
+  {
+   "label": "training via external provider",
+   "id": "hre-991400",
+   "state": "HR exception HRE-1081400 raised by R. Okafor on 2026-10-01 via the works council inbox. Employee record BENEFITS-996400 active since 2024-11-07. The request: glasses reimbursement above the frame allowance, first raised 2026-10-01. Amount involved: USD 9,600. The employee attached the itemized receipt and benefit plan statement and provider invoice. Policy tier: Standard.",
+   "gold": {
+    "routing": "benefits_desk",
+    "policy_circumvention_review": false,
+    "urgency": 1,
+    "exception_eligibility": "within_policy",
+    "exception_band": "5000_to_15000",
+    "external_party_involved": false,
+    "expected_touches": 1
+   },
+   "meta": {
+    "cat": "benefits",
+    "amount": 9600,
+    "age_days": 700,
+    "docs_ok": true,
+    "flag": false,
+    "tier": "Standard",
+    "deductible": 50,
+    "payable": 9550,
+    "incident_iso": "2026-10-01",
+    "filed_iso": "2026-10-01",
+    "start_iso": "2024-11-07",
+    "complications": 1,
+    "eligibility": "within_policy"
+   }
+  },
+  {
+   "label": "leave in blackout period",
+   "id": "hre-991500",
+   "state": "HR exception HRE-1081500 raised by P. Eriksen on 2026-10-01 via the works council inbox. Employee record LEAVE-996500 active since 2026-05-21. The request: leave during a declared blackout period, first raised 2026-10-01. Amount involved: USD 13,400. The employee attached the manager approval email and leave calendar export and HR case notes. Policy tier: Standard.",
+   "gold": {
+    "routing": "leave_desk",
+    "policy_circumvention_review": false,
+    "urgency": 2,
+    "exception_eligibility": "within_policy",
+    "exception_band": "5000_to_15000",
+    "external_party_involved": false,
+    "expected_touches": 1
+   },
+   "meta": {
+    "cat": "leave",
+    "amount": 13400,
+    "age_days": 140,
+    "docs_ok": true,
+    "flag": false,
+    "tier": "Standard",
+    "deductible": 0,
+    "payable": 13400,
+    "incident_iso": "2026-10-01",
+    "filed_iso": "2026-10-01",
+    "start_iso": "2026-05-21",
+    "complications": 1,
+    "eligibility": "within_policy"
+   }
+  }
+ ],
+ "paraphrase_probes": [
+  {
+   "label": "reworded parental leave extension",
+   "state": "The people desk received a message on 2026-10-06 from an employee whose record LEAVE-4420 shows a start date of 2025-06-15. She first raised the matter on 2026-09-24: eight extra weeks of parental leave beyond the standard. USD 4,200 is involved, and the manager approval email plus the leave calendar export are attached. Policy tier: Plus.",
+   "gold": {
+    "routing": "leave_desk",
+    "policy_circumvention_review": false,
+    "urgency": 0,
+    "exception_eligibility": "within_policy",
+    "exception_band": "1000_to_5000",
+    "external_party_involved": false,
+    "expected_touches": 0
+   }
+  },
+  {
+   "label": "reworded vendor gift conduct case",
+   "state": "Escalated via the manager line on 2026-10-07. Employee CONDUCT-8830, hired 2026-01-05, first raised it 2026-10-02: a weekend gift worth USD 2,600 received from a vendor, over the declared threshold. The conflict-of-interest declaration and the procurement log excerpt are attached. Standard tier.",
+   "gold": {
+    "routing": "conduct_review",
+    "policy_circumvention_review": false,
+    "urgency": 0,
+    "exception_eligibility": "within_policy",
+    "exception_band": "1000_to_5000",
+    "external_party_involved": true,
+    "expected_touches": 0
+   }
+  },
+  {
+   "label": "reworded no-docs new-starter circumvention",
+   "state": "Written into the self-service portal on 2026-10-05 by a colleague who joined on 2026-09-24 (record BENEF-9070): they want USD 21,000 for a benefits top-up first mentioned to their manager on 2026-09-25. Nothing is attached - they say they never received copies of any plan documents. Basic tier.",
+   "gold": {
+    "routing": "ethics_review",
+    "policy_circumvention_review": true,
+    "urgency": 1,
+    "exception_eligibility": "review_required_new_starter",
+    "exception_band": "zero_nothing_payable",
+    "external_party_involved": false,
+    "expected_touches": 3
+   }
+  }
+ ]
+}

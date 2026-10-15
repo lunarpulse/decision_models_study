@@ -135,6 +135,7 @@ def make_row(spec, rng, i, force=None):
 
 
 def generate_domain(spec, out_dir):
+    import collections
     """Write train/validation/holdout jsonl + demo_presets.json. Deterministic per seed."""
     rng = random.Random(spec["rng_seed"])
     out = pathlib.Path(out_dir)

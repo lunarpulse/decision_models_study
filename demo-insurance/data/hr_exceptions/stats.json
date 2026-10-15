@@ -1,0 +1,52 @@
+{
+ "n_rows": 500,
+ "rows_all_correct": {
+  "dec": 40,
+  "dec_ft": 261,
+  "zero": 0,
+  "rules": 500
+ },
+ "per_question": {
+  "dec": {
+   "routing": 0.774,
+   "policy_circumvention_review": 0.802,
+   "urgency": 0.696,
+   "exception_eligibility": 0.828,
+   "exception_band": 0.498,
+   "external_party_involved": 0.926,
+   "expected_touches": 0.442
+  },
+  "dec_ft": {
+   "routing": 0.882,
+   "policy_circumvention_review": 0.966,
+   "urgency": 0.812,
+   "exception_eligibility": 0.922,
+   "exception_band": 0.86,
+   "external_party_involved": 0.93,
+   "expected_touches": 0.924
+  },
+  "zero": {
+   "routing": 0.502,
+   "policy_circumvention_review": 0.808,
+   "urgency": 0.0,
+   "exception_eligibility": 0.774,
+   "exception_band": 0.23,
+   "external_party_involved": 0.92,
+   "expected_touches": 0.0
+  },
+  "rules": {
+   "routing": 1.0,
+   "policy_circumvention_review": 1.0,
+   "urgency": 1.0,
+   "exception_eligibility": 1.0,
+   "exception_band": 1.0,
+   "external_party_involved": 1.0,
+   "expected_touches": 1.0
+  }
+ },
+ "elapsed_s": 92.1,
+ "zero": 0.462,
+ "dec": 0.7094,
+ "decft": 0.8994,
+ "rules": 1.0
+}

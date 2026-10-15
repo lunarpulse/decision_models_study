@@ -110,7 +110,6 @@ footer{border-top:1px solid var(--line);margin-top:1.2rem;padding:.7rem 0;font-s
 <div class="topbar">
   <span class="brand">Live Demo · Insurance Claims <small>· decision console</small></span>
   <span class="spacer"></span>
-  <span class="small"><span class="dot" id="dotLaya"></span>Laya service</span>
   <span class="small"><span class="dot" id="dotDecider"></span>decider service</span>
   <span id="sboard" style="display:flex;gap:.6rem;flex-wrap:wrap"></span>
   <button class="ghost" id="resetScores">Reset</button>
@@ -127,6 +126,7 @@ footer{border-top:1px solid var(--line);margin-top:1.2rem;padding:.7rem 0;font-s
     <button class="tab" data-mode="day1" id="tab-day1">Day 1 · nothing trained yet</button>
     <button class="tab" data-mode="after" id="tab-after">After training · 12,000 past claims</button>
     <button class="tab" data-mode="ops" id="tab-ops">🚦 Ops floor · straight-through processing</button>
+    <button class="tab" data-mode="domain" id="tab-domain">🏭 Domain builder · teach it your business</button>
   </div>
 
   <div class="era day1" id="era-day1" hidden>
@@ -140,6 +140,7 @@ footer{border-top:1px solid var(--line);margin-top:1.2rem;padding:.7rem 0;font-s
     <h2>✅ After training — same engines, ten minutes of learning</h2>
     <p>The fine-tuned Laya has now seen 12,000 labeled past claim decisions (trained on this very
       machine before the session). decider-4b stays untrained on purpose — it shows what a
+  <div id="domainfloor" hidden style="margin:.4rem 0 1rem"></div>
       generalist can do with no data at all.</p>
   </div>
   <div class="era" id="era-compare" style="border-color:var(--line);background:#fff" hidden>
@@ -154,6 +155,17 @@ footer{border-top:1px solid var(--line);margin-top:1.2rem;padding:.7rem 0;font-s
       an adjuster. Approve or override — the counters follow you. The money strip speaks the
       language your CFO uses.</p>
   </div>
+
+  <div class="era" id="era-domain" style="border-color:var(--line);background:#fff" hidden>
+    <h2>🏭 The Domain Builder — your business, not insurance</h2>
+    <p>Pick a domain. A seeded corpus with rule-verifiable answers generates instantly. Watch the
+      zero-shot engines struggle on it (measured, not staged), then teach a small model your rules —
+      a real fine-tune, live on this machine — and watch the scoreboard flip. Same 7-decision
+      journey as insurance: route, flag, prioritize, eligibility, money band, third party, touches.</p>
+  </div>
+
+  <div id="domainfloor" hidden style="margin:.4rem 0 1rem"></div>
+
 
   <div id="opsfloor" hidden style="margin:.4rem 0 1rem"></div>
 
@@ -200,7 +212,7 @@ const ENGINES = {
   dec:  {tag:"Engine C", name:"decider-4b", sub:"4.2B · zero training, generalist"},
   rules:{tag:"Engine D", name:"Rules engine (incumbent)", sub:"keyword + date parsing · the way automation is built today"},
 };
-const MODE_ENGINES = {day1:["zero","dec"], after:["ft","dec"], compare:["zero","ft","dec","rules"], ops:[]};
+const MODE_ENGINES = {day1:["zero","dec"], after:["ft","dec"], compare:["zero","ft","dec","rules"], ops:[], domain:[]};
 const QTITLE = {routing:"Route to unit", fraud_review:"Flag for fraud investigation?", urgency:"Priority",
   coverage_eligibility:"Coverage eligibility", net_payable_band:"Net payable band",
   subrogation:"Pursue third party (subrogation)?", expected_touches:"Expected adjuster touches"};
@@ -218,15 +230,17 @@ const DEC = DECBASE + "/predict";
 function setMode(m, keepClaim){
   MODE = m;
   document.querySelectorAll(".tab").forEach(t => t.classList.toggle("on", t.dataset.mode === m));
-  for (const k of ["day1","after","compare","ops"]) $("era-"+k).hidden = (k !== m);
-  const ops = (m === "ops");
-  $("opsfloor").hidden = !ops;
-  document.querySelector(".statsgrid").style.display = ops ? "none" : "";
-  document.querySelector(".grid.g2").style.display = ops ? "none" : "";
+  for (const k of ["day1","after","compare","ops","domain"]) $("era-"+k).hidden = (k !== m);
+  const wide = (m === "ops" || m === "domain");
+  $("opsfloor").hidden = (m !== "ops");
+  $("domainfloor").hidden = (m !== "domain");
+  document.querySelector(".statsgrid").style.display = wide ? "none" : "";
+  document.querySelector(".grid.g2").style.display = wide ? "none" : "";
   try { history.replaceState(null, "", "?mode=" + m); } catch (e) { }
   renderEngineCards();
   drawScores();
-  if (ops) initOps();
+  if (m === "ops") initOps();
+  else if (m === "domain") initDomain();
   else if (keepClaim && LAST) runClaim(LAST.state, LAST.gold, LAST.nonLatin, true, LAST.lang);
 }
 
@@ -509,8 +523,192 @@ function drawOps(){
 }
 
 const m = new URLSearchParams(location.search).get("mode");
-setMode(["day1","after","compare","ops"].includes(m) ? m : "day1", false);
+setMode(["day1","after","compare","ops","domain"].includes(m) ? m : "day1", false);
 health(); loadPresets(); setInterval(health, 15000);
+
+// ======================= Domain Builder (teach it your business) =======================
+let DOMS = null, DOM_STATE = {domain: null, cases: null, edits: {}};
+const DOM_META = {
+  support_tickets:      {icon:"🎫", blurb:"SaaS helpdesk: route, abuse-flag, prioritize, refund eligibility & band, vendor recovery, agent touches"},
+  logistics_exceptions: {icon:"🚚", blurb:"Shipping exceptions: damage/loss/customs/carrier desks, contract-abuse flags, liability & recovery bands"},
+  hr_exceptions:        {icon:"🧑‍💼", blurb:"People ops: leave/benefits/payroll/conduct desks, circumvention flags, exception bands, external parties"},
+};
+
+function studioURL(p){ return LAYA + "/studio" + p; }
+
+function renderDomTeach(){
+  const el = $("domainfloor");
+  const qs = DOM_STATE.questions || {};
+  el.querySelector("#teachTable").innerHTML = `<thead><tr><th>case</th>${
+    Object.keys(DOM_STATE.cases[0].gold).map(q => `<th>${q}</th>`).join("")}</tr></thead><tbody>` +
+    DOM_STATE.cases.map(c => {
+      const cells = Object.entries(c.gold).map(([qid, g]) => {
+        const gv = typeof g === "boolean" ? (g ? "yes" : "no") : g;
+        const val = DOM_STATE.edits[c.id + "|" + qid] ?? gv;
+        const q = qs[qid] || {};
+        const opts = q.type === "noul" ? ["no","yes"] : (Array.isArray(q.criteria) ? q.criteria : Object.keys(q.criteria || {}));
+        return `<td><select data-case="${c.id}" data-qid="${qid}">${opts.map(o =>
+          `<option value="${o}" ${String(o) === String(val) ? "selected" : ""}>${o}</option>`).join("")}</select></td>`;
+      }).join("");
+      return `<tr><td class="small">${(c.state || "").slice(0, 80)}…</td>${cells}</tr>`;
+    }).join("") + `</tbody>`;
+  el.querySelectorAll("#teachTable select").forEach(s => {
+    s.onchange = () => {
+      const orig = DOM_STATE.cases.find(c => c.id === s.dataset.case);
+      const g = orig.gold[s.dataset.qid];
+      const gv = typeof g === "boolean" ? (g ? "yes" : "no") : g;
+      if (String(s.value) === String(gv)) delete DOM_STATE.edits[s.dataset.case + "|" + s.dataset.qid];
+      else DOM_STATE.edits[s.dataset.case + "|" + s.dataset.qid] = s.value;
+      const n = Object.keys(DOM_STATE.edits).length;
+      el.querySelector("#editBadge").textContent = n
+        ? `${n} deliberate edit${n > 1 ? "s" : ""} — propagates to every structurally identical case in the training set`
+        : "no edits — the rule gold stands (bulk-accepted)";
+    };
+  });
+}
+
+async function domTeach(){
+  const el = $("domainfloor");
+  const edits = Object.entries(DOM_STATE.edits).map(([k, to]) => {
+    const [case_id, qid] = k.split("|");
+    return {case_id, qid, to};
+  });
+  const tok = sessionStorage.getItem("studioToken") || prompt("Studio token (presenter only):") || "";
+  sessionStorage.setItem("studioToken", tok);
+  el.querySelector("#teachBtn").disabled = true;
+  let r;
+  try {
+    r = await fetch(studioURL("/train"), {method:"POST", headers:{"Content-Type":"application/json","X-Studio-Token":tok},
+      body: JSON.stringify({domain: DOM_STATE.domain, cases: DOM_STATE.cases, edits})}).then(x => x.json());
+  } catch (e) { el.querySelector("#teachStatus").textContent = "service unreachable: " + e; return; }
+  if (r.error){ el.querySelector("#teachStatus").textContent = r.error.includes("token") ? r.error + " — wrong token" : r.error;
+    el.querySelector("#teachBtn").disabled = false; return; }
+  el.querySelector("#teachStatus").textContent = `training on ${r.rows} rows (1,500 corpus + your cases ×20)…`;
+  const poll = setInterval(async () => {
+    const s = await fetch(studioURL("/status")).then(x => x.json()).catch(() => null);
+    if (!s) return;
+    const last = (s.progress || []).slice(-1)[0] || "";
+    el.querySelector("#teachStatus").textContent = `[${s.state}] ${String(last).slice(0, 110)}`;
+    if (s.state === "done"){ clearInterval(poll); el.querySelector("#teachBtn").disabled = false; domResults(s.result); }
+    else if (s.state === "failed"){ clearInterval(poll); el.querySelector("#teachStatus").textContent = "training failed: " + (s.error || "");
+      el.querySelector("#teachBtn").disabled = false; }
+  }, 2000);
+}
+
+function domEvalTable(rows, title, note){
+  const okAll = rows.filter(r => r.ok_all).length;
+  return `<div class="card" style="margin:.5rem 0"><h3>${title} — ${okAll}/${rows.length} fully correct</h3>
+    <table class="opstable"><thead><tr><th>case</th>${
+      Object.keys(rows[0].questions).map(q => `<th>${q}</th>`).join("")}</tr></thead>
+    <tbody>${rows.map(r => `<tr><td class="small">${(r.label || r.id)}</td>${
+      Object.values(r.questions).map(v => `<td style="text-align:center">${v.ok ? "✓" : "✗"}</td>`).join("")
+    }</tr>`).join("")}</tbody></table>
+    ${note ? `<p class="small">${note}</p>` : ""}</div>`;
+}
+
+async function domResults(res){
+  const el = $("domainfloor");
+  const freshOK = res.fresh_holdout.filter(r => r.ok_all).length;
+  el.insertAdjacentHTML("beforeend", `
+    <div class="card" style="border-color:#bcd9cb;background:#f4faf7">
+      <h3>⚡ Taught in ${Math.round(res.train_seconds)}s (real fine-tune, ${res.train_rows} rows)</h3>
+      <div class="statsgrid" style="display:grid">
+        <div class="card"><div class="statbig">${(100*res.before.filter(r=>r.ok_all).length/res.before.length).toFixed(0)}%</div><div class="statl">before · zero-shot on the teach cases</div></div>
+        <div class="card" style="border-color:#bcd9cb"><div class="statbig">${(100*res.after.filter(r=>r.ok_all).length/res.after.length).toFixed(0)}%</div><div class="statl">after · taught engine, same cases</div></div>
+        <div class="card"><div class="statbig">${(100*freshOK/res.fresh_holdout.length).toFixed(0)}%</div><div class="statl">fresh 30-case sample <em>(same-generator holdout — see the paraphrase probe)</em></div></div>
+      </div>
+      <p class="small">Calibration caveat: freshly taught confidences are razor-sharp (the calibration fit hits its
+        floor) — read the probabilities as decisions, not as odds, until recalibrated on real data.</p>
+    </div>
+    ${domEvalTable(res.paraphrase_probes, "Paraphrase probe — hand-reworded cases (out-of-template)",
+      "Missing one of these is the honest point: 12 taught cases buy in-template perfection, not robustness. Teach 30+ and watch this table.")}
+    <button class="primary" id="driftBtn">⏭ A year later — the policy changes (deductibles double). What happens?</button>
+    <div id="driftOut"></div>`);
+  $("driftBtn").onclick = async () => {
+    $("driftOut").innerHTML = "<p class='small'>measuring decay on 30 drifted cases…</p>";
+    const d = await fetch(studioURL("/drift"), {method:"POST", headers:{"Content-Type":"application/json"},
+      body: JSON.stringify({domain: DOM_STATE.domain})}).then(x => x.json());
+    if (d.error){ $("driftOut").innerHTML = `<p class="small">${d.error}</p>`; return; }
+    const tOK = d.taught.filter(r => r.ok_all).length, zOK = d.zero.filter(r => r.ok_all).length;
+    $("driftOut").innerHTML = `<div class="card" style="border-color:#d9a5a5;background:#fdf4f4">
+      <h3>The taught engine drops to ${(100*tOK/d.taught.length).toFixed(0)}% on the drifted policy
+        (zero-shot base: ${(100*zOK/d.zero.length).toFixed(0)}%).</h3>
+      <p class="small">This decay is the retainer: policy drift is measured, not hypothetical — and the fix is a
+        30-case re-teach, exactly what you just watched. That loop is the business.</p></div>`;
+  };
+}
+
+async function domPick(name){
+  const el = $("domainfloor");
+  DOM_STATE = {domain: name, edits: {}};
+  el.innerHTML = `<h2>${DOM_META[name].icon} ${name.replace(/_/g," ")}</h2><p class="small">${DOM_META[name].blurb}</p>
+    <p class="small">loading the measured portfolio…</p>`;
+  const [presets, portfolio] = await Promise.all([
+    fetch(studioURL(`/presets?domain=${name}`)).then(r => r.json()),
+    fetch(studioURL(`/portfolio?domain=${name}`)).then(r => r.json()),
+  ]);
+  if (portfolio.error){ el.innerHTML += `<p>${portfolio.error}</p>`; return; }
+  DOM_STATE.questions = presets.questions;
+  const S = portfolio.summary;
+  const pct = (arm) => { const a = S.accuracy[arm] || {}; const v = Object.values(a);
+    return v.length ? (100*v.reduce((x,y)=>x+y,0)/v.length).toFixed(1) + "%" : "—"; };
+  const wrong = portfolio.claims.filter(c => Object.entries(c.gold).some(([q, g]) => {
+    const a = c.arms.zero.answers[q] || {};
+    const v = a.type === "noul" ? (a.noul > 0.5 ? 1 : 0) : (a.choice !== undefined ? a.choice : a.score);
+    const gv = typeof g === "boolean" ? (g ? 1 : 0) : g;
+    return v !== gv;
+  })).slice(0, 3);
+  const struggleHTML = wrong.map(c => `<div class="card" style="margin:.4rem 0">
+    <p class="small" style="white-space:pre-wrap">${c.state.slice(0, 200)}…</p>
+    <p class="small"><b>zero-shot:</b> ${Object.entries(c.arms.zero.answers).slice(0,4).map(([q,a]) =>
+      `${q}=${a.choice ?? a.score ?? (a.noul > 0.5 ? "yes" : "no")}`).join(" · ")}
+      <span style="color:var(--bad)">— gold: ${Object.entries(c.gold).slice(0,4).map(([q,g]) => `${q}=${typeof g === "boolean" ? (g?"yes":"no") : g}`).join(" · ")}</span></p></div>`).join("");
+  el.innerHTML = `<h2>${DOM_META[name].icon} ${name.replace(/_/g," ")}</h2><p class="small">${DOM_META[name].blurb}</p>
+    <div class="statsgrid" style="display:grid">
+      <div class="card"><div class="statbig">${pct("zero")}</div><div class="statl">Laya zero-shot · 500 unseen cases (measured)</div></div>
+      <div class="card"><div class="statbig">${pct("dec")}</div><div class="statl">decider-4b zero-shot · same 500</div></div>
+      <div class="card"><div class="statbig">${pct("decft")}</div><div class="statl">decider-4b trained on <em>insurance</em> — cross-domain transfer, same 500</div></div>
+      <div class="card"><div class="statbig">${pct("rules")}</div><div class="statl">Rules engine · perfect on the phrasing it was built for</div></div>
+    </div>
+    <h3>Watch them struggle (cases picked from measured zero-shot errors)</h3>${struggleHTML}
+    <div class="card"><h3>Now teach it — bulk-accept the rule gold, optionally edit one decision</h3>
+      <p class="small" id="editBadge">no edits — the rule gold stands (bulk-accepted)</p>
+      <table class="opstable" id="teachTable"></table>
+      <div style="display:flex;gap:.8rem;align-items:center;margin-top:.6rem">
+        <button class="primary" id="teachBtn">⚡ Teach (real fine-tune, ~1-2 min)</button>
+        <span class="small" id="teachStatus"></span>
+      </div>
+    </div>`;
+  const sess = await fetch(studioURL("/session"), {method:"POST", headers:{"Content-Type":"application/json"},
+    body: JSON.stringify({domain: name})}).then(r => r.json());
+  DOM_STATE.cases = sess.cases;
+  renderDomTeach();
+  $("teachBtn").onclick = domTeach;
+}
+
+async function initDomain(){
+  const el = $("domainfloor");
+  el.hidden = false;
+  if (DOMS) return;
+  el.innerHTML = `<p class="small">loading domains…</p>`;
+  try {
+    const r = await fetch(studioURL("/domains")).then(x => x.json());
+    DOMS = r.domains;
+  } catch (e) {
+    el.innerHTML = `<div class="card"><p>Studio service unreachable (${e}). Start it with
+      <code>STUDIO_TOKEN=… python studio_service.py</code> (localhost :8903; the console proxies through :8901).</p></div>`;
+    return;
+  }
+  el.innerHTML = `<h2>🏭 Pick a business — any business</h2>
+    <div class="statsgrid" style="display:grid;grid-template-columns:repeat(auto-fit,minmax(260px,1fr))">
+    ${Object.keys(DOMS).map(k => `<div class="card dompick" style="cursor:pointer">
+      <h3>${(DOM_META[k]||{icon:"🗂"}).icon} ${k.replace(/_/g," ")}</h3>
+      <p class="small">${(DOM_META[k]||{blurb:""}).blurb}</p></div>`).join("")}
+    </div>
+    <p class="small">Every domain ships the same 7-decision journey: route · flag · prioritize · eligibility ·
+      money band · third party · touches. Seeded corpora, rule-verifiable gold, 500/500 replay-validated.</p>`;
+  el.querySelectorAll(".dompick").forEach((c, i) => c.onclick = () => domPick(Object.keys(DOMS)[i]));
+}
 </script>
 </body>
 </html>

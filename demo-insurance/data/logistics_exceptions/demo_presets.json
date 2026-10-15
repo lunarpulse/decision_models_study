@@ -1,0 +1,601 @@
+{
+ "domain": "logistics_exceptions",
+ "questions": {
+  "routing": {
+   "type": "choice",
+   "instructions": "Route this logistics exception to the desk that should handle it. Choose exactly one desk. Rule: if the request shows at least two contract-abuse warning signs (no supporting documents, a contract signed less than 30 days before the request, or a claimed amount over USD 18,500), route to contract compliance regardless of incident type.",
+   "criteria": {
+    "damage_desk": "Physical damage: crush, water, temperature, handling accidents.",
+    "loss_desk": "Missing or misdelivered goods, seal and shortage cases.",
+    "customs_desk": "Customs holds, duty reclassification, penalties, bonded transfers.",
+    "carrier_relations": "Carrier performance: late pickups, breakdowns, wrong equipment.",
+    "contract_compliance": "Requests with repeated contract-abuse warning signs."
+   }
+  },
+  "contract_abuse_review": {
+   "type": "noul",
+   "instructions": "Should this request be flagged for contract-compliance review before any recovery is pursued? Answer yes only when at least two warning signs appear: no supporting documents, a contract signed within 30 days of the request, or a claimed amount over USD 18,500."
+  },
+  "urgency": {
+   "type": "score",
+   "instructions": "How urgently must this exception be worked? critical: pharmaceutical cargo or dangerous (ADR) goods affected. urgent: goods missing, held, misrouted or vanished. priority: customs matters or a claim over USD 8,800. routine: everything else.",
+   "criteria": [
+    "routine",
+    "priority",
+    "urgent",
+    "critical"
+   ]
+  },
+  "liability_eligibility": {
+   "type": "choice",
+   "instructions": "Is the loss covered by the contract? Rules: the incident must fall on or after the contract signing date. An incident within 2 days after signing needs manual review. Temperature-excision guarantees (pharma reefer cover) apply only on Plus or Premium service tiers. Otherwise the loss is covered.",
+   "criteria": {
+    "covered": "Contract active for the incident and the service is included.",
+    "not_covered_contract_not_active": "The incident happened before the contract was signed.",
+    "not_covered_service_exclusion": "Temperature-excision cover excluded on Basic/Standard.",
+    "review_required_fresh_contract": "Incident within 2 days of signing; review first."
+   }
+  },
+  "recovery_band": {
+   "type": "choice",
+   "instructions": "After the contractual deductible (liability waiver) is applied, which band does the recoverable amount fall into? Waivers: damage USD 400, loss USD 600, customs USD 150, carrier relations USD 200. If the loss is not covered or is held for compliance review, nothing is recoverable yet (USD 0).",
+   "criteria": {
+    "zero_nothing_recoverable": "Not covered, needs review, or held for compliance.",
+    "up_to_1000": "Recoverable USD 1 - 1,000 after the waiver.",
+    "1000_to_5000": "Recoverable USD 1,001 - 5,000 after the waiver.",
+    "5000_to_15000": "Recoverable USD 5,001 - 15,000 after the waiver.",
+    "over_15000": "Recoverable over USD 15,000 after the waiver."
+   }
+  },
+  "subcarrier_recovery": {
+   "type": "noul",
+   "instructions": "Should the loss be recovered from a sub-carrier or dock partner? Answer yes only when a specific third party is identified: a subcontracted carrier that admitted fault in writing, or a shortage recorded by the receiving dock team with the receiving report attached."
+  },
+  "expected_touches": {
+   "type": "score",
+   "instructions": "How many handler touches will this exception need? 0-1: complete, documented, low-value request (straight-through candidate). 2: one complication - missing documents, a claim over USD 8,800, or a liability check. 3: two complications. 4+: flagged for compliance review or three complications.",
+   "criteria": [
+    "0-1 touches (straight-through candidate)",
+    "2 touches",
+    "3 touches",
+    "4+ touches / compliance investigator assigned"
+   ]
+  }
+ },
+ "stages": [
+  {
+   "stage": "1 · Intake & triage",
+   "questions": [
+    "routing",
+    "urgency"
+   ]
+  },
+  {
+   "stage": "2 · Liability & recovery",
+   "questions": [
+    "liability_eligibility",
+    "recovery_band"
+   ]
+  },
+  {
+   "stage": "3 · Investigation",
+   "questions": [
+    "contract_abuse_review",
+    "subcarrier_recovery"
+   ]
+  },
+  {
+   "stage": "4 · Operations",
+   "questions": [
+    "expected_touches"
+   ]
+  }
+ ],
+ "presets": [
+  {
+   "label": "crushed pallet, docs attached",
+   "id": "exc-990000",
+   "state": "Exception request EXC-1080000 logged by M. Martin on 2026-10-06 via the shipper portal. Contract DAMAGE-995000 signed 2026-07-20. The incident: water damage inside the trailer, on 2026-10-05. Claimed amount: USD 2,800. The shipper attached the signed delivery note and photos of the damage and warehouse incident report. Service tier: Premium.",
+   "gold": {
+    "routing": "damage_desk",
+    "contract_abuse_review": false,
+    "urgency": 0,
+    "liability_eligibility": "covered",
+    "recovery_band": "1000_to_5000",
+    "subcarrier_recovery": false,
+    "expected_touches": 0
+   },
+   "meta": {
+    "cat": "damage",
+    "amount": 2800,
+    "age_days": 80,
+    "docs_ok": true,
+    "flag": false,
+    "tier": "Premium",
+    "deductible": 400,
+    "payable": 2400,
+    "incident_iso": "2026-10-05",
+    "filed_iso": "2026-10-06",
+    "start_iso": "2026-07-20",
+    "complications": 0,
+    "eligibility": "covered"
+   }
+  },
+  {
+   "label": "pharma temperature excursion",
+   "id": "exc-990102",
+   "state": "Exception request EXC-1080102 logged by K. Bennett on 2026-10-06 via the carrier hotline. Contract DAMAGE-995102 signed 2026-08-24. The incident: temperature excursion ruined the pharma pallet, on 2026-09-27. Claimed amount: USD 850. The shipper attached the signed delivery note and photos of the damage and warehouse incident report. Service tier: Plus.",
+   "gold": {
+    "routing": "damage_desk",
+    "contract_abuse_review": false,
+    "urgency": 3,
+    "liability_eligibility": "covered",
+    "recovery_band": "up_to_1000",
+    "subcarrier_recovery": false,
+    "expected_touches": 0
+   },
+   "meta": {
+    "cat": "damage",
+    "amount": 850,
+    "age_days": 45,
+    "docs_ok": true,
+    "flag": false,
+    "tier": "Plus",
+    "deductible": 400,
+    "payable": 450,
+    "incident_iso": "2026-09-27",
+    "filed_iso": "2026-10-06",
+    "start_iso": "2026-08-24",
+    "complications": 0,
+    "eligibility": "covered"
+   }
+  },
+  {
+   "label": "container dropped at the yard",
+   "id": "exc-990200",
+   "state": "Exception request EXC-1080200 logged by P. Quinn on 2026-10-04 via the carrier hotline. Contract DAMAGE-995200 signed 2026-01-21. The incident: water damage inside the trailer, on 2026-10-02. Claimed amount: USD 240. No supporting documents were attached; the shipper says the paperwork was never returned by the driver. Service tier: Plus.",
+   "gold": {
+    "routing": "damage_desk",
+    "contract_abuse_review": false,
+    "urgency": 0,
+    "liability_eligibility": "covered",
+    "recovery_band": "zero_nothing_recoverable",
+    "subcarrier_recovery": false,
+    "expected_touches": 1
+   },
+   "meta": {
+    "cat": "damage",
+    "amount": 240,
+    "age_days": 260,
+    "docs_ok": false,
+    "flag": false,
+    "tier": "Plus",
+    "deductible": 400,
+    "payable": 0,
+    "incident_iso": "2026-10-02",
+    "filed_iso": "2026-10-04",
+    "start_iso": "2026-01-21",
+    "complications": 1,
+    "eligibility": "covered"
+   }
+  },
+  {
+   "label": "carton missing at destination",
+   "id": "exc-990300",
+   "state": "Exception request EXC-1080300 logged by A. Eriksen on 2026-10-06 via email to the ops desk. Contract LOSS-995300 signed 2026-10-05. The incident: high-value item vanished between hubs, on 2026-10-06. Claimed amount: USD 11,200. The shipper attached the scan history export and seal photographs and receiving report. Service tier: Basic.",
+   "gold": {
+    "routing": "loss_desk",
+    "contract_abuse_review": false,
+    "urgency": 2,
+    "liability_eligibility": "review_required_fresh_contract",
+    "recovery_band": "zero_nothing_recoverable",
+    "subcarrier_recovery": false,
+    "expected_touches": 2
+   },
+   "meta": {
+    "cat": "loss",
+    "amount": 11200,
+    "age_days": 3,
+    "docs_ok": true,
+    "flag": false,
+    "tier": "Basic",
+    "deductible": 600,
+    "payable": 0,
+    "incident_iso": "2026-10-06",
+    "filed_iso": "2026-10-06",
+    "start_iso": "2026-10-05",
+    "complications": 2,
+    "eligibility": "review_required_fresh_contract"
+   }
+  },
+  {
+   "label": "high-value item vanished",
+   "id": "exc-990400",
+   "state": "Exception request EXC-1080400 logged by A. Bennett on 2026-10-06 via the shipper portal. Contract LOSS-995400 signed 2026-09-12. The incident: high-value item vanished between hubs, on 2026-10-04. Claimed amount: USD 480. The shipper attached the scan history export and seal photographs and receiving report. Service tier: Premium.",
+   "gold": {
+    "routing": "loss_desk",
+    "contract_abuse_review": false,
+    "urgency": 2,
+    "liability_eligibility": "covered",
+    "recovery_band": "zero_nothing_recoverable",
+    "subcarrier_recovery": false,
+    "expected_touches": 0
+   },
+   "meta": {
+    "cat": "loss",
+    "amount": 480,
+    "age_days": 26,
+    "docs_ok": true,
+    "flag": false,
+    "tier": "Premium",
+    "deductible": 600,
+    "payable": 0,
+    "incident_iso": "2026-10-04",
+    "filed_iso": "2026-10-06",
+    "start_iso": "2026-09-12",
+    "complications": 0,
+    "eligibility": "covered"
+   }
+  },
+  {
+   "label": "held for missing HS codes",
+   "id": "exc-990500",
+   "state": "Exception request EXC-1080500 logged by A. Tanaka on 2026-10-01 via email to the ops desk. Contract CUSTOMS-995500 signed 2026-09-12. The incident: customs penalty for late documentation, on 2026-09-29. Claimed amount: USD 6,300. The shipper attached the customs entry copy and broker correspondence and penalty notice. Service tier: Basic.",
+   "gold": {
+    "routing": "customs_desk",
+    "contract_abuse_review": false,
+    "urgency": 1,
+    "liability_eligibility": "covered",
+    "recovery_band": "5000_to_15000",
+    "subcarrier_recovery": false,
+    "expected_touches": 0
+   },
+   "meta": {
+    "cat": "customs",
+    "amount": 6300,
+    "age_days": 26,
+    "docs_ok": true,
+    "flag": false,
+    "tier": "Basic",
+    "deductible": 150,
+    "payable": 6150,
+    "incident_iso": "2026-09-29",
+    "filed_iso": "2026-10-01",
+    "start_iso": "2026-09-12",
+    "complications": 0,
+    "eligibility": "covered"
+   }
+  },
+  {
+   "label": "duty reclassified",
+   "id": "exc-990600",
+   "state": "Exception request EXC-1080600 logged by J. Johnson on 2026-10-07 via the shipper portal. Contract CUSTOMS-995600 signed 2026-08-24. The incident: duty reclassified after clearance, on 2026-10-02. Claimed amount: USD 11,200. No supporting documents were attached; the shipper says the paperwork was never returned by the driver. Service tier: Basic.",
+   "gold": {
+    "routing": "customs_desk",
+    "contract_abuse_review": false,
+    "urgency": 1,
+    "liability_eligibility": "covered",
+    "recovery_band": "5000_to_15000",
+    "subcarrier_recovery": false,
+    "expected_touches": 2
+   },
+   "meta": {
+    "cat": "customs",
+    "amount": 11200,
+    "age_days": 45,
+    "docs_ok": false,
+    "flag": false,
+    "tier": "Basic",
+    "deductible": 150,
+    "payable": 11050,
+    "incident_iso": "2026-10-02",
+    "filed_iso": "2026-10-07",
+    "start_iso": "2026-08-24",
+    "complications": 2,
+    "eligibility": "covered"
+   }
+  },
+  {
+   "label": "late pickups this month",
+   "id": "exc-990701",
+   "state": "Exception request EXC-1080701 logged by S. Eriksen on 2026-10-04 via the EDI feed. Contract CARRIER-995701 signed 2026-08-24. The incident: truck breakdown missed the delivery window, on 2026-10-03. Claimed amount: USD 4,200. The shipper attached the dispatch log excerpt and GPS trail export and booking confirmation. Service tier: Premium.",
+   "gold": {
+    "routing": "carrier_relations",
+    "contract_abuse_review": false,
+    "urgency": 0,
+    "liability_eligibility": "covered",
+    "recovery_band": "1000_to_5000",
+    "subcarrier_recovery": false,
+    "expected_touches": 0
+   },
+   "meta": {
+    "cat": "carrier",
+    "amount": 4200,
+    "age_days": 45,
+    "docs_ok": true,
+    "flag": false,
+    "tier": "Premium",
+    "deductible": 200,
+    "payable": 4000,
+    "incident_iso": "2026-10-03",
+    "filed_iso": "2026-10-04",
+    "start_iso": "2026-08-24",
+    "complications": 0,
+    "eligibility": "covered"
+   }
+  },
+  {
+   "label": "ADR wrong vehicle",
+   "id": "exc-990803",
+   "state": "Exception request EXC-1080803 logged by P. Cho on 2026-10-06 via the shipper portal. Contract CARRIER-995803 signed 2025-09-03. The incident: wrong vehicle type dispatched for ADR goods, on 2026-09-27. Claimed amount: USD 9,600. The shipper attached the dispatch log excerpt and GPS trail export and booking confirmation. Service tier: Basic.",
+   "gold": {
+    "routing": "carrier_relations",
+    "contract_abuse_review": false,
+    "urgency": 3,
+    "liability_eligibility": "covered",
+    "recovery_band": "5000_to_15000",
+    "subcarrier_recovery": false,
+    "expected_touches": 1
+   },
+   "meta": {
+    "cat": "carrier",
+    "amount": 9600,
+    "age_days": 400,
+    "docs_ok": true,
+    "flag": false,
+    "tier": "Basic",
+    "deductible": 200,
+    "payable": 9400,
+    "incident_iso": "2026-09-27",
+    "filed_iso": "2026-10-06",
+    "start_iso": "2025-09-03",
+    "complications": 1,
+    "eligibility": "covered"
+   }
+  },
+  {
+   "label": "ABUSE: no docs + fresh contract",
+   "id": "exc-990919",
+   "state": "Exception request EXC-1080919 logged by S. Dubois on 2026-10-07 via the EDI feed. Contract DAMAGE-995919 signed 2026-07-20. The incident: container dropped during lifting at the yard, on 2026-09-28. Claimed amount: USD 26,500. No supporting documents were attached; the shipper says the paperwork was never returned by the driver. Service tier: Plus.",
+   "gold": {
+    "routing": "contract_compliance",
+    "contract_abuse_review": true,
+    "urgency": 1,
+    "liability_eligibility": "covered",
+    "recovery_band": "zero_nothing_recoverable",
+    "subcarrier_recovery": false,
+    "expected_touches": 3
+   },
+   "meta": {
+    "cat": "damage",
+    "amount": 26500,
+    "age_days": 80,
+    "docs_ok": false,
+    "flag": true,
+    "tier": "Plus",
+    "deductible": 400,
+    "payable": 0,
+    "incident_iso": "2026-09-28",
+    "filed_iso": "2026-10-07",
+    "start_iso": "2026-07-20",
+    "complications": 2,
+    "eligibility": "covered"
+   }
+  },
+  {
+   "label": "ABUSE: no docs + huge claim",
+   "id": "exc-991003",
+   "state": "Exception request EXC-1081003 logged by J. Nakamura on 2026-10-07 via the carrier hotline. Contract LOSS-996003 signed 2026-09-29. The incident: pallet delivered to the wrong dock, on 2026-10-02. Claimed amount: USD 11,200. No supporting documents were attached; the shipper says the paperwork was never returned by the driver. Service tier: Standard.",
+   "gold": {
+    "routing": "contract_compliance",
+    "contract_abuse_review": true,
+    "urgency": 1,
+    "liability_eligibility": "covered",
+    "recovery_band": "zero_nothing_recoverable",
+    "subcarrier_recovery": false,
+    "expected_touches": 3
+   },
+   "meta": {
+    "cat": "loss",
+    "amount": 11200,
+    "age_days": 9,
+    "docs_ok": false,
+    "flag": true,
+    "tier": "Standard",
+    "deductible": 600,
+    "payable": 0,
+    "incident_iso": "2026-10-02",
+    "filed_iso": "2026-10-07",
+    "start_iso": "2026-09-29",
+    "complications": 2,
+    "eligibility": "covered"
+   }
+  },
+  {
+   "label": "ABUSE: fresh contract + max demand",
+   "id": "exc-991102",
+   "state": "Exception request EXC-1081102 logged by K. Wong on 2026-10-01 via the shipper portal. Contract CUSTOMS-996102 signed 2026-07-20. The incident: shipment held for missing HS codes, on 2026-10-01. Claimed amount: USD 26,500. No supporting documents were attached; the shipper says the paperwork was never returned by the driver. Service tier: Premium.",
+   "gold": {
+    "routing": "contract_compliance",
+    "contract_abuse_review": true,
+    "urgency": 2,
+    "liability_eligibility": "covered",
+    "recovery_band": "zero_nothing_recoverable",
+    "subcarrier_recovery": false,
+    "expected_touches": 3
+   },
+   "meta": {
+    "cat": "customs",
+    "amount": 26500,
+    "age_days": 80,
+    "docs_ok": false,
+    "flag": true,
+    "tier": "Premium",
+    "deductible": 150,
+    "payable": 0,
+    "incident_iso": "2026-10-01",
+    "filed_iso": "2026-10-01",
+    "start_iso": "2026-07-20",
+    "complications": 2,
+    "eligibility": "covered"
+   }
+  },
+  {
+   "label": "ABUSE: no docs + max demand",
+   "id": "exc-991200",
+   "state": "Exception request EXC-1081200 logged by R. Eriksen on 2026-10-08 via the carrier hotline. Contract CARRIER-996200 signed 2026-09-12. The incident: truck breakdown missed the delivery window, on 2026-10-03. Claimed amount: USD 26,500 (the shipper insists on the contractual maximum). The shipper attached the dispatch log excerpt and GPS trail export and booking confirmation. Service tier: Premium.",
+   "gold": {
+    "routing": "contract_compliance",
+    "contract_abuse_review": true,
+    "urgency": 1,
+    "liability_eligibility": "covered",
+    "recovery_band": "zero_nothing_recoverable",
+    "subcarrier_recovery": false,
+    "expected_touches": 3
+   },
+   "meta": {
+    "cat": "carrier",
+    "amount": 26500,
+    "age_days": 26,
+    "docs_ok": true,
+    "flag": true,
+    "tier": "Premium",
+    "deductible": 200,
+    "payable": 0,
+    "incident_iso": "2026-10-03",
+    "filed_iso": "2026-10-08",
+    "start_iso": "2026-09-12",
+    "complications": 1,
+    "eligibility": "covered"
+   }
+  },
+  {
+   "label": "reefer cover on a low tier",
+   "id": "exc-991300",
+   "state": "Exception request EXC-1081300 logged by K. Bennett on 2026-10-01 via email to the ops desk. Contract DAMAGE-996300 signed 2026-01-21. The incident: forklift punctured the wrapping and the goods, on 2026-10-01. Claimed amount: USD 7,400. No supporting documents were attached; the shipper says the paperwork was never returned by the driver. Service tier: Premium.",
+   "gold": {
+    "routing": "damage_desk",
+    "contract_abuse_review": false,
+    "urgency": 0,
+    "liability_eligibility": "covered",
+    "recovery_band": "5000_to_15000",
+    "subcarrier_recovery": false,
+    "expected_touches": 1
+   },
+   "meta": {
+    "cat": "damage",
+    "amount": 7400,
+    "age_days": 260,
+    "docs_ok": false,
+    "flag": false,
+    "tier": "Premium",
+    "deductible": 400,
+    "payable": 7000,
+    "incident_iso": "2026-10-01",
+    "filed_iso": "2026-10-01",
+    "start_iso": "2026-01-21",
+    "complications": 1,
+    "eligibility": "covered"
+   }
+  },
+  {
+   "label": "dock-team recorded shortage",
+   "id": "exc-991400",
+   "state": "Exception request EXC-1081400 logged by D. Alvarez on 2026-10-07 via email to the ops desk. Contract LOSS-996400 signed 2026-09-21. The incident: receiving dock team recorded the shortage at handover, on 2026-10-06. Claimed amount: USD 850. The shipper attached the scan history export and seal photographs and receiving report. Service tier: Premium.",
+   "gold": {
+    "routing": "loss_desk",
+    "contract_abuse_review": false,
+    "urgency": 0,
+    "liability_eligibility": "covered",
+    "recovery_band": "up_to_1000",
+    "subcarrier_recovery": true,
+    "expected_touches": 0
+   },
+   "meta": {
+    "cat": "loss",
+    "amount": 850,
+    "age_days": 17,
+    "docs_ok": true,
+    "flag": false,
+    "tier": "Premium",
+    "deductible": 600,
+    "payable": 250,
+    "incident_iso": "2026-10-06",
+    "filed_iso": "2026-10-07",
+    "start_iso": "2026-09-21",
+    "complications": 0,
+    "eligibility": "covered"
+   }
+  },
+  {
+   "label": "carrier admitted fault in writing",
+   "id": "exc-991502",
+   "state": "Exception request EXC-1081502 logged by R. Tanaka on 2026-10-08 via the carrier hotline. Contract DAMAGE-996502 signed 2026-05-21. The incident: forklift punctured the wrapping and the goods, on 2026-10-08. Claimed amount: USD 3,400. The shipper attached the signed delivery note and photos of the damage and warehouse incident report. Service tier: Standard.",
+   "gold": {
+    "routing": "damage_desk",
+    "contract_abuse_review": false,
+    "urgency": 0,
+    "liability_eligibility": "covered",
+    "recovery_band": "1000_to_5000",
+    "subcarrier_recovery": false,
+    "expected_touches": 0
+   },
+   "meta": {
+    "cat": "damage",
+    "amount": 3400,
+    "age_days": 140,
+    "docs_ok": true,
+    "flag": false,
+    "tier": "Standard",
+    "deductible": 400,
+    "payable": 3000,
+    "incident_iso": "2026-10-08",
+    "filed_iso": "2026-10-08",
+    "start_iso": "2026-05-21",
+    "complications": 0,
+    "eligibility": "covered"
+   }
+  }
+ ],
+ "paraphrase_probes": [
+  {
+   "label": "reworded crushed pallet claim",
+   "state": "Phone call logged 2026-10-07 on the carrier hotline: a shipper whose contract DAMAGE-5510 has run since 2026-01-20 reports that a pallet came apart under the crane at their ramp on 2026-09-30. They want USD 6,300 and sent the signed delivery note plus photographs and the warehouse report. Service tier: Premium.",
+   "gold": {
+    "routing": "damage_desk",
+    "contract_abuse_review": false,
+    "urgency": 0,
+    "liability_eligibility": "covered",
+    "recovery_band": "5000_to_15000",
+    "subcarrier_recovery": false,
+    "expected_touches": 0
+   }
+  },
+  {
+   "label": "reworded no-docs fresh-contract abuse",
+   "state": "Received over EDI on 2026-10-06: LOSS contract 7742 was only signed on 2026-09-19, and the shipper now claims USD 26,500 for goods that supposedly never arrived on 2026-09-28. No scan export, no photographs, nothing attached - allegedly left with the driver. Basic tier.",
+   "gold": {
+    "routing": "contract_compliance",
+    "contract_abuse_review": true,
+    "urgency": 1,
+    "liability_eligibility": "covered",
+    "recovery_band": "zero_nothing_recoverable",
+    "subcarrier_recovery": false,
+    "expected_touches": 3
+   }
+  },
+  {
+   "label": "reworded dock-team shortage",
+   "state": "Email to the ops desk, 2026-10-05. Contract LOSS-6103 active since 2026-02-11: at handover on 2026-10-01 the receiving dock team recorded a shortage of two cartons; the receiving report and seal photographs are attached. Claimed amount USD 2,800, Standard tier.",
+   "gold": {
+    "routing": "loss_desk",
+    "contract_abuse_review": false,
+    "urgency": 0,
+    "liability_eligibility": "covered",
+    "recovery_band": "1000_to_5000",
+    "subcarrier_recovery": true,
+    "expected_touches": 0
+   }
+  }
+ ]
+}

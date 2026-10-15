@@ -99,10 +99,25 @@ def calibration(pairs, bins=10):
 
 def main():
     ap = argparse.ArgumentParser()
+    ap.add_argument("--domain", default="insurance",
+                    help="insurance | support_tickets | logistics_exceptions | hr_exceptions")
     ap.add_argument("--dec-ft", default=str(ROOT / "decider-ft-ckpt" / "model"))
+    ap.add_argument("--ft", default="", help="optional laya ft ckpt for a factory domain")
     ap.add_argument("--no-dec", action="store_true")
     ap.add_argument("--limit", type=int, default=0)
     a = ap.parse_args()
+
+    global DATA
+    if a.domain == "insurance":
+        spec, flag_qid, meta_flag = None, "fraud_review", "fraud"
+        rules = rules_engine.decide
+    else:
+        from domains import DOMAINS
+        from domain_factory import decide as factory_decide
+        spec = DOMAINS[a.domain]
+        flag_qid, meta_flag = spec["questions"]["archetypes"]["risk_flag"], "flag"
+        rules = lambda state, _spec=spec: factory_decide(_spec, state)
+        DATA = ROOT / "data" / a.domain
 
     rows = [json.loads(l) for l in open(DATA / "holdout_eval.jsonl")]
     if a.limit:
@@ -137,8 +152,8 @@ def main():
             rec["arms"][arm_name] = ask_decider(eng, rec["state"], questions)
             for qid, g in rec["gold"].items():
                 note(arm_name, qid, correct(qid, g, rec["arms"][arm_name]["answers"].get(qid)))
-        calib[arm_name] = calibration([(rec["arms"][arm_name]["answers"]["fraud_review"]["noul"],
-                                        int(rec["meta"]["fraud"])) for rec in claims])
+        calib[arm_name] = calibration([(rec["arms"][arm_name]["answers"][flag_qid]["noul"],
+                                        int(rec["meta"][meta_flag])) for rec in claims])
         del eng
         gc.collect(); torch.cuda.empty_cache()
 
@@ -146,32 +161,34 @@ def main():
     import laya
     from laya import Router
     zero = Router(preload=True)
-    ft = laya.load(str(ROOT / "laya-ft-ckpt"))
+    ft = laya.load(str(ROOT / "laya-ft-ckpt")) if a.domain == "insurance" else \
+        (laya.load(a.ft) if a.ft and pathlib.Path(a.ft).exists() else None)
+    laya_arms = [("zero", zero)] + ([("ft", ft)] if ft else [])
     for r, rec in zip(rows, claims):
-        for arm, eng in (("zero", zero), ("ft", ft)):
+        for arm, eng in laya_arms:
             rec["arms"][arm] = ask_laya(eng, r["state"], questions)
             for qid, g in r["gold"].items():
                 note(arm, qid, correct(qid, g, rec["arms"][arm]["answers"].get(qid)))
-        rr = rules_engine.decide(r["state"])
+        rr = rules(r["state"])
         rec["arms"]["rules"] = {"answers": rr["answers"], "evidence": rr["evidence"], "ms": rr["ms"]}
         for qid, g in r["gold"].items():
             note("rules", qid, correct(qid, g, rr["answers"].get(qid)))
 
-    for arm in ("zero", "ft"):
-        calib[arm] = calibration([(rec["arms"][arm]["answers"]["fraud_review"]["noul"],
-                                   int(rec["meta"]["fraud"])) for rec in claims])
+    for arm, _ in laya_arms:
+        calib[arm] = calibration([(rec["arms"][arm]["answers"][flag_qid]["noul"],
+                                   int(rec["meta"][meta_flag])) for rec in claims])
 
-    # money aggregates at tau=0.8 on fraud flag
+    # money aggregates at tau=0.8 on the flag question
     money = {}
     for arm in per:
         if arm == "rules":
-            flagged = [rec for rec in claims if rec["arms"]["rules"]["answers"]["fraud_review"]["noul"] > 0.5]
+            flagged = [rec for rec in claims if rec["arms"]["rules"]["answers"][flag_qid]["noul"] > 0.5]
         else:
             flagged = [rec for rec in claims if rec["arms"].get(arm, {}).get("answers", {})
-                       .get("fraud_review", {}).get("noul", 0) > 0.8]
-        gold_fraud_usd = sum(rec["meta"]["amount"] for rec in claims if rec["meta"]["fraud"])
-        tp = sum(rec["meta"]["amount"] for rec in flagged if rec["meta"]["fraud"])
-        fp = sum(rec["meta"]["amount"] for rec in flagged if not rec["meta"]["fraud"])
+                       .get(flag_qid, {}).get("noul", 0) > 0.8]
+        gold_fraud_usd = sum(rec["meta"]["amount"] for rec in claims if rec["meta"][meta_flag])
+        tp = sum(rec["meta"]["amount"] for rec in flagged if rec["meta"][meta_flag])
+        fp = sum(rec["meta"]["amount"] for rec in flagged if not rec["meta"][meta_flag])
         money[arm] = {"flagged_usd": tp + fp, "true_fraud_usd_caught": tp,
                       "false_flag_usd": fp, "gold_fraud_usd_total": gold_fraud_usd}
 
