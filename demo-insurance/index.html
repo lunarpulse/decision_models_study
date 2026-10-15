@@ -110,6 +110,7 @@ footer{border-top:1px solid var(--line);margin-top:1.2rem;padding:.7rem 0;font-s
 <div class="topbar">
   <span class="brand">Live Demo · Insurance Claims <small>· decision console</small></span>
   <span class="spacer"></span>
+  <span class="small"><span class="dot" id="dotLaya"></span>Laya service</span>
   <span class="small"><span class="dot" id="dotDecider"></span>decider service</span>
   <span id="sboard" style="display:flex;gap:.6rem;flex-wrap:wrap"></span>
   <button class="ghost" id="resetScores">Reset</button>
@@ -125,6 +126,7 @@ footer{border-top:1px solid var(--line);margin-top:1.2rem;padding:.7rem 0;font-s
   <div class="tabs" role="tablist">
     <button class="tab" data-mode="day1" id="tab-day1">Day 1 · nothing trained yet</button>
     <button class="tab" data-mode="after" id="tab-after">After training · 12,000 past claims</button>
+    <button class="tab" data-mode="compare" id="tab-compare">Side-by-side compare</button>
     <button class="tab" data-mode="ops" id="tab-ops">🚦 Ops floor · straight-through processing</button>
     <button class="tab" data-mode="domain" id="tab-domain">🏭 Domain builder · teach it your business</button>
   </div>
@@ -140,7 +142,6 @@ footer{border-top:1px solid var(--line);margin-top:1.2rem;padding:.7rem 0;font-s
     <h2>✅ After training — same engines, ten minutes of learning</h2>
     <p>The fine-tuned Laya has now seen 12,000 labeled past claim decisions (trained on this very
       machine before the session). decider-4b stays untrained on purpose — it shows what a
-  <div id="domainfloor" hidden style="margin:.4rem 0 1rem"></div>
       generalist can do with no data at all.</p>
   </div>
   <div class="era" id="era-compare" style="border-color:var(--line);background:#fff" hidden>
@@ -402,8 +403,11 @@ document.querySelectorAll(".tab").forEach(t => t.onclick = () => setMode(t.datas
 
 async function health(){
   for (const [url, dot] of [[LAYA, "dotLaya"], [DECBASE, "dotDecider"]]){
-    try { const r = await fetch(url + "/health"); $(dot).className = "dot " + (r.ok ? "up" : "down"); }
-    catch { $(dot).className = "dot down"; }
+    const el = $(dot);
+    if (!el) continue;                       // a missing indicator must never break the page
+    try { const r = await fetch(url + "/health", {signal: AbortSignal.timeout(10000)});
+          el.className = "dot " + (r.ok ? "up" : "down"); }
+    catch { el.className = "dot down"; }
   }
 }
 
@@ -664,7 +668,7 @@ async function domPick(name){
     <div class="statsgrid" style="display:grid">
       <div class="card"><div class="statbig">${pct("zero")}</div><div class="statl">Laya zero-shot · 500 unseen cases (measured)</div></div>
       <div class="card"><div class="statbig">${pct("dec")}</div><div class="statl">decider-4b zero-shot · same 500</div></div>
-      <div class="card"><div class="statbig">${pct("decft")}</div><div class="statl">decider-4b trained on <em>insurance</em> — cross-domain transfer, same 500</div></div>
+      <div class="card"><div class="statbig">${pct("dec_ft")}</div><div class="statl">decider-4b trained on <em>insurance</em> — cross-domain transfer, same 500</div></div>
       <div class="card"><div class="statbig">${pct("rules")}</div><div class="statl">Rules engine · perfect on the phrasing it was built for</div></div>
     </div>
     <h3>Watch them struggle (cases picked from measured zero-shot errors)</h3>${struggleHTML}
