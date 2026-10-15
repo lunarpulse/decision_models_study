@@ -25,8 +25,22 @@ jobs:
             bash -n "$f"
           done
 
-      - name: Corpus reproducibility (seeded generator must byte-match committed data)
+      - name: Corpus reproducibility (seeded generators must byte-match committed data)
         run: |
           python3 demo-insurance/gen_corpus.py > /dev/null
-          git diff --exit-code -- demo-insurance/data/
-          echo "OK: regenerated corpus is byte-identical to the committed files"
+          for d in support_tickets logistics_exceptions hr_exceptions; do
+            python3 demo-insurance/domains.py "$d" > /dev/null
+          done
+          git diff --exit-code -- \
+            demo-insurance/data/demo_presets.json \
+            demo-insurance/data/holdout_eval.jsonl demo-insurance/data/validation.jsonl demo-insurance/data/train.jsonl \
+            demo-insurance/data/support_tickets/validation.jsonl demo-insurance/data/support_tickets/holdout_eval.jsonl demo-insurance/data/support_tickets/demo_presets.json \
+            demo-insurance/data/logistics_exceptions/validation.jsonl demo-insurance/data/logistics_exceptions/holdout_eval.jsonl demo-insurance/data/logistics_exceptions/demo_presets.json \
+            demo-insurance/data/hr_exceptions/validation.jsonl demo-insurance/data/hr_exceptions/holdout_eval.jsonl demo-insurance/data/hr_exceptions/demo_presets.json
+          sha256sum -c demo-insurance/data/train.sha256 demo-insurance/data/*/train.sha256
+          echo "OK: all four corpora regenerate byte-identically (train files by digest)"
+
+      - name: Gold replay validation (rules recomputed from raw text must match, 500/500 per domain)
+        run: |
+          cd demo-insurance && python3 validate_corpus.py
+          echo "OK: every domain's gold is reproducible from its state text alone"
