@@ -1,5 +1,10 @@
 # Plan — demo review fixes (2026-10-15)
 
+**Status (2026-10-16): executed — see DEVELOPMENT_LOG Phase 8.** All items done except 0.6
+(decider offload) — unnecessary once the studio frees its own memory (training-time headroom
+~4 GiB). 0.4/0.8 outcome: micro-batch 1 peaks 8.8 GiB but doubles time; kept micro-batch 2 and
+1,500 background rows (600 rows: 314 s but 24/30 vs 29/30 on fresh cases).
+
 Source: five independent reviews (buyer, UX, claims audit, live ops, security) of the live
 console, top findings re-verified against code and data. Order = the agreed priority:
 **P0 Teach reliability → P1 correctness → P2 honesty → P3 presentation → P4 operations.**

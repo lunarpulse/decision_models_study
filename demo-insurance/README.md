@@ -1,7 +1,8 @@
 # Insurance-claims live demo — decision console
 
 Audience-facing demo of the study's engines on an insurance-claims user journey.
-Fine-tuning happens **before** the session (`bash train_laya.sh`); nothing trains live. Two "eras" are served side by side.
+Insurance fine-tuning happens **before** the session (`bash train_laya.sh`); the Domain Builder tab
+runs a real, presenter-gated fine-tune live (studio service, ~10 min). Five tabs: day1 · after · compare · ops · domain.
 
 ## Start
 
@@ -9,15 +10,18 @@ Fine-tuning happens **before** the session (`bash train_laya.sh`); nothing train
 cd demo-insurance && bash start_demo.sh
 ```
 
-Then open **http://127.0.0.1:8901/?mode=day1** (the Laya service serves the console itself).
+Then open **http://127.0.0.1:8901/** (ops floor; `?mode=day1` for the narrated opener). The laya
+service serves the console itself.
 
-Services: `laya_service.py` :8901 (zero-shot Router + fine-tuned checkpoint in one process, venv-laya) ·
-`decider_service.py` :8902 (decider-4b v2.1, venv-decider). Logs: `*-service.log`.
+Services: `laya_service.py` :8901 (zero-shot Router + fine-tuned checkpoint, console, proxies) ·
+`decider_service.py` :8902 (decider-4b v2.1) · `studio_service.py` :8903 (Domain Builder; token-gated
+teach). Supervised operation (systemd user units, `sync_live.sh`, logs, pre-show checklist): see
+`DEMO_MANUAL.md` §1.
 
 ## The audience experience (engineered flow)
 
-1. **Day 1 tab** — engines untrained. Run presets; watch out-of-box Laya miss fraud flags
-   (measured 37.8% on 500 unseen claims) while decider holds ~74%.
+1. **Day 1 tab** — engines untrained. Run presets; watch out-of-box Laya miss decisions
+   (measured 46.4% avg per decision, 1/500 claims all-7 correct) while decider holds 70.8%.
 2. **The reveal button** — "⚡ Train on 12,000 past claims — and re-run this claim" switches to the
    after-era and re-runs the *same* claim on the trained engine: correct answers with sharp
    probabilities (100.0% measured).
@@ -37,11 +41,13 @@ Services: `laya_service.py` :8901 (zero-shot Router + fine-tuned checkpoint in o
 
 ## Measured on the 500-claim holdout (through the live services)
 
-| Engine | Per-question accuracy | Rows all-3-correct |
+| Engine | Avg per decision (7) | Claims all-7-correct |
 |---|---:|---:|
-| Laya out-of-box | 37.8% | 0 / 500 |
+| Laya out-of-box | 46.4% | 1 / 500 |
 | **Laya fine-tuned (12k claims, ~15 min on this machine)** | **100.0%** | **500 / 500** |
-| decider-4b (zero training) | 74.1% | 256 / 500 |
+| decider-4b (zero training) | 70.8% | 21 / 500 |
+
+Train and holdout share one templated generator (in-distribution); see DEMO_MANUAL §4 for caveats.
 
 ## Assets
 
@@ -56,6 +62,6 @@ Services: `laya_service.py` :8901 (zero-shot Router + fine-tuned checkpoint in o
    yes/no confidences from the trained engine are uncalibrated (visible as very sharp probabilities;
    demo shows probabilities, not just argmax, so this is observable, not hidden).
 2. The "via <checkpoint>" routing badge on engine A renders from the engine-level payload field.
-3. Both services bind 127.0.0.1 by default (set `DEMO_HOST=0.0.0.0` to expose on the LAN —
-   there is no authentication; anyone who can reach the port can run inferences on your GPU).
-   GPU budget with all engines resident: ~10 GB.
+3. All services bind 127.0.0.1 by default; the public path is the cloudflared tunnel to :8901.
+   Mutating studio routes need the studio token; inference routes are open but size-capped
+   and admission-controlled. GPU budget with everything resident: ~22 GB (+ ~10 GB peak during a teach).

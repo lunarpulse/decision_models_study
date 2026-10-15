@@ -627,7 +627,8 @@ def train_worker(domain, rows, edits, relabeled_rows, edited_profiles):
             "edited_profiles": [{"profile": profile_label(p), "questions": sorted(qs)}
                                 for p, qs in edited_profiles.items()],
             "before": before, "after": after,
-            "fresh_holdout": fresh,
+            "fresh_holdout": run_eval(domain, eng, fresh),         # headline: unseen cases
+            "fresh_holdout_zero": run_eval(domain, zero, fresh),   # same 30, before teaching
             "paraphrase_probes": run_eval(domain, eng, probes),
         }
         with _lock:

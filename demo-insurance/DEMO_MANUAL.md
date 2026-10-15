@@ -99,8 +99,8 @@ network see traffic metadata. Fine for a session with known recipients; revoke w
    Then run a **FRAUD** preset: Laya says YES/NO with high confidence on the wrong side.
    decider-4b is right — "the bigger generalist is decent with zero data; the small one is lost."
 3. **The reveal (1 min):** press the green **"⚡ Train on 12,000 past claims"** button — same claim,
-   trained engine, all three answers correct with sharp probabilities. "Fifteen minutes of training
-   on this machine, before the session. Nothing you are watching is recorded or staged."
+   trained engine, all seven decisions correct with sharp probabilities. "Fifteen minutes of
+   training on this machine, before the session. Nothing you are watching is recorded or staged."
 4. **Multilingual (1 min):** compare mode, run 🇰🇷 Korean / 🇯🇵 Japanese presets — the zero-shot
    engine auto-routes to its multilingual checkpoint; the trained engine now also switches
    checkpoints per language (badge: `trained checkpoint: multilingual-finetuned`).
@@ -111,12 +111,15 @@ network see traffic metadata. Fine for a session with known recipients; revoke w
 
 6. **Flip to ops (3 min):** "One claim is a toy; here is the operation." The sealed 500-claim
    holdout, all engines, measured once before the session. Show the money cards (total claimed,
-   fraud $ flagged, false-flag $), then hand the threshold slider to the audience: every τ move
-   changes the straight-through rate, the unattended accuracy, and the fraud that slips through.
-   Let an adjuster override a row — the counters follow. The calibration strip answers the only
-   question that matters for automation: *when it says 80%, is it right 80% of the time?*
-   Engine D (rules) is on the same table on purpose: it is perfect on the phrasing it was built
-   for and `unparsed` on the Korean claim — that is the incumbent's real shape.
+   fraud $ flagged, false-flag $). Then the honest beat: the fine-tuned engine is *certain* on
+   every claim here (fraud probabilities exactly 0 or 1), so the auto-approve cutoff (τ) changes
+   nothing — the console says so under the slider. Switch the engine selector to **decider-4b
+   zero-shot** and hand the slider to the audience: now every τ move trades straight-through rate
+   against unattended accuracy and fraud that slips through (measured 62.8% STP at τ 0.95 → 57.4%
+   at τ 0.50). Let an adjuster override a row — the counters follow. The calibration strip shows,
+   per probability bin, the share of claims that were actually fraud. Engine D (rules) is
+   perfect on the phrasing it was built for and answers `unparsed` to all seven questions on the
+   Korean claim — that is the incumbent's real shape.
 
 ### The Domain Builder (the closer) — `?mode=domain`
 
@@ -126,20 +129,29 @@ network see traffic metadata. Fine for a session with known recipients; revoke w
    that domain — picked from measured errors, not staged. Point at the fourth card: the
    decider-4b *trained on insurance* scoring high here with zero domain training — the journey
    itself transfers.
-8. **Teach it (10 min — a talk beat):** bulk-accept the rule gold, then deliberately change ONE
-   decision on ONE case ("our policy differs"). Press ⚡ Teach: a real fine-tune runs on this
-   machine (~1,500 corpus rows relabeled under your edit + your 12 cases ×20, 2 epochs). The
-   progress line ticks live. Result: the scoreboard flips, *and* the hand-written paraphrase
-   probe humbles it — in-template perfection, out-of-template honesty. Calibration caveat is on
-   the card.
+8. **Teach it (a talk beat):** bulk-accept the rule gold, then deliberately change ONE decision on
+   ONE case ("our policy differs"). Press ⚡ Teach: a real fine-tune runs on this machine (1,500
+   corpus rows — those with the edited case's rule profile relabeled to your decision, the badge
+   shows how many — plus your 12 cases ×20, 2 epochs; ~11 min measured). A progress bar with elapsed time ticks
+   live. The headline score is on 30 held-out cases the model never saw (edited-profile rows
+   scored against your edited policy); the 12 taught cases are shown separately and labeled as
+   such. The hand-written paraphrase probes humble it — in-template perfection,
+   out-of-template honesty.
 9. **The retainer (1 min):** press "A year later" — deductibles double, and the taught engine's
    measured decay shows on screen. The fix is a 30-case re-teach. That loop is the recurring
    business.
 
-Studio notes for the operator: `STUDIO_TOKEN=… python studio_service.py` (localhost :8903,
-proxied through :8901). Training needs the token — anonymous tunnel visitors can watch but not
-teach. One training job at a time. GPU: peak ~32 GiB of 32.6 with the full live stack resident —
-teach during talk beats, not during latency demos.
+Studio notes for the operator: runs as `decision-demo-studio` (systemd user unit; localhost
+:8903, proxied through :8901). Teach needs the token — anonymous visitors watch (a running or
+finished teach shows on their Domain tab) but cannot teach or run the drift beat. One job at a
+time. Before training the studio unloads its own zero-shot engine and any taught checkpoint, then
+refuses to start below `TEACH_MIN_FREE_GIB` (11.5) free — a plain "not enough GPU memory" message
+instead of a crash. Measured with the full live stack serving and a script hammering `/predict`:
+GPU peak 28.4 GiB of 32.6; 661 s training at `TEACH_BG_ROWS=1500` (fresh 30: 29/30 support, 28/30
+logistics) vs 314 s at 600 (24/30 support) — the default stays 1,500; set `TEACH_BG_ROWS` in
+`~/.config/systemd/user/decision-demo.env` for a quicker, weaker teach. Live `/predict` during
+training: 0 errors, p50 63–67 ms, max 142 ms. Every run's full log:
+`studio-runs/<domain>/train-<timestamp>.log`.
 
 ## 4. Numbers you may quote (measured on 500 unseen claims, 7 questions each, this machine)
 
@@ -154,10 +166,12 @@ teach during talk beats, not during latency demos.
 (An earlier run quoted 99.9%/497: a comparator bug — laya emits near-integer score floats like
 1.0001 — not a model error; see DEVELOPMENT_LOG ledger #10.)
 
-**Cross-domain transfer (decider-4b LoRA trained ONLY on insurance, never on these domains):**
-support tickets 81.4% · logistics exceptions 93.3% · HR exceptions 89.9% (zero-shot base:
-60.7% / 69.7% / 70.9%; laya zero-shot: 53.5% / 40.7% / 58.4%). The 7-decision journey itself
-transfers — one supervised process buys most of the next one.
+**Decider-4b after insurance training, scored on new domains it never trained on:**
+support tickets 81.4% · logistics exceptions 93.3% · HR exceptions 89.9% avg per decision
+(all seven correct: 176/500 · 335/500 · 261/500; zero-shot base 60.7% / 69.7% / 70.9%; laya
+zero-shot 53.5% / 40.7% / 58.4%). Read it as format + journey transfer: the gains concentrate on
+questions whose answer vocabulary is shared across domains (touches, money bands, the flag);
+routing to domain-specific teams moves least. Insurance training cannot teach `billing_desk`.
 
 **The parity result (what fine-tuning does to the decider):** the same 12,000 rows that took
 Laya from 46.4% to 100.0% took decider-4b from 70.8% to **100.0%** (LoRA rank 64, 2 epochs,
@@ -167,10 +181,12 @@ same templated generator (in-distribution); post-training confidences hit the ca
 (razor-sharp — treat thresholds as uncalibrated until recalibrated on real data); no
 general-benchmark regression was re-run on the merged weights.
 
-Ops floor (τ = 0.80, fine-tuned Laya as the working engine): 69.4% straight-through (347
-claims, $2.29M), every auto-approved claim correct on all seven decisions (347/347), one fraud
-claim below threshold (the τ-slider's cautionary tale), $1.21M fraud-$ flagged with $0
-false-flagged.
+Ops floor (τ = 0.80, fine-tuned Laya as the working engine): 69.2% straight-through (346
+claims, $2,263,860), every auto-approved claim correct on all seven decisions (346/346; Wilson
+95% CI 98.9–100%), 0 fraud claims auto-approved, $1,205,920 flagged for review with $0
+false-flagged. The fine-tuned engine's fraud probabilities are exactly 0/1, so τ does not move
+these numbers; the year projection on screen is illustrative at the synthetic mix (17.2% fraud)
+and counts dollars routed to review, not money saved.
 
 v1 comparison (3-question era, same corpus seed): 37.8% / 100.0% / 74.1%. Study context: on the
 prior sealed corpus Laya-ft beat the adapted 8B CLM model on every endpoint

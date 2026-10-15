@@ -151,6 +151,38 @@ does the percentage come from, and why does decider show a red dot — "check th
 9. The full decider fine-tune launched with bare `nohup … &` died ~60 s in, silently, when the
    tool call's process group ended (no step ever logged). Relaunched as a managed async job.
    Lesson already in the ledger's spirit: a launch is not a run — verify the first log lines.
+10. Comparator bug (Phase 7.6): laya score outputs are near-integer floats (1.0001); exact
+    equality against integer gold failed every score question offline. Fixed in the offline
+    comparators then — but **not** in the console (see #14).
+11. **Live Teach OOM (2026-10-15 22:44)**: the first audience Teach died 7 s in with
+    `train_cli exit 1`. Cause: CUDA out of memory — the studio process had grown to 5.3 GiB
+    (allocator cache from anonymous domain-card session passes, never released; nothing was ever
+    evicted), leaving 9.2 GiB free against a measured ~10.3 GiB training need. The Phase 7
+    headroom had been 0.5 GiB, so any growth was fatal. Diagnosis was hampered by the studio keeping
+    only the last 200 characters of each train_cli line in memory (the OOM line lost its head) and
+    writing nothing to disk. Fixed in Phase 8 (full log per run, classified errors, pre-flight
+    free-VRAM check, router unload before training, cached sessions, single resident checkpoint).
+12. Preset labels described a *different* claim for 14/16 English presets since v1 ("kitchen fire"
+    loaded a break-in): the generator forced only category + fraud flag, while the label was the
+    intended description. Found by the Phase 8 review; labels are now derived from the generated
+    claim (rng order untouched — train/val/holdout byte-identical).
+13. Domain Builder relabel path was dead: training-row profiles were looked up in a dict keyed by
+    *holdout* states, which never contain train states (0 matches in all three domains), so a
+    presenter's edit never reached the 1,500 background rows — contradicting the plan and the
+    on-screen badge. Also, the Phase 7 "59/60" figure was measured on the 12 taught cases plus a
+    "fresh" sample that could overlap them. Fixed: profiles parsed from each train row's own text;
+    the headline is 30 held-out rows excluding teach ids, with the zero-shot score on the same 30.
+14. The console's ✓/✗ grader used exact float equality — the same bug as #10 in a third place:
+    "Expected adjuster touches level 1.00 ✗ wrong" under gold 1 on the very first preset, and the
+    domain tab's "watch them struggle" cards showcased correct answers as errors. One rounding
+    helper now serves every console comparator.
+15. **Integration incident (Phase 8)**: a sub-agent behaviour-testing the new `stop_demo.sh` ran
+    it once without its sandbox port overrides; it pattern-killed the live laya/decider/studio and
+    the cloudflared tunnel (public URL changed), and an earlier test line `pkill -f
+    laya.train_cli` had already killed a running VRAM measurement. Fixed: `stop_demo.sh` is a
+    dry run unless `--yes`, kills only PIDs it can attribute (port-scoped services, studio PID
+    files), and the live stack now runs under systemd user units. Lesson: process-control scripts
+    are tested by static checks or in a namespace, never by execution on the live host.
 
 ## Phase 6 — Demo v2: journey questions, ops floor, Engine D, decider parity (2026-10-13)
 
@@ -223,14 +255,66 @@ layer, STP/adjuster ops floor, rules-engine baseline — plus supervised parity 
    edited teach-cases were scored against the rule gold instead of the edited policy (the model
    had *learned* the edit; the eval hadn't).
 
+## Phase 8 — Review-driven fixes: teach reliability, on-screen honesty, operations (2026-10-16)
+
+Trigger: operator-confirmed working Domain tab → five independent reviews (buyer, UX, claims
+audit, live ops, security) → `docs/PLAN_DEMO_REVIEW_FIXES.md` → executed by four implementers on
+disjoint files under one API contract, integrated and measured live.
+
+1. **Teach OOM diagnosed and fixed** (ledger #11): full per-run log, parsed progress
+   (`epoch/step`), classified errors, pre-flight free-VRAM check (`TEACH_MIN_FREE_GIB` 11.5),
+   zero-shot router unloaded and all taught checkpoints evicted before training, sessions cached
+   (anonymous card clicks no longer touch the GPU; 409 while training), stale-job recovery from
+   PID/job files. Decider offload (plan 0.6) proved unnecessary.
+2. **Measured, full live stack serving + scripted `/predict` load** (2 threads, 0.5 s pacing):
+
+   | run | train s | fresh 30 (zero → taught, all 7) | 12 taught (before → after) | probes | GPU peak | /predict under load |
+   |---|---:|---|---|---|---:|---|
+   | support, BG 600, 1 edit | 314 | 0/30 → 24/30 | 5/12 → 12/12 | 1/3 | 28.4 GiB | 1,138 req, 0 errors, p50 67 ms |
+   | support, BG 1500, 1 edit | 661 | 0/30 → 29/30 | 5/12 → 12/12 | 0/3 | 28.4 GiB | 2,373 req, 0 errors, p50 66 ms |
+   | logistics, BG 1500, 1 edit (UI-driven) | 652 | 0/30 → 28/30 | 0/12 → 12/12 | 2/3 | — | 2,197 req, 0 errors, p50 63 ms |
+   | hr, BG 1500, no edit | 656 | 0/30 → 30/30 | 6/12 → 12/12 | 2/3 | 28.4 GiB | 2,354 req, 0 errors, p50 66 ms |
+
+   The presenter's edit was learned in every edited run (edited case answered as edited, p ≥
+   0.996) and propagated to 62–134 same-profile background rows. Halving background rows halves
+   time but costs 5/30 on fresh cases — default stays 1,500 (~11 min). Headroom during training:
+   ~4 GiB (was 0.5).
+3. **On-screen correctness** (ledger #12–14): preset labels derived from the generated claim; one
+   rounding comparator in the console; ops floor rebuilt (controls rendered once, engine selector —
+   the fine-tuned engines are certain on every claim so τ is inert there and the screen says so;
+   decider zero-shot STP 62.8% at τ 0.95 → 57.4% at 0.50); calibration chart retitled (fraud rate
+   per bin, full engine names); rules engine answers `unparsed` to all seven questions on claims it
+   cannot parse; teach headline = 30 held-out cases with their zero-shot baseline; edits relabel
+   background rows for real.
+4. **Honesty pass**: stat cards name the metric (avg per decision), show all-7-correct counts with
+   Wilson 95% CIs, carry the in-template caveat wherever 100% appears; the year projection is
+   "illustrative at this synthetic mix, routed to review"; cross-domain card reads "format +
+   journey transfer" with all-7 rates; README/manual numbers regenerated from `stats.json`;
+   footer links the served experiment report and shows the deployed `VERSION`.
+5. **Presentation**: outcome line + call-to-action, ops as the cold-link default, compare-mode
+   question × engine matrix, folded request/preset details, per-engine loading/unavailable states,
+   lite portfolio payloads (3.1 → 1.8 MB, 2.6 → 1.6 MB), click-to-edit teach chips, progress bar,
+   studio health dot, watchers see a running teach and its result, mobile scroll wrappers (no
+   horizontal overflow at 390 px on any tab), tab ARIA roles + history, keyboard-reachable domain
+   cards.
+6. **Operations & security**: systemd user units (`deploy/`) now run the live stack; `sync_live.sh`
+   (rsync + `VERSION` stamp) replaces hand `cp`; 64 KB body caps, JSON 400s, admission semaphores,
+   generic error bodies, CORS limited to file:// and localhost, domain whitelist (path traversal
+   closed), token compare constant-time with throttling, studio refuses to start without a token,
+   decider request logging.
+7. Incident during integration: ledger #15 (live stack and tunnel killed by a test; public URL
+   changed).
+
 ## Final state at log time
 
-- Services: `laya_service.py` :8901 (zero-shot Router + English fine-tune; 0.0.0.0; serves console,
-  presets, stats, decider proxy) · `decider_service.py` :8902 (0.0.0.0).
+- Services (systemd user units `decision-demo-{laya,decider,studio}`, target `decision-demo`):
+  `laya_service.py` :8901 (console, zero-shot + fine-tuned laya, proxies `/dec/*` `/studio/*`,
+  `/report`), `decider_service.py` :8902, `studio_service.py` :8903 — all bound to 127.0.0.1.
 - Public URL (ephemeral quick tunnel): see `tunnel-url.txt`; refresh procedure in `DEMO_MANUAL.md` §2.
-- Start/stop: `start_demo.sh` / `stop_demo.sh`.
+- Deploy: `sync_live.sh` from the repo; `VERSION` in the live tree = deployed commit.
 - Data: `data/` (corpus + presets + measured `stats.json`); checkpoints `laya-ft-ckpt/` (served),
   `laya-ft-ml-ckpt/` (retained, unserved).
-- Headline measured numbers: **37.8% → 100.0% (Laya, 12k-claim fine-tune) · 74.1% (decider, zero
-  training)** on the 500-claim holdout; language-robustness finding: English fine-tune 1/3 vs base
-  2/3 on a Spanish claim.
+- Headline measured numbers (500-claim holdout, 7 decisions): Laya 46.4% → 100.0% after the
+  12k-claim fine-tune (1/500 → 500/500 all-7); decider-4b zero-shot 70.8% (21/500), LoRA 100.0%;
+  rules 100.0% English / `unparsed` otherwise. Studio teach: ~11 min, 28–30/30 fresh in-template,
+  0–2/3 reworded probes.

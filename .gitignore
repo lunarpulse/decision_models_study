@@ -12,3 +12,4 @@ demo-insurance/questions.json
 study/g0-*/
 study/g2-*/
 study/g3-*/
+demo-insurance/deploy/demo.env

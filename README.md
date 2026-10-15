@@ -6,8 +6,9 @@ A reproducible study and an audience-facing live demo of open-weight **decision 
 (System-One style: typed questions in, calibrated probabilities out — never generated prose)
 on an insurance-claims journey, anchored on a sealed-evaluation comparison against CLM-8B.
 
-- **10-minute demo**: pick a claim, watch three engines answer with probabilities, press one
-  button to go from "untrained" (37.8%) to "trained on 12,000 claims" (100.0% on the holdout).
+- **Live demo**: pick a claim, watch four engines answer a 7-decision claim journey with probabilities,
+  press one button to go from "untrained" (46.4% avg per decision) to "trained on 12,000 claims"
+  (100.0% on the in-template holdout); ops floor, Domain Builder (live fine-tune on a new business).
 - **Full study evidence**: sealed-split evaluation, serving matrix, GGUF quantization gate,
   option-order controls, calibration analysis, retained-failure ledger — all measured, nothing
   vendor-quoted without a label.
@@ -19,7 +20,7 @@ on an insurance-claims journey, anchored on a sealed-evaluation comparison again
 ```bash
 bash setup.sh                     # creates .venv-laya and .venv-decider (uv or python -m venv)
 cd demo-insurance
-bash train_laya.sh                # ~30-40 min on a CUDA GPU; fine-tunes on the 12k-claim corpus
+bash train_laya.sh                # ~15 min on an RTX 5090 (measured 923.5 s); fine-tunes on the 12k-claim corpus
 python build_portfolio.py         # ~2 min; measures all engines on the sealed 500-claim holdout
                                   # (also regenerates stats.json and the ops-floor data)
 bash start_demo.sh                # → http://127.0.0.1:8901/?mode=day1
@@ -91,11 +92,16 @@ the rows present. Everything the demo shows is fully reproducible from this tree
 
 **Demo corpus — 500-claim holdout, what the live console shows** (same numbers as `demo-insurance/data/stats.json`):
 
-| Engine | Accuracy | Rows all-3-correct |
+| Engine | Avg per decision (7) | Claims all-7-correct |
 |---|---:|---:|
-| Laya out-of-box | 37.8% | 0/500 |
+| Laya out-of-box | 46.4% | 1/500 |
 | Laya fine-tuned on 12k claims | **100.0%** | **500/500** |
-| decider-4b, zero training | 74.1% | 256/500 |
+| decider-4b, zero training | 70.8% | 21/500 |
+| decider-4b, LoRA fine-tune (same 12k) | 100.0% | 500/500 |
+| Rules engine (hand-coded policy) | 100.0% (English only; non-English → `unparsed`) | 500/500 |
+
+In-template caveat: train and holdout come from one templated generator — studio-taught models
+score 0–2/3 on hand-reworded probes, and the shifted-phrasing study figure is 92.0%.
 
 **Study corpus — sealed evaluation against the CLM-8B anchor** (4,000 sealed ID / 2,000 shifted rows; full tables in `docs/`):
 

@@ -156,7 +156,7 @@ footer{border-top:1px solid var(--line);margin-top:1.2rem;padding:.7rem 0;font-s
     <button class="reveal" id="revealBtn"><span aria-hidden="true">⚡</span> Train on 12,000 past claims — and re-run this claim →</button>
   </div>
   <div class="era after" id="era-after" role="tabpanel" hidden>
-    <h2><span aria-hidden="true">✅</span> After training — same engines, ten minutes of learning</h2>
+    <h2><span aria-hidden="true">✅</span> After training — same claim, one engine, ~15 minutes of learning</h2>
     <p>The fine-tuned Laya has now seen 12,000 labeled past claim decisions (trained on this very
       machine before the session). decider-4b stays untrained on purpose — it shows what a
       generalist can do with no data at all.</p>
@@ -244,8 +244,8 @@ const QTITLE = {routing:"Route to unit", fraud_review:"Flag for fraud investigat
 const ARM_LABEL = {zero:"Laya zero-shot", ft:"Laya fine-tuned", dec:"decider-4b zero-shot",
   dec_ft:"decider-4b fine-tuned", rules:"Rules engine (hand-coded policy)"};
 const OPS_ARMS = [["ft","Laya fine-tuned"],["dec_ft","decider-4b fine-tuned"],["dec","decider-4b zero-shot"],["zero","Laya zero-shot"]];
-const CAVEAT_100 = "train and test share one generator — reworded probes 0/3; shifted-phrasing study 92.0%";
-const TEACH_ETA_MIN = 10;   // measured teach duration, minutes — retune after the next live run
+const CAVEAT_100 = "train and test share one generator — studio-taught models score 0–2/3 on hand-reworded probes; shifted-phrasing study 92.0%";
+const TEACH_ETA_MIN = 11;   // measured: 661 s train at TEACH_BG_ROWS=1500 (314 s at 600) with the live stack serving
 let PRESETS = [], QUESTIONS = null, STAGES = [], SCORES = {}, MODE = "day1", LAST = null;
 
 const $ = (id) => document.getElementById(id);
@@ -285,7 +285,7 @@ function applyHero(kind){
   $("heroTitle").innerHTML = h.title;
   $("heroLead").innerHTML = h.lead;
   document.title = kind === "domain" ? "Domain Builder — Decision Console" : "Live Demo — Insurance Claims Decision Console";
-  $("ctabar").hidden = (kind !== "day1" && kind !== "after");
+  $("ctabar").hidden = (kind === "domain" || kind === "compare");
   $("heroLine").hidden = (kind === "domain" || kind === "compare");
 }
 
@@ -596,7 +596,7 @@ fetch(LAYA + "/stats").then(r=>r.json()).then(s => {
   }
   const hl = $("heroLine");
   if (hl && s.zero !== undefined && s.ft !== undefined){
-    hl.innerHTML = `Measured on ${n} sealed holdout claims: Laya out-of-the-box gets <b>${fmtP(s.zero)}</b> of decisions right (${rac.zero ?? "?"}/${n} all seven); after ten minutes of fine-tuning: <b>${fmtP(s.ft)}</b> avg, <b>${rac.ft ?? "?"}/${n}</b> all seven. <span class="small">Same engines, no code changes — only training.</span>`;
+    hl.innerHTML = `Measured on ${n} sealed holdout claims: Laya out-of-the-box gets <b>${fmtP(s.zero)}</b> of decisions right (${rac.zero ?? "?"}/${n} all seven); after a ~15-minute fine-tune on 12,000 past claims: <b>${fmtP(s.ft)}</b> avg, <b>${rac.ft ?? "?"}/${n}</b> all seven. <span class="small">Same engine, no code changes — only training.</span>`;
     if (MODE !== "domain" && MODE !== "compare") hl.hidden = false;   // applyHero owns visibility in those modes
   }
   if (s.version) $("verLine").textContent = " · version " + esc(s.version);
@@ -819,7 +819,7 @@ function updateEditBadge(){
   const n = Object.keys(DOM_STATE.edits).length;
   const badge = el.querySelector("#editBadge");
   if (badge) badge.textContent = n
-    ? `${n} deliberate edit${n > 1 ? "s" : ""} — propagates to every structurally identical case in the training set`
+    ? `${n} deliberate edit${n > 1 ? "s" : ""} — also applied to background training rows with the same rule profile (count shown after Teach)`
     : "no edits — the rule gold stands (bulk-accepted)";
 }
 
@@ -857,7 +857,13 @@ function startStatusPoll(statusEl, btn, watchOnly){
     try { s = await fetch(studioURL("/status")).then(x => x.json()); } catch (e) { return; }  // transient blip: keep polling
     if (!s) return;
     if (s.state === "done"){
-      if (watchOnly) finish(`<span class="small">teach run finished — reload this page to teach or explore.</span>`, true);
+      if (watchOnly){
+        stop();
+        const busy = document.getElementById("studioBusy");
+        if (busy){ busy.querySelector("h3").textContent = `Teach finished — ${humanize(s.domain || "")}`; busy.querySelector("p.small")?.remove(); }
+        if (statusEl) statusEl.innerHTML = `<span class="small">results below; reload the page to teach or explore.</span>`;
+        if (s.result && !DOM_STATE.cases){ DOM_STATE.domain = s.domain; domResults(s.result); }
+      }
       else { stop(); if (statusEl) statusEl.textContent = ""; if (btn) btn.disabled = false; domResults(s.result); }
       return;
     }
@@ -921,13 +927,15 @@ function domEvalTable(rows, title, note){
 async function domResults(res){
   const el = $("domainfloor");
   const freshOK = res.fresh_holdout.filter(r => r.ok_all).length;
+  const fz = res.fresh_holdout_zero || [];
+  const freshZeroOK = fz.filter(r => r.ok_all).length;
+  const pctOf = (k, n) => n ? (100*k/n).toFixed(0) + "%" : "—";
   el.insertAdjacentHTML("beforeend", `
     <div class="card" style="border-color:#bcd9cb;background:#f4faf7">
-      <h3><span aria-hidden="true">⚡</span> Taught in ${Math.round(res.train_seconds)}s (real fine-tune, ${res.train_rows} rows)</h3>
+      <h3><span aria-hidden="true">⚡</span> Taught in ${Math.round(res.train_seconds)}s (real fine-tune, ${res.train_rows} rows${res.relabeled_rows ? `, ${res.relabeled_rows} background rows relabeled to your edit` : ""})</h3>
       <div class="statsgrid" style="display:grid">
-        <div class="card"><div class="statbig">${(100*res.before.filter(r=>r.ok_all).length/res.before.length).toFixed(0)}%</div><div class="statl">before · zero-shot on the teach cases</div></div>
-        <div class="card" style="border-color:#bcd9cb"><div class="statbig">${(100*res.after.filter(r=>r.ok_all).length/res.after.length).toFixed(0)}%</div><div class="statl">after · taught engine, on the cases it was taught</div></div>
-        <div class="card"><div class="statbig">${(100*freshOK/res.fresh_holdout.length).toFixed(0)}%</div><div class="statl">fresh 30-case sample <em>(same-generator holdout — see the paraphrase probe)</em></div></div>
+        <div class="card" style="border-color:#bcd9cb"><div class="statbig">${pctOf(freshZeroOK, fz.length)} → ${pctOf(freshOK, res.fresh_holdout.length)}</div><div class="statl"><b>${res.fresh_holdout.length} held-out cases it never saw</b>, all 7 decisions right: zero-shot → taught (${freshZeroOK} → ${freshOK}; same generator — see the paraphrase probe)</div></div>
+        <div class="card"><div class="statbig">${pctOf(res.before.filter(r=>r.ok_all).length, res.before.length)} → ${pctOf(res.after.filter(r=>r.ok_all).length, res.after.length)}</div><div class="statl">the 12 cases it was taught (training data — expected to flip)</div></div>
       </div>
       <p class="small">Calibration caveat: freshly taught confidences are razor-sharp (the calibration fit hits its
         floor) — read the probabilities as decisions, not as odds, until recalibrated on real data.</p>
