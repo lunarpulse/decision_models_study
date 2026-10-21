@@ -2,7 +2,7 @@
 
 Audience-facing demo of the study's engines on an insurance-claims user journey.
 Insurance fine-tuning happens **before** the session (`bash train_laya.sh`); the Domain Builder tab
-runs a real, presenter-gated fine-tune live (studio service, ~10 min). Five tabs: day1 · after · compare · ops · domain.
+runs a real, presenter-gated fine-tune live (studio service, ~80 s click to result). Five tabs: day1 · after · compare · ops · domain.
 
 ## Start
 

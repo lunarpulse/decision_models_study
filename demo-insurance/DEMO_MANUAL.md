@@ -130,9 +130,9 @@ network see traffic metadata. Fine for a session with known recipients; revoke w
    decider-4b *trained on insurance* scoring high here with zero domain training — the journey
    itself transfers.
 8. **Teach it (a talk beat):** bulk-accept the rule gold, then deliberately change ONE decision on
-   ONE case ("our policy differs"). Press ⚡ Teach: a real fine-tune runs on this machine (1,500
+   ONE case ("our policy differs"). Press ⚡ Teach: a real fine-tune runs on this machine (450
    corpus rows — those with the edited case's rule profile relabeled to your decision, the badge
-   shows how many — plus your 12 cases ×20, 2 epochs; ~11 min measured). A progress bar with elapsed time ticks
+   shows how many — plus your 12 cases ×5, 2 epochs; ~80 s click to result). A progress bar with elapsed time ticks
    live. The headline score is on 30 held-out cases the model never saw (edited-profile rows
    scored against your edited policy); the 12 taught cases are shown separately and labeled as
    such. The hand-written paraphrase probes humble it — in-template perfection,
@@ -146,12 +146,17 @@ Studio notes for the operator: runs as `decision-demo-studio` (systemd user unit
 finished teach shows on their Domain tab) but cannot teach or run the drift beat. One job at a
 time. Before training the studio unloads its own zero-shot engine and any taught checkpoint, then
 refuses to start below `TEACH_MIN_FREE_GIB` (11.5) free — a plain "not enough GPU memory" message
-instead of a crash. Measured with the full live stack serving and a script hammering `/predict`:
-GPU peak 28.4 GiB of 32.6; 661 s training at `TEACH_BG_ROWS=1500` (fresh 30: 29/30 support, 28/30
-logistics) vs 314 s at 600 (24/30 support) — the default stays 1,500; set `TEACH_BG_ROWS` in
-`~/.config/systemd/user/decision-demo.env` for a quicker, weaker teach. Live `/predict` during
-training: 0 errors, p50 63–67 ms, max 142 ms. Every run's full log:
-`studio-runs/<domain>/train-<timestamp>.log`.
+instead of a crash. Measured with the full live stack serving and a script calling `/predict`
+once a second, all three domains, click to result:
+
+| setting (`~/.config/systemd/user/decision-demo.env`) | time | fresh 30 (zero → taught) | taught 12 | GPU peak |
+|---|---|---|---|---|
+| **default**: 450 rows + 12×5, 2 epochs, micro-batch 8 (3,570 items) | **78–80 s** | 0 → 16–22/30 | 9–11/12 | 27.3 GiB |
+| quality: `TEACH_BG_ROWS=1500 TEACH_UPSAMPLE=20 TEACH_MICRO_BATCH=2 TEACH_GRAD_ACCUM=8` (~11,800 items) | ~11 min | 0 → 28–30/30 | 12/12 | 28.4 GiB |
+
+The presenter's edit was learned in every run. Same-config reruns vary by ±3–5 on the fresh 30,
+so quote the range, not one run. Live `/predict` during training: 0 errors, max 0.19 s. Every run's
+full log, with per-line timestamps: `studio-runs/<domain>/train-<timestamp>.log`.
 
 ## 4. Numbers you may quote (measured on 500 unseen claims, 7 questions each, this machine)
 

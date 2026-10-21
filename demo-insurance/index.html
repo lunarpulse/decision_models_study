@@ -223,7 +223,7 @@ footer{border-top:1px solid var(--line);margin-top:1.2rem;padding:.7rem 0;font-s
       soft-ce loss, 3 epochs, 12,000 claims. decider-4b (Apache-2.0) — zero-shot generalist plus a
       LoRA fine-tune (switch engines on the ops floor; both appear in compare).
       Rules answers computed by the hand-coded claims manual. Studio teach: a real fine-tune,
-      typically ~<span id="etaOut">10</span> min (see <code>/studio/health</code> for live status).</div>
+      typically <span id="etaOut"></span> click to result (see <code>/studio/health</code> for live status).</div>
     <div>Evidence: <a href="/report" target="_blank" rel="noopener">experiment report</a>.
       All inference local to this machine.<span id="verLine"></span></div>
   </footer>
@@ -244,8 +244,8 @@ const QTITLE = {routing:"Route to unit", fraud_review:"Flag for fraud investigat
 const ARM_LABEL = {zero:"Laya zero-shot", ft:"Laya fine-tuned", dec:"decider-4b zero-shot",
   dec_ft:"decider-4b fine-tuned", rules:"Rules engine (hand-coded policy)"};
 const OPS_ARMS = [["ft","Laya fine-tuned"],["dec_ft","decider-4b fine-tuned"],["dec","decider-4b zero-shot"],["zero","Laya zero-shot"]];
-const CAVEAT_100 = "train and test share one generator — studio-taught models score 0–2/3 on hand-reworded probes; shifted-phrasing study 92.0%";
-const TEACH_ETA_MIN = 11;   // measured: 661 s train at TEACH_BG_ROWS=1500 (314 s at 600) with the live stack serving
+const CAVEAT_100 = "train and test share one generator — studio-taught models score 0–3/3 on hand-reworded probes; shifted-phrasing study 92.0%";
+const TEACH_ETA = "~80 s";   // measured click-to-result 78–80 s (3,570 items, 2 epochs, micro-batch 8) with the live stack serving
 let PRESETS = [], QUESTIONS = null, STAGES = [], SCORES = {}, MODE = "day1", LAST = null;
 
 const $ = (id) => document.getElementById(id);
@@ -601,7 +601,7 @@ fetch(LAYA + "/stats").then(r=>r.json()).then(s => {
   }
   if (s.version) $("verLine").textContent = " · version " + esc(s.version);
 }).catch(()=>{ $("st-zero").textContent=$("st-ft").textContent=$("st-dec").textContent="n/a"; });
-$("etaOut").textContent = TEACH_ETA_MIN;
+$("etaOut").textContent = TEACH_ETA;
 
 
 // ======================= Ops floor (STP + adjuster queue) =======================
@@ -932,7 +932,7 @@ async function domResults(res){
   const pctOf = (k, n) => n ? (100*k/n).toFixed(0) + "%" : "—";
   el.insertAdjacentHTML("beforeend", `
     <div class="card" style="border-color:#bcd9cb;background:#f4faf7">
-      <h3><span aria-hidden="true">⚡</span> Taught in ${Math.round(res.train_seconds)}s (real fine-tune, ${res.train_rows} rows${res.relabeled_rows ? `, ${res.relabeled_rows} background rows relabeled to your edit` : ""})</h3>
+      <h3><span aria-hidden="true">⚡</span> Taught in ${Math.round(res.timing ? res.timing.total_s : res.train_seconds)}s end to end (real fine-tune on ${res.train_rows} rows${res.relabeled_rows ? `, ${res.relabeled_rows} background rows relabeled to your edit` : ""})</h3>
       <div class="statsgrid" style="display:grid">
         <div class="card" style="border-color:#bcd9cb"><div class="statbig">${pctOf(freshZeroOK, fz.length)} → ${pctOf(freshOK, res.fresh_holdout.length)}</div><div class="statl"><b>${res.fresh_holdout.length} held-out cases it never saw</b>, all 7 decisions right: zero-shot → taught (${freshZeroOK} → ${freshOK}; same generator — see the paraphrase probe)</div></div>
         <div class="card"><div class="statbig">${pctOf(res.before.filter(r=>r.ok_all).length, res.before.length)} → ${pctOf(res.after.filter(r=>r.ok_all).length, res.after.length)}</div><div class="statl">the 12 cases it was taught (training data — expected to flip)</div></div>
@@ -1020,7 +1020,7 @@ async function domPick(name){
       <p class="small" id="editBadge">no edits — the rule gold stands (bulk-accepted)</p>
       <div class="tablewrap"><table class="opstable" id="teachTable"></table></div>
       <div style="display:flex;gap:.8rem;align-items:center;margin-top:.6rem;flex-wrap:wrap">
-        <button class="primary" id="teachBtn" disabled><span aria-hidden="true">⚡</span> Teach (real fine-tune, ~${TEACH_ETA_MIN} min) — presenter-only</button>
+        <button class="primary" id="teachBtn" disabled><span aria-hidden="true">⚡</span> Teach (real fine-tune, ${TEACH_ETA}) — presenter-only</button>
         <span class="small" id="teachStatus">loading teach cases…</span>
       </div>
     </div>`;

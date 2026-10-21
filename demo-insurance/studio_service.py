@@ -7,9 +7,12 @@ the presenter types it once in the console — it is never baked into the page);
 refuses to start without one unless STUDIO_ALLOW_OPEN=1. Wrong tokens are compared with
 hmac.compare_digest and throttled: five misses buy a 60 s timeout (429).
 
-One training job at a time; the subprocess uses the IDENTICAL flag set as train_laya.sh
-(soft-ce loss, shuffled options), TEACH_EPOCHS epochs (default 2) over TEACH_BG_ROWS
-background rows (default 1500) plus the teach cases upsampled x20.
+One training job at a time; the subprocess uses the same loss and option shuffling as
+train_laya.sh (soft-ce, shuffled options), TEACH_EPOCHS epochs (default 2) at micro-batch
+TEACH_MICRO_BATCH (8) over TEACH_BG_ROWS background rows (default 450) plus the teach cases
+upsampled xTEACH_UPSAMPLE (5) — ~80 s click to result. The zero-shot "before" scores reuse the
+answers cached when the domain was warmed, and the zero-shot engine is reloaded after the
+result is published, so neither sits on the teach's critical path.
 
 Memory discipline (the live OOM fix): before launching a run the studio evicts everything it
 holds on the accelerator — all taught checkpoints and the zero-shot Router — then reads
@@ -30,7 +33,7 @@ with error_kind "lost", so the console can re-enable Teach immediately.
 
 Session policy relabeling (deterministic): an edit on a teach case propagates to corpus rows
 with the same rule profile (category, docs_ok, fresh-account, large-amount) — "all cases like
-this are now decided this way" — plus the teach cases themselves repeated x20. Corpus rows
+this are now decided this way" — plus the teach cases themselves repeated xTEACH_UPSAMPLE. Corpus rows
 carry no meta, so every profile is parsed from the row's own state text
 (domain_factory.parse_state); the old holdout-meta lookup keyed on state text never matched a
 single train row, which is exactly the bug this replaces.
@@ -50,6 +53,7 @@ import sys
 import threading
 import time
 import traceback
+import shutil
 import urllib.parse
 from collections import deque
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
@@ -66,13 +70,21 @@ if not TOKEN and os.environ.get("STUDIO_ALLOW_OPEN") != "1":
 PORT = int(sys.argv[1]) if len(sys.argv) > 1 else 8903
 PY = os.environ.get("STUDIO_PY", str(ROOT.parent / ".venv-laya" / "bin" / "python"))
 DEVICE = os.environ.get("STUDIO_DEVICE", "cuda")
+# Teach defaults measured on this machine with the live stack serving (DEVELOPMENT_LOG Phase 9):
+# 450 corpus rows + 12 teach cases x5 = 510 rows (3,570 items), 2 epochs at micro-batch 8
+# finishes click-to-result in ~80 s with ~5 GiB GPU headroom. The previous 1,500 rows x20 at
+# micro-batch 2 took ~11 min (more accurate: 28-30/30 fresh vs 16-22/30); raised learning
+# rates did worse at this step count, so laya's defaults stay.
 TEACH_EPOCHS = int(os.environ.get("TEACH_EPOCHS", "2"))
-TEACH_MICRO_BATCH = int(os.environ.get("TEACH_MICRO_BATCH", "2"))
-TEACH_GRAD_ACCUM = int(os.environ.get("TEACH_GRAD_ACCUM", "8"))
-TEACH_BG_ROWS = int(os.environ.get("TEACH_BG_ROWS", "1500"))
+TEACH_MICRO_BATCH = int(os.environ.get("TEACH_MICRO_BATCH", "8"))
+TEACH_GRAD_ACCUM = int(os.environ.get("TEACH_GRAD_ACCUM", "2"))
+TEACH_BG_ROWS = int(os.environ.get("TEACH_BG_ROWS", "450"))
+TEACH_UPSAMPLE = int(os.environ.get("TEACH_UPSAMPLE", "5"))               # repeats per teach case
 _max_len = os.environ.get("TEACH_MAX_LEN", "").strip()
 TEACH_MAX_LEN = int(_max_len) if _max_len else None   # unset = flag not passed
 TEACH_MIN_FREE_GIB = float(os.environ.get("TEACH_MIN_FREE_GIB", "11.5"))
+TEACH_ENCODER_LR = os.environ.get("TEACH_ENCODER_LR", "").strip() or None  # unset = laya default
+TEACH_HEAD_LR = os.environ.get("TEACH_HEAD_LR", "").strip() or None        # unset = laya default
 BODY_CAP = 64 * 1024
 STATE_CAP = 4000
 TOKEN_MISSES_ALLOWED = 5
@@ -97,6 +109,9 @@ _messages = deque(maxlen=20)
 _job = {"state": "idle", "domain": None, "started": None, "started_epoch": None,
         "ended_epoch": None, "pid": None, "progress": None,
         "error_kind": None, "error": None}          # "result" added when a run finishes
+_router_ready = threading.Event()   # zero-shot Router resident (cleared while a teach trains)
+_router_ready.set()
+_warm_done = threading.Event()     # startup warm-up finished: no zero-shot pass can race a teach
 _token_state = {"misses": 0, "blocked_until": 0.0}
 
 _STEP_RE = re.compile(r"epoch (\d+)/(\d+) step (\d+)")
@@ -129,7 +144,9 @@ def free_own_memory():
     with _ft_lock:
         _ft.clear()
         _resident["domain"] = None
+    _router_ready.wait(60)       # a post-teach reload may still be in flight: let it land first
     try:
+        _router_ready.clear()
         zero.unload()
     except Exception:
         traceback.print_exc()
@@ -153,6 +170,8 @@ def _restore_router():
         _msg("zero-shot engine back in memory")
     except Exception:
         traceback.print_exc()
+    finally:
+        _router_ready.set()
 
 
 def get_engine(domain):
@@ -189,6 +208,7 @@ def stratified_cases(domain, n=12, err_n=6):
     spec = DOM[domain]
     rows = [json.loads(l) for l in open(DATA / domain / "holdout_eval.jsonl")]
     reqs = [{"state": r["state"], "questions": spec["questions"]["defs"]} for r in rows]
+    _router_ready.wait(120)
     answers = [d.get("answers", {}) for d in zero.predict_batch(reqs, batch_size=16)]
     rng = random.Random(7)
     errs, oks = [], []
@@ -216,17 +236,21 @@ def stratified_cases(domain, n=12, err_n=6):
         torch.cuda.empty_cache()    # free the stratification pass before any training subprocess
     except Exception:
         pass
-    return [{"id": r["id"], "state": r["state"], "gold": r["gold"], "meta": r["meta"]} for r in cases]
+    picked = [{"id": r["id"], "state": r["state"], "gold": r["gold"], "meta": r["meta"]} for r in cases]
+    return picked, {r["id"]: res for r, res in zip(rows, answers)}
 
 
 _cases = {}                        # domain -> pristine teach-case list
+_zero_answers = {}                 # domain -> {holdout row id: zero-shot answers}, same pass
 _cases_lock = threading.Lock()
 
 
 def cached_cases(domain):
     """stratified_cases per domain, computed once (deterministic), deep-copied per call (0.5).
 
-    Concurrent first callers share one computation; nobody re-runs the zero-shot pass."""
+    Concurrent first callers share one computation; nobody re-runs the zero-shot pass. The
+    pass's answers for every holdout row are kept too: the "before" scores reuse them instead
+    of re-predicting after a teach (the zero-shot engine is deterministic)."""
     with _cases_lock:
         got = _cases.get(domain)
     if got is not None:
@@ -234,18 +258,25 @@ def cached_cases(domain):
     with _cases_lock:
         got = _cases.get(domain)
         if got is None:
-            got = _cases[domain] = stratified_cases(domain)
+            got, _zero_answers[domain] = stratified_cases(domain)
+            _cases[domain] = got
     return copy.deepcopy(got)
 
 
 def warm_up():
-    """Optional background warm-up: precompute teach cases so the first card opens fast."""
-    for domain in DOM:
-        try:
-            cached_cases(domain)
-            print(f"[studio] warmed teach cases for {domain}", flush=True)
-        except Exception:
-            traceback.print_exc()
+    """Optional background warm-up: precompute teach cases so the first card opens fast.
+
+    Teach waits for this to finish: a stratification pass running during a train would
+    lazily reload the zero-shot Router onto the GPU the trainer was promised."""
+    try:
+        for domain in DOM:
+            try:
+                cached_cases(domain)
+                print(f"[studio] warmed teach cases for {domain}", flush=True)
+            except Exception:
+                traceback.print_exc()
+    finally:
+        _warm_done.set()
 
 
 def state_profile(spec, state):
@@ -271,7 +302,7 @@ def _coerce(to, like):
     return (to in ("yes", "True", True)) if isinstance(like, bool) else to
 
 
-def build_training_set(domain, cases, edits, n_rows=None, upsample=20):
+def build_training_set(domain, cases, edits, n_rows=None, upsample=None):
     """Corpus rows relabeled under the session policy + teach cases (with edits) x N.
 
     Returns (rows, relabeled_rows, edited_profiles). Each corpus row's profile is parsed from
@@ -280,6 +311,7 @@ def build_training_set(domain, cases, edits, n_rows=None, upsample=20):
     spec = DOM[domain]
     rng = random.Random(11)
     n_rows = n_rows or TEACH_BG_ROWS
+    upsample = upsample or TEACH_UPSAMPLE
     train = [json.loads(l) for l in open(DATA / domain / "train.jsonl")]
     edit_map = {(e["case_id"], e["qid"]): e["to"] for e in edits}
 
@@ -345,30 +377,43 @@ def apply_edits(cases, edits):
                 c["gold"][e["qid"]] = _coerce(e["to"], c["gold"].get(e["qid"]))
 
 
+def _score(c, res):
+    row = {"id": c.get("id", "?"), "label": c.get("label", ""), "questions": {}}
+    ok_all = True
+    for qid, g in c["gold"].items():
+        a = res.get(qid, {})
+        v = a.get("choice", a.get("score"))
+        if a.get("type") == "noul":
+            v = int(a.get("noul", 0) > 0.5)
+        elif a.get("type") == "score" and v is not None:
+            v = int(round(float(v)))
+        gv = g if not isinstance(g, bool) else int(g)
+        ok = v == gv
+        ok_all &= ok
+        row["questions"][qid] = {"pred": v if not isinstance(v, float) else round(v, 2),
+                                 "gold": gv, "ok": ok,
+                                 "prob": round(float(a.get("probabilities", {}).get(
+                                     str(g if not isinstance(g, bool) else int(g)), 0) or 0), 3)}
+    row["ok_all"] = ok_all
+    return row
+
+
 def run_eval(domain, eng, cases):
     spec = DOM[domain]
-    results = []
-    for c in cases:
-        res = eng.predict(c["state"], spec["questions"]["defs"]).get("answers", {})
-        row = {"id": c.get("id", "?"), "label": c.get("label", ""), "questions": {}}
-        ok_all = True
-        for qid, g in c["gold"].items():
-            a = res.get(qid, {})
-            v = a.get("choice", a.get("score"))
-            if a.get("type") == "noul":
-                v = int(a.get("noul", 0) > 0.5)
-            elif a.get("type") == "score" and v is not None:
-                v = int(round(float(v)))
-            gv = g if not isinstance(g, bool) else int(g)
-            ok = v == gv
-            ok_all &= ok
-            row["questions"][qid] = {"pred": v if not isinstance(v, float) else round(v, 2),
-                                     "gold": gv, "ok": ok,
-                                     "prob": round(float(a.get("probabilities", {}).get(
-                                         str(g if not isinstance(g, bool) else int(g)), 0) or 0), 3)}
-        row["ok_all"] = ok_all
-        results.append(row)
-    return results
+    return [_score(c, eng.predict(c["state"], spec["questions"]["defs"]).get("answers", {}))
+            for c in cases]
+
+
+def score_zero(domain, cases):
+    """Zero-shot scores for holdout cases from the stratification pass's cached answers.
+
+    Keeps the zero-shot engine off the post-training critical path; rows missing from the
+    cache (none in practice — every teach case and fresh row is a holdout row) are predicted."""
+    spec = DOM[domain]
+    cached = _zero_answers.get(domain, {})
+    return [_score(c, cached[c["id"]]) if c.get("id") in cached
+            else _score(c, zero.predict(c["state"], spec["questions"]["defs"]).get("answers", {}))
+            for c in cases]
 
 
 def lite_portfolio(pkg):
@@ -548,6 +593,7 @@ def _token_check(header_value):
 
 
 def train_worker(domain, rows, edits, relabeled_rows, edited_profiles):
+    t_start = _job.get("started_epoch") or time.time()
     try:
         run_dir = OUT / domain
         run_dir.mkdir(parents=True, exist_ok=True)
@@ -564,9 +610,14 @@ def train_worker(domain, rows, edits, relabeled_rows, edited_profiles):
                "--grad-accum", str(TEACH_GRAD_ACCUM), "--device", DEVICE]
         if TEACH_MAX_LEN:
             cmd += ["--max-len", str(TEACH_MAX_LEN)]
+        if TEACH_ENCODER_LR:
+            cmd += ["--encoder-lr", TEACH_ENCODER_LR]
+        if TEACH_HEAD_LR:
+            cmd += ["--head-lr", TEACH_HEAD_LR]
         _msg(f"training subprocess started on {DEVICE}")
         t0 = time.time()
         with open(log_path, "w") as logf:
+            logf.write("# " + " ".join(cmd) + "\n")
             proc = subprocess.Popen(cmd, cwd=str(run_dir), stdout=subprocess.PIPE,
                                     stderr=subprocess.STDOUT, text=True,
                                     env={**os.environ, "PYTORCH_CUDA_ALLOC_CONF": "expandable_segments:True"})
@@ -575,7 +626,7 @@ def train_worker(domain, rows, edits, relabeled_rows, edited_profiles):
             _write_pid(domain, proc.pid)
             steps = max(1, math.ceil(len(rows) / TEACH_MICRO_BATCH))
             for line in proc.stdout:
-                logf.write(line)
+                logf.write(f"[{time.time() - t0:7.1f}s] {line}")   # phase timing in the log
                 logf.flush()
                 line = line.strip()
                 if not line:
@@ -602,13 +653,16 @@ def train_worker(domain, rows, edits, relabeled_rows, edited_profiles):
                             error=_plain_train_error(kind, log_path))
             _persist_job()
             _unlink_pid(domain)
+            restore_router_async()
             return
+        # The trainer also writes a per-epoch copy byte-identical to the final save; drop it.
+        shutil.rmtree(ckpt / "checkpoint_latest", ignore_errors=True)
         _msg(f"training done in {train_s}s; loading studio checkpoint")
         with _lock:
             _job["state"] = "evaluating"
             _job["progress"] = None
         _persist_job()
-        _restore_router()                     # zero-shot back before "before" scores
+        t_eval = time.time()
         eng = laya.load(str(ckpt), device=DEVICE)
         with _ft_lock:
             _ft.clear()
@@ -617,8 +671,6 @@ def train_worker(domain, rows, edits, relabeled_rows, edited_profiles):
         _msg("checkpoint loaded; evaluating")
         cases = cached_cases(domain)
         apply_edits(cases, edits)
-        before = run_eval(domain, zero, cases)
-        after = run_eval(domain, eng, cases)
         fresh = fresh_holdout(domain, cases, edited_profiles)
         probes = json.load(open(DATA / domain / "demo_presets.json")).get("paraphrase_probes", [])
         result = {
@@ -626,17 +678,26 @@ def train_worker(domain, rows, edits, relabeled_rows, edited_profiles):
             "relabeled_rows": relabeled_rows,
             "edited_profiles": [{"profile": profile_label(p), "questions": sorted(qs)}
                                 for p, qs in edited_profiles.items()],
-            "before": before, "after": after,
-            "fresh_holdout": run_eval(domain, eng, fresh),         # headline: unseen cases
-            "fresh_holdout_zero": run_eval(domain, zero, fresh),   # same 30, before teaching
+            "before": score_zero(domain, cases),
+            "after": run_eval(domain, eng, cases),
+            "fresh_holdout": run_eval(domain, eng, fresh),     # headline: unseen cases
+            "fresh_holdout_zero": score_zero(domain, fresh),   # same 30, before teaching
             "paraphrase_probes": run_eval(domain, eng, probes),
+            "config": {"bg_rows": TEACH_BG_ROWS, "upsample": TEACH_UPSAMPLE,
+                       "epochs": TEACH_EPOCHS, "micro_batch": TEACH_MICRO_BATCH,
+                       "grad_accum": TEACH_GRAD_ACCUM},
         }
+        t_done = time.time()
+        result["timing"] = {"prepare_s": round(t0 - t_start, 1), "train_s": train_s,
+                            "evaluate_s": round(t_done - t_eval, 1),
+                            "total_s": round(t_done - t_start, 1)}
         with _lock:
             _job["result"] = result
-            _job.update(state="done", ended_epoch=time.time(), pid=None)
-        _msg("done")
+            _job.update(state="done", ended_epoch=t_done, pid=None)
+        _msg(f"done in {result['timing']['total_s']}s")
         _persist_job()
         _unlink_pid(domain)
+        restore_router_async()     # zero-shot back for drift/sessions, off the critical path
     except Exception:
         traceback.print_exc()
         with _lock:
@@ -647,6 +708,7 @@ def train_worker(domain, rows, edits, relabeled_rows, edited_profiles):
         _msg("failed: unexpected error")
         _persist_job()
         _unlink_pid(domain)
+        restore_router_async()
 
 
 def status_snapshot():
@@ -780,6 +842,11 @@ class H(BaseHTTPRequestHandler):
                 self._send(400, {"error_kind": "bad_request",
                                  "error": "edits must be {case_id, qid, to} objects"})
                 return
+            if not _warm_done.wait(20):
+                self._send(503, {"error_kind": "warming_up",
+                                 "error": "the studio is still warming up after a restart — retry in a few seconds"})
+                return
+            cached_cases(domain)              # zero-shot pass cached while the router is resident
             rows, relabeled, edited_profiles = build_training_set(domain, cases, edits)
             free_own_memory()                 # plan 0.3: evict before measuring (0.2)
             refuse = preflight_gpu_free()
@@ -868,6 +935,7 @@ class H(BaseHTTPRequestHandler):
             rng = random.Random(4242)
             rows = [make_row(drifted, rng, 700000 + i) for i in range(30)]
             cases = [{"id": r["id"], "state": r["state"], "gold": r["gold"]} for r in rows]
+            _router_ready.wait(60)            # zero-shot may still be reloading after a teach
             self._send(200, {"drift": "deductibles doubled",
                              "taught": run_eval(domain, eng, cases),
                              "zero": run_eval(domain, zero, cases)})
@@ -881,6 +949,8 @@ if __name__ == "__main__":
     recover_stale_job()
     if WARM_UP:
         threading.Thread(target=warm_up, daemon=True).start()
+    else:
+        _warm_done.set()
     print(f"[studio] serving on {host}:{PORT} "
           f"(token {'required' if TOKEN else 'OPEN — STUDIO_ALLOW_OPEN=1'}; device {DEVICE})",
           flush=True)

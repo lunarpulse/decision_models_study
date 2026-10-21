@@ -101,7 +101,7 @@ the rows present. Everything the demo shows is fully reproducible from this tree
 | Rules engine (hand-coded policy) | 100.0% (English only; non-English → `unparsed`) | 500/500 |
 
 In-template caveat: train and holdout come from one templated generator — studio-taught models
-score 0–2/3 on hand-reworded probes, and the shifted-phrasing study figure is 92.0%.
+score 0–3/3 on hand-reworded probes, and the shifted-phrasing study figure is 92.0%.
 
 **Study corpus — sealed evaluation against the CLM-8B anchor** (4,000 sealed ID / 2,000 shifted rows; full tables in `docs/`):
 

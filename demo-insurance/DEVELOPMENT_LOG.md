@@ -183,6 +183,12 @@ does the percentage come from, and why does decider show a red dot — "check th
     dry run unless `--yes`, kills only PIDs it can attribute (port-scoped services, studio PID
     files), and the live stack now runs under systemd user units. Lesson: process-control scripts
     are tested by static checks or in a namespace, never by execution on the live host.
+16. Warm-up race (found in Phase 9 benchmarking): a Teach pressed within ~25 s of a studio
+    restart overlapped the background teach-case warm-up. The warm-up's zero-shot pass kept
+    running after the studio unloaded the Router for training — lazily reloading it onto the
+    GPU mid-train (total peak 31.2 GiB of 32.6 instead of 27.3) or tripping the free-memory
+    pre-flight (a 503 at 8 s). Fixed: Teach waits for warm-up to finish; unloading waits for any
+    in-flight post-teach reload.
 
 ## Phase 6 — Demo v2: journey questions, ops floor, Engine D, decider parity (2026-10-13)
 
@@ -305,6 +311,44 @@ disjoint files under one API contract, integrated and measured live.
 7. Incident during integration: ledger #15 (live stack and tunnel killed by a test; public URL
    changed).
 
+## Phase 9 — Teach under two minutes (2026-10-21)
+
+Operator: "if it takes ten minutes, too long — under 2 minutes max, e.g. 12k → 3k samples."
+
+1. **Where the 11 minutes went** (per-line timestamps now in every train log): a teach row is a
+   claim × 7 questions, so 1,740 rows (1,500 background + 12 cases ×20) were 11,780 items × 2
+   epochs at micro-batch 2 ≈ 28 ms/item. Startup ≈5 s, calibration + saves ≈5 s, eval ≈1 s —
+   the rest was the item volume at a batch size that left the GPU idle between tiny steps.
+2. **Changes**: defaults 450 background rows + 12 cases ×5 (510 rows, 3,570 items), 2 epochs,
+   micro-batch 8 / grad-accum 2 (≈11 ms/item, compute-bound); zero-shot "before" scores reuse the
+   answers cached at warm-up instead of re-predicting; the zero-shot engine reloads after the
+   result is published; the trainer's per-epoch `checkpoint_latest` copy (byte-identical, 808 MB)
+   is deleted after each run; result carries `timing` and `config`; knobs `TEACH_UPSAMPLE`,
+   `TEACH_ENCODER_LR`, `TEACH_HEAD_LR` added; ledger #16 fixed.
+3. **Measured** (support tickets with one routing edit unless noted; live stack serving; script
+   calling `/predict` once a second; GPU peak = whole card):
+
+   | config | click → result | fresh 30 | taught 12 | GPU peak |
+   |---|---:|---|---|---:|
+   | 300 rows ×5, mb 8 / ga 2 | 62 s | 13/30 | 11/12 | 31.2 GiB (race, #16) |
+   | 400 ×5, mb 8 / ga 1, lr 1e-4/5e-4 | 86 s | 5/30 | 4/12 | 27.3 GiB |
+   | 600 ×5, 1 epoch, lr 1e-4/5e-4 | 74 s | 0/30 | 0/12 | 27.3 GiB |
+   | 400 ×5, mb 8 / ga 1, default lr | 93 s | 16/30 | 11/12 | 27.3 GiB |
+   | 1100 ×5, 1 epoch, default lr | 105 s | 17/30 | 11/12 | 27.3 GiB |
+   | 550 ×5, 2 epochs, default lr | 96–107 s | 14–21/30 (3 runs) | 11–12/12 | 27.3 GiB |
+   | 550 ×5, gradient checkpointing off | 88 s | 16/30 | 10/12 | 29.4 GiB |
+   | **450 ×5, 2 epochs, mb 8 / ga 2 (default)** | **78–80 s** | **16–22/30** (support ×2, logistics, HR) | 9–11/12 | 27.3 GiB |
+   | old default: 1,500 ×20, mb 2 / ga 8 | ~11 min | 28–30/30 | 12/12 | 28.4 GiB |
+
+   Every run's edit was learned. Zero-shot on the same fresh 30: 0/30 in every run. Live
+   `/predict` under load: 0 errors, max 0.19 s. Findings: raised learning rates diverge at this
+   step count; one epoch over twice the rows loses to two epochs; turning gradient checkpointing
+   off buys only 8% for +2.1 GiB (not adopted — the wrapper trainer it needed was removed);
+   same-config reruns vary by ±3–5 on the fresh 30, so ranges are quoted.
+4. **Trade-off, stated plainly**: ~8× faster for ~a third fewer fresh cases fully right
+   (16–22/30 vs 28–30/30). The ~11-minute quality setting stays available via the env file
+   (DEMO_MANUAL §3 operator notes).
+
 ## Final state at log time
 
 - Services (systemd user units `decision-demo-{laya,decider,studio}`, target `decision-demo`):
@@ -316,5 +360,5 @@ disjoint files under one API contract, integrated and measured live.
   `laya-ft-ml-ckpt/` (retained, unserved).
 - Headline measured numbers (500-claim holdout, 7 decisions): Laya 46.4% → 100.0% after the
   12k-claim fine-tune (1/500 → 500/500 all-7); decider-4b zero-shot 70.8% (21/500), LoRA 100.0%;
-  rules 100.0% English / `unparsed` otherwise. Studio teach: ~11 min, 28–30/30 fresh in-template,
-  0–2/3 reworded probes.
+  rules 100.0% English / `unparsed` otherwise. Studio teach: ~80 s click to result, 16–22/30
+  fresh in-template (0/30 zero-shot), 0–3/3 reworded probes.
