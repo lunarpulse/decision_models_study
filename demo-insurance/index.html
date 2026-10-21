@@ -100,6 +100,10 @@ footer{border-top:1px solid var(--line);margin-top:1.2rem;padding:.7rem 0;font-s
 .chip{display:inline-block;padding:.1rem .5rem;border-radius:999px;font-size:.78em;font-weight:700}
 .chip-auto{background:var(--era2-soft);color:var(--era2);border:1px solid #bcd9cb}
 .chip-rev{background:var(--era1-soft);color:var(--era1);border:1px solid #d9c08f}
+.chip-flag{background:#fdf4f4;color:var(--bad);border:1px solid #d9a5a5}
+.mini[disabled]{opacity:.45;cursor:default}
+.mini.on,.mini.on:hover{background:var(--accent);color:#fff;border-color:var(--accent)}
+.opstable tr.ovr td{background:#fffaf0}
 .mini{font-size:.78em;padding:.12rem .5rem;margin-right:.2rem;border:1px solid var(--line);border-radius:6px;background:#fff;cursor:pointer}
 .mini:hover{border-color:var(--accent);color:var(--accent)}
 .gchip{display:inline-block;font:inherit;font-size:.8em;padding:.05rem .5rem;border-radius:999px;border:1px solid var(--line);
@@ -173,8 +177,9 @@ footer{border-top:1px solid var(--line);margin-top:1.2rem;padding:.7rem 0;font-s
   <div class="era" id="era-ops" role="tabpanel" style="border-color:var(--line);background:#fff" hidden>
     <h2><span aria-hidden="true">🚦</span> The ops floor — today's intake, decided in one pass</h2>
     <p>Every claim from the sealed 500-claim holdout, all four engines, measured once before the
-      session. Pick an engine and set the auto-approve cutoff; claims below it run straight through,
-      the rest go to an adjuster. Approve or override — the counters follow you.</p>
+      session. Pick an engine and set the auto-approve cutoff τ: a claim the engine rates at least τ
+      likely to be fraud is held for the fraud unit; a covered, simple claim below τ is paid straight
+      through; everything else goes to an adjuster. Override any claim — every counter follows you.</p>
   </div>
 
   <div class="era" id="era-domain" role="tabpanel" style="border-color:var(--line);background:#fff" hidden>
@@ -605,7 +610,9 @@ $("etaOut").textContent = TEACH_ETA;
 
 
 // ======================= Ops floor (STP + adjuster queue) =======================
-let OPS = null, OPS_TAU = 0.8, OPS_ACTIONS = {}, OPS_ARM = "ft", CAL_RENDERED = false;
+let OPS = null, OPS_TAU = 0.8, OPS_ACTIONS = {}, OPS_ARM = "ft", OPS_VIEW = "review", CAL_RENDERED = false;
+const OPS_ACT_LABEL = {auto: "auto-paid", flag: "flagged → SIU", review: "adjuster review"};
+const OPS_VIEW_LABEL = {review: "Adjuster review", flag: "Flagged → SIU", auto: "Auto-paid (spot-check)"};
 
 function opsAnswers(c){ return (c.arms[OPS_ARM] || {}).answers || {}; }
 function opsFraudP(c){
@@ -637,9 +644,17 @@ function buildOpsShell(){
     <p class="note" id="tauNote" hidden></p>
   </div>
   <div class="card" style="margin:.6rem 0">
-    <h3>Adjuster queue — highest fraud probability first</h3>
+    <h3>Claim queue — the engine's disposition, and your override</h3>
+    <p class="small">Each claim gets one disposition. <b>Auto-paid</b>: straight through, no person. <b>Flagged → SIU</b>:
+      held for the fraud unit (p(fraud) ≥ τ). <b>Adjuster review</b>: a person decides (not covered, or more than one touch
+      expected). The engine proposes; the buttons override; every counter above follows.</p>
+    <div style="display:flex;gap:.4rem;align-items:center;flex-wrap:wrap;margin:.3rem 0">
+      <span class="small"><strong>Show what the engine sent to:</strong></span>
+      <span id="opsViews"></span>
+      <button class="mini" id="opsReset" hidden>Reset overrides</button>
+    </div>
     <div class="tablewrap"><table class="opstable"><thead id="opsQueueHead"></thead><tbody id="opsQueueBody"></tbody></table></div>
-    <p class="small">Override buttons change the counters above — the STP rate, the accuracy of what ran unattended, and the fraud that slipped through. That interplay is the buy/no-buy decision.</p>
+    <p class="small" id="opsQueueFoot"></p>
   </div>
   <div class="card">
     <h3>Calibration — fraud flag</h3>
@@ -650,33 +665,47 @@ function buildOpsShell(){
   $("tauSlider").oninput = (e) => { OPS_TAU = e.target.value/100; $("tauVal").textContent = OPS_TAU.toFixed(2); updateOps(); };
   $("opsEngine").onchange = (e) => { OPS_ARM = e.target.value; updateOps(); };
   $("volIn").oninput = () => updateOps();
+  $("opsViews").onclick = (e) => { const b = e.target.closest("[data-view]"); if (b){ OPS_VIEW = b.dataset.view; updateOps(); } };
+  $("opsReset").onclick = () => { OPS_ACTIONS = {}; updateOps(); };
 }
 
+// What the selected engine does with a claim at cutoff τ: hold it for the fraud unit, pay it
+// straight through, or hand it to an adjuster. Touches is a near-integer score (1.0001): round it.
+function opsDefault(c){
+  const a = opsAnswers(c), pF = opsFraudP(c);
+  if (pF === null) return "review";
+  if (pF >= OPS_TAU) return "flag";
+  const touches = a.expected_touches ? a.expected_touches.score : null;
+  const covered = a.coverage_eligibility && a.coverage_eligibility.choice === "covered";
+  return (touches !== null && Math.round(touches) <= 1 && covered) ? "auto" : "review";
+}
+function opsAction(c){ return OPS_ACTIONS[c.id] || opsDefault(c); }
+
 function opsRow(c){
-  const g = c.gold, m = c.meta, ftA = opsAnswers(c);
+  const g = c.gold, m = c.meta, a = opsAnswers(c);
   const pF = opsFraudP(c);
-  const touches = ftA.expected_touches ? ftA.expected_touches.score : null;
-  const covered = ftA.coverage_eligibility && ftA.coverage_eligibility.choice === "covered";
-  const stpOk = pF !== null && pF < OPS_TAU && touches !== null && touches <= 1 && covered;
-  const act = OPS_ACTIONS[c.id] || (stpOk ? "auto" : "review");
-  const routing = ftA.routing ? ftA.routing.choice : null;
+  const touches = a.expected_touches ? a.expected_touches.score : null;
+  const def = opsDefault(c), act = opsAction(c), overridden = act !== def;
+  const routing = a.routing ? a.routing.choice : null;
   const routingOK = routing !== null && routing === g.routing;
   const fraudOK = pF === null ? false : ((pF >= 0.5) === !!m.fraud);
-  return `<tr>
+  const btn = (v, label) => `<button class="mini" ${act === v ? "disabled" : ""} onclick="opsAct('${esc(c.id)}','${v}')">${label}</button>`;
+  return `<tr${overridden ? ' class="ovr"' : ""}>
     <td class="small">${esc(c.id.replace("ins-",""))}</td>
     <td class="small">${esc(m.cat)}</td>
     <td class="small" style="text-align:right">${usd(m.amount)}</td>
     <td class="small" title="${esc(String(routing))}">${routing===null?"—":esc(humanize(routing))} ${routingOK?"✓":"✗"}</td>
     <td class="small" style="text-align:right"${pF!==null?` title="raw ${pF}"`:""}>${pF===null?"—":fmtP(pF)} ${fraudOK?"✓":"✗"}</td>
+    <td class="small">${m.fraud ? '<b style="color:var(--bad)">fraud</b>' : "legit"}</td>
     <td class="small" style="text-align:center"${touches!==null?` title="raw ${touches}"`:""}>${touches===null?"—":Math.round(touches)}/${g.expected_touches}</td>
-    <td><span class="chip ${act==="auto"?"chip-auto":"chip-rev"}">${act==="auto"?"auto-approved":"adjuster review"}</span></td>
-    <td class="small">
-      <button class="mini" onclick="opsAct('${esc(c.id)}','auto')">Approve</button>
-      <button class="mini" onclick="opsAct('${esc(c.id)}','flag')">Flag fraud</button>
-      <button class="mini" onclick="opsAct('${esc(c.id)}','review')">To review</button>
-    </td></tr>`;
+    <td><span class="chip chip-${act === "auto" ? "auto" : act === "flag" ? "flag" : "rev"}">${OPS_ACT_LABEL[act]}</span>${overridden ? `<br><span class="small" title="the engine proposed: ${OPS_ACT_LABEL[def]}">↺ engine said ${OPS_ACT_LABEL[def]}</span>` : ""}</td>
+    <td class="small" style="white-space:nowrap">${btn("auto", "Auto-pay")}${btn("flag", "Flag fraud")}${btn("review", "To adjuster")}</td></tr>`;
 }
-function opsAct(id, act){ OPS_ACTIONS[id] = act; updateOps(); }
+function opsAct(id, act){
+  const c = OPS.claims.find(x => x.id === id);
+  if (c && act === opsDefault(c)) delete OPS_ACTIONS[id]; else OPS_ACTIONS[id] = act;
+  updateOps();
+}
 
 function renderOpsCal(){
   if (CAL_RENDERED || !OPS.summary.calibration) return;
@@ -696,41 +725,51 @@ function renderOpsCal(){
 
 function updateOps(){
   const claims = OPS.claims;
-  let auto = 0, rev = 0, autoAll = 0, missed = 0, stp$ = 0, tot$ = 0, rev$ = 0, flaggedOK$ = 0, flaggedFP$ = 0;
+  const n = {auto: 0, flag: 0, review: 0}, amt = {auto: 0, flag: 0, review: 0};
+  const views = {auto: [], flag: [], review: []};
+  let autoAll = 0, missed = 0, missed$ = 0, tot$ = 0, held$ = 0, fp = 0, fp$ = 0, overrides = 0;
   for (const c of claims){
-    const m = c.meta, ftA = opsAnswers(c);
-    const pF = opsFraudP(c);
-    const touches = ftA.expected_touches ? ftA.expected_touches.score : null;
-    const covered = ftA.coverage_eligibility && ftA.coverage_eligibility.choice === "covered";
-    const stpOk = pF !== null && pF < OPS_TAU && touches !== null && touches <= 1 && covered;
-    const act = OPS_ACTIONS[c.id] || (stpOk ? "auto" : "review");
-    tot$ += m.amount;
+    const m = c.meta, a = opsAnswers(c), def = opsDefault(c), act = OPS_ACTIONS[c.id] || def;
+    if (act !== def) overrides++;
+    views[def].push(c);
+    tot$ += m.amount; n[act]++; amt[act] += m.amount;
     if (act === "auto"){
-      auto++; stp$ += m.amount;
-      if (ftA && Object.keys(c.gold).length && allCorrect(ftA, c.gold)) autoAll++;
-      if (m.fraud) missed++;
-    } else { rev++; rev$ += m.amount; }
-    if (pF !== null && pF >= OPS_TAU){ if (m.fraud) flaggedOK$ += m.amount; else flaggedFP$ += m.amount; }
+      if (Object.keys(c.gold).length && allCorrect(a, c.gold)) autoAll++;
+      if (m.fraud){ missed++; missed$ += m.amount; }
+    } else if (act === "flag"){
+      if (m.fraud) held$ += m.amount; else { fp++; fp$ += m.amount; }
+    }
   }
   const vol = +$("volIn").value || 0, per = claims.length ? vol/claims.length : 0;
   const fraudShare = claims.length ? claims.filter(c => c.meta.fraud).length / claims.length : 0;
-  const autoAllPct = auto ? (100*autoAll/auto).toFixed(1)+"%" : "—";
+  const autoAllPct = n.auto ? (100*autoAll/n.auto).toFixed(1)+"%" : "—";
   $("opsCounters").innerHTML = `
-    <div class="card"><div class="statbig">${claims.length}</div><div class="statl">claims in the sealed holdout</div></div>
-    <div class="card"><div class="statbig">${usd(tot$)}</div><div class="statl">total claimed</div></div>
-    <div class="card" style="border-color:#bcd9cb;background:#f4faf7"><div class="statbig">${(100*auto/claims.length).toFixed(1)}%</div><div class="statl">straight-through at τ=${OPS_TAU.toFixed(2)} (${auto} claims, ${usd(stp$)})</div></div>
-    <div class="card"><div class="statbig">${autoAllPct}</div><div class="statl">auto-approved claims with every decision correct (${autoAll}/${auto})</div></div>
-    <div class="card" style="${missed? "border-color:#d9a5a5;background:#fdf4f4":""}"><div class="statbig">${missed}</div><div class="statl">fraud claims that slipped into auto-approve</div></div>
-    <div class="card"><div class="statbig">${usd(flaggedOK$)}</div><div class="statl">fraud $ flagged at τ (${usd(flaggedFP$)} false-flagged)</div></div>`;
+    <div class="card"><div class="statbig">${claims.length}</div><div class="statl">claims in the sealed holdout · ${usd(tot$)} claimed</div></div>
+    <div class="card" style="border-color:#bcd9cb;background:#f4faf7"><div class="statbig">${(100*n.auto/claims.length).toFixed(1)}%</div><div class="statl">straight-through: auto-paid, no person (${n.auto} claims, ${usd(amt.auto)})</div></div>
+    <div class="card"><div class="statbig">${autoAllPct}</div><div class="statl">auto-paid claims where the engine's 7 decisions were all right (${autoAll}/${n.auto})</div></div>
+    <div class="card" style="${missed ? "border-color:#d9a5a5;background:#fdf4f4" : ""}"><div class="statbig">${missed}</div><div class="statl">fraud claims paid out unattended (${usd(missed$)} leaked)</div></div>
+    <div class="card"><div class="statbig">${usd(held$)}</div><div class="statl">fraud $ held for the SIU (${n.flag} flagged; ${fp} legit customers false-flagged, ${usd(fp$)})</div></div>
+    <div class="card"><div class="statbig">${n.review}</div><div class="statl">claims on adjusters' desks (${usd(amt.review)}) — the human workload</div></div>`;
   $("opsProj").textContent = `Illustrative at this synthetic mix (${(100*fraudShare).toFixed(1)}% fraud): ` +
-    `${Math.round(per*auto).toLocaleString("en-US")} claims/yr straight through; ` +
-    `${usd(per*rev$)}/yr routed to review instead of auto-paid.`;
+    `${Math.round(per*n.auto).toLocaleString("en-US")} claims/yr straight through; ` +
+    `${Math.round(per*n.review).toLocaleString("en-US")} claims/yr to adjusters; ` +
+    `${usd(per*held$)}/yr held for fraud investigation instead of auto-paid.`;
   const note = opsCertaintyNote();
   $("tauNote").hidden = !note;
   $("tauNote").textContent = note;
-  $("opsQueueHead").innerHTML = `<tr><th>claim</th><th>cat</th><th>amount</th><th>routing (${esc(ARM_LABEL[OPS_ARM])})</th><th>p(fraud)</th><th>touches pred/gold</th><th>current action</th><th>adjuster</th></tr>`;
-  $("opsQueueBody").innerHTML = claims.slice()
-    .sort((a,b) => (opsFraudP(b) ?? -1) - (opsFraudP(a) ?? -1)).slice(0,14).map(opsRow).join("");
+  $("opsViews").innerHTML = ["review", "flag", "auto"].map(v =>
+    `<button class="mini${OPS_VIEW === v ? " on" : ""}" data-view="${v}">${OPS_VIEW_LABEL[v]} (${views[v].length})</button>`).join("");
+  $("opsReset").hidden = !overrides;
+  $("opsReset").textContent = `Reset ${overrides} override${overrides === 1 ? "" : "s"}`;
+  $("opsQueueHead").innerHTML = `<tr><th>claim</th><th>cat</th><th>amount</th><th>routing (${esc(ARM_LABEL[OPS_ARM])})</th><th>p(fraud)</th><th>actually</th><th>touches pred/gold</th><th>disposition</th><th>override</th></tr>`;
+  const rows = views[OPS_VIEW].slice()
+    .sort((a, b) => ((opsFraudP(b) ?? -1) - (opsFraudP(a) ?? -1)) || (b.meta.amount - a.meta.amount));
+  $("opsQueueBody").innerHTML = rows.slice(0, 14).map(opsRow).join("") ||
+    `<tr><td colspan="9" class="small">no claims — the engine sent nothing here at τ=${OPS_TAU.toFixed(2)}</td></tr>`;
+  $("opsQueueFoot").textContent = rows.length
+    ? `showing ${Math.min(14, rows.length)} of ${rows.length}, highest p(fraud) first, then largest amount. ` +
+      `Overridden rows stay in place, shaded, with ↺ showing what the engine proposed.`
+    : "";
 }
 async function initOps(){
   if (!$("opsEngine")){ buildOpsShell(); CAL_RENDERED = false; }

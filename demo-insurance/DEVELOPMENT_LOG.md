@@ -189,6 +189,15 @@ does the percentage come from, and why does decider show a red dot — "check th
     GPU mid-train (total peak 31.2 GiB of 32.6 instead of 27.3) or tripping the free-memory
     pre-flight (a 503 at 8 s). Fixed: Teach waits for warm-up to finish; unloading waits for any
     in-flight post-teach reload.
+17. Ops-floor overrides were mostly no-ops (operator report, 2026-10-21): the queue's "Flag fraud"
+    stored a `flag` action the counters never read (anything not `auto` counted as review), "fraud $
+    flagged" was computed from the model's probability alone (a fraud claim force-approved counted as
+    both paid and held), and the queue showed only the 14 highest-p claims — all already in review,
+    so "To review" could never change anything. The STP rule also compared the touches score with
+    `<= 1` unrounded (Laya zero-shot 33 vs 151 straight-through). Fixed: three dispositions
+    (auto-paid / flagged → SIU / adjuster review) drive every counter; views per engine disposition
+    with stable rows, ↺ override marks, disabled current-action button, reset; rounded touches.
+    Verified in the browser: each button moves the expected cards, reset restores 346/$1,205,920/68.
 
 ## Phase 6 — Demo v2: journey questions, ops floor, Engine D, decider parity (2026-10-13)
 

@@ -109,17 +109,28 @@ network see traffic metadata. Fine for a session with known recipients; revoke w
 
 ### The ops floor (the executive close) — `?mode=ops`
 
-6. **Flip to ops (3 min):** "One claim is a toy; here is the operation." The sealed 500-claim
-   holdout, all engines, measured once before the session. Show the money cards (total claimed,
-   fraud $ flagged, false-flag $). Then the honest beat: the fine-tuned engine is *certain* on
-   every claim here (fraud probabilities exactly 0 or 1), so the auto-approve cutoff (τ) changes
-   nothing — the console says so under the slider. Switch the engine selector to **decider-4b
-   zero-shot** and hand the slider to the audience: now every τ move trades straight-through rate
-   against unattended accuracy and fraud that slips through (measured 62.8% STP at τ 0.95 → 57.4%
-   at τ 0.50). Let an adjuster override a row — the counters follow. The calibration strip shows,
-   per probability bin, the share of claims that were actually fraud. Engine D (rules) is
-   perfect on the phrasing it was built for and answers `unparsed` to all seven questions on the
-   Korean claim — that is the incumbent's real shape.
+6. **Flip to ops (3–4 min):** "One claim is a toy; here is the operation." The sealed 500-claim
+   holdout, all engines, measured once before the session. Every claim gets one disposition:
+   **auto-paid** (straight through, no person), **flagged → SIU** (p(fraud) ≥ τ, held for the
+   fraud unit) or **adjuster review** (not covered, or more than one touch expected).
+   - **Read the six cards** (Laya fine-tuned, τ 0.80): 69.2% straight-through (346 claims), the
+     engine's 7 decisions all right on 346/346 of them, 0 fraud paid out, $1,205,920 held for the
+     SIU with 0 legit customers false-flagged, 68 claims left for adjusters.
+   - **Honest beat:** this engine is *certain* on every claim (fraud probabilities exactly 0 or 1),
+     so τ changes nothing — the note under the slider says so.
+   - **The risk dial:** switch the engine to **decider-4b zero-shot** and hand the slider to the
+     audience. τ 0.95: 62.8% straight-through, 9 frauds paid out ($205,500), 63 legit customers
+     false-flagged. τ 0.50: 57.4%, 8 frauds, 106 false flags. Throughput vs leakage vs customer
+     friction — that is the buy/no-buy conversation.
+   - **Human in the loop:** back on Laya fine-tuned. *Flagged → SIU* view: press **Auto-pay** on a
+     fraud claim — the "fraud paid out" card turns red and the held $ drop by that amount. *Adjuster
+     review* view: **Flag fraud** on a legit claim — a false flag appears; **Auto-pay** on another —
+     straight-through ticks up, adjuster workload down. *Auto-paid* view: **To adjuster** pulls a
+     claim back for a spot-check. Overridden rows stay put, shaded, with "↺ engine said …";
+     **Reset overrides** restores the measured state.
+   - The calibration strip shows, per probability bin, the share of claims that were actually
+     fraud. Engine D (rules) is perfect on the phrasing it was built for and answers `unparsed` to
+     all seven questions on the Korean claim — that is the incumbent's real shape.
 
 ### The Domain Builder (the closer) — `?mode=domain`
 
@@ -187,11 +198,12 @@ same templated generator (in-distribution); post-training confidences hit the ca
 general-benchmark regression was re-run on the merged weights.
 
 Ops floor (τ = 0.80, fine-tuned Laya as the working engine): 69.2% straight-through (346
-claims, $2,263,860), every auto-approved claim correct on all seven decisions (346/346; Wilson
-95% CI 98.9–100%), 0 fraud claims auto-approved, $1,205,920 flagged for review with $0
-false-flagged. The fine-tuned engine's fraud probabilities are exactly 0/1, so τ does not move
-these numbers; the year projection on screen is illustrative at the synthetic mix (17.2% fraud)
-and counts dollars routed to review, not money saved.
+claims, $2,263,860), every auto-paid claim correct on all seven decisions (346/346; Wilson
+95% CI 98.9–100%), 0 fraud claims paid out, $1,205,920 held for the SIU (86 flagged) with $0
+false-flagged, 68 claims ($531,470) on adjusters' desks. The fine-tuned engine's fraud
+probabilities are exactly 0/1, so τ does not move these numbers; the year projection on screen
+is illustrative at the synthetic mix (17.2% fraud) and counts dollars held for investigation,
+not money saved.
 
 v1 comparison (3-question era, same corpus seed): 37.8% / 100.0% / 74.1%. Study context: on the
 prior sealed corpus Laya-ft beat the adapted 8B CLM model on every endpoint
