@@ -10,7 +10,7 @@ hmac.compare_digest and throttled: five misses buy a 60 s timeout (429).
 One training job at a time; the subprocess uses the same loss and option shuffling as
 train_laya.sh (soft-ce, shuffled options), TEACH_EPOCHS epochs (default 2) at micro-batch
 TEACH_MICRO_BATCH (8) over TEACH_BG_ROWS background rows (default 450) plus the teach cases
-upsampled xTEACH_UPSAMPLE (5) — ~80 s click to result. The zero-shot "before" scores reuse the
+upsampled xTEACH_UPSAMPLE (5) — ~1½ min click to result. The zero-shot "before" scores reuse the
 answers cached when the domain was warmed, and the zero-shot engine is reloaded after the
 result is published, so neither sits on the teach's critical path.
 
@@ -72,8 +72,8 @@ PY = os.environ.get("STUDIO_PY", str(ROOT.parent / ".venv-laya" / "bin" / "pytho
 DEVICE = os.environ.get("STUDIO_DEVICE", "cuda")
 # Teach defaults measured on this machine with the live stack serving (DEVELOPMENT_LOG Phase 9):
 # 450 corpus rows + 12 teach cases x5 = 510 rows (3,570 items), 2 epochs at micro-batch 8
-# finishes click-to-result in ~80 s with ~5 GiB GPU headroom. The previous 1,500 rows x20 at
-# micro-batch 2 took ~11 min (more accurate: 28-30/30 fresh vs 16-22/30); raised learning
+# finishes click-to-result in 78-93 s with ~5 GiB GPU headroom. The previous 1,500 rows x20 at
+# micro-batch 2 took ~11 min (more accurate: 28-30/30 fresh vs 14-22/30); raised learning
 # rates did worse at this step count, so laya's defaults stay.
 TEACH_EPOCHS = int(os.environ.get("TEACH_EPOCHS", "2"))
 TEACH_MICRO_BATCH = int(os.environ.get("TEACH_MICRO_BATCH", "8"))

@@ -245,7 +245,7 @@ const ARM_LABEL = {zero:"Laya zero-shot", ft:"Laya fine-tuned", dec:"decider-4b 
   dec_ft:"decider-4b fine-tuned", rules:"Rules engine (hand-coded policy)"};
 const OPS_ARMS = [["ft","Laya fine-tuned"],["dec_ft","decider-4b fine-tuned"],["dec","decider-4b zero-shot"],["zero","Laya zero-shot"]];
 const CAVEAT_100 = "train and test share one generator — studio-taught models score 0–3/3 on hand-reworded probes; shifted-phrasing study 92.0%";
-const TEACH_ETA = "~80 s";   // measured click-to-result 78–80 s (3,570 items, 2 epochs, micro-batch 8) with the live stack serving
+const TEACH_ETA = "~1½ min";   // measured click-to-result 78–93 s (3,570 items, 2 epochs, micro-batch 8) with the live stack serving
 let PRESETS = [], QUESTIONS = null, STAGES = [], SCORES = {}, MODE = "day1", LAST = null;
 
 const $ = (id) => document.getElementById(id);

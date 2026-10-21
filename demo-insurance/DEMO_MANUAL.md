@@ -132,7 +132,7 @@ network see traffic metadata. Fine for a session with known recipients; revoke w
 8. **Teach it (a talk beat):** bulk-accept the rule gold, then deliberately change ONE decision on
    ONE case ("our policy differs"). Press ⚡ Teach: a real fine-tune runs on this machine (450
    corpus rows — those with the edited case's rule profile relabeled to your decision, the badge
-   shows how many — plus your 12 cases ×5, 2 epochs; ~80 s click to result). A progress bar with elapsed time ticks
+   shows how many — plus your 12 cases ×5, 2 epochs; ~1½ min click to result). A progress bar with elapsed time ticks
    live. The headline score is on 30 held-out cases the model never saw (edited-profile rows
    scored against your edited policy); the 12 taught cases are shown separately and labeled as
    such. The hand-written paraphrase probes humble it — in-template perfection,
@@ -151,7 +151,7 @@ once a second, all three domains, click to result:
 
 | setting (`~/.config/systemd/user/decision-demo.env`) | time | fresh 30 (zero → taught) | taught 12 | GPU peak |
 |---|---|---|---|---|
-| **default**: 450 rows + 12×5, 2 epochs, micro-batch 8 (3,570 items) | **78–80 s** | 0 → 16–22/30 | 9–11/12 | 27.3 GiB |
+| **default**: 450 rows + 12×5, 2 epochs, micro-batch 8 (3,570 items) | **78–93 s** | 0 → 14–22/30 | 9–11/12 | 27.3 GiB |
 | quality: `TEACH_BG_ROWS=1500 TEACH_UPSAMPLE=20 TEACH_MICRO_BATCH=2 TEACH_GRAD_ACCUM=8` (~11,800 items) | ~11 min | 0 → 28–30/30 | 12/12 | 28.4 GiB |
 
 The presenter's edit was learned in every run. Same-config reruns vary by ±3–5 on the fresh 30,

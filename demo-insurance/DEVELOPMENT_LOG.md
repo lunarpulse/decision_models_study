@@ -337,7 +337,7 @@ Operator: "if it takes ten minutes, too long — under 2 minutes max, e.g. 12k �
    | 1100 ×5, 1 epoch, default lr | 105 s | 17/30 | 11/12 | 27.3 GiB |
    | 550 ×5, 2 epochs, default lr | 96–107 s | 14–21/30 (3 runs) | 11–12/12 | 27.3 GiB |
    | 550 ×5, gradient checkpointing off | 88 s | 16/30 | 10/12 | 29.4 GiB |
-   | **450 ×5, 2 epochs, mb 8 / ga 2 (default)** | **78–80 s** | **16–22/30** (support ×2, logistics, HR) | 9–11/12 | 27.3 GiB |
+   | **450 ×5, 2 epochs, mb 8 / ga 2 (default)** | **78–93 s** | **14–22/30** (support ×3, logistics, HR ×2; two driven from the browser via the tunnel: 88 s/14, 93 s/19) | 9–11/12 | 27.3 GiB |
    | old default: 1,500 ×20, mb 2 / ga 8 | ~11 min | 28–30/30 | 12/12 | 28.4 GiB |
 
    Every run's edit was learned. Zero-shot on the same fresh 30: 0/30 in every run. Live
@@ -345,8 +345,8 @@ Operator: "if it takes ten minutes, too long — under 2 minutes max, e.g. 12k �
    step count; one epoch over twice the rows loses to two epochs; turning gradient checkpointing
    off buys only 8% for +2.1 GiB (not adopted — the wrapper trainer it needed was removed);
    same-config reruns vary by ±3–5 on the fresh 30, so ranges are quoted.
-4. **Trade-off, stated plainly**: ~8× faster for ~a third fewer fresh cases fully right
-   (16–22/30 vs 28–30/30). The ~11-minute quality setting stays available via the env file
+4. **Trade-off, stated plainly**: ~7–8× faster for roughly a third fewer fresh cases fully right
+   (14–22/30 vs 28–30/30). The ~11-minute quality setting stays available via the env file
    (DEMO_MANUAL §3 operator notes).
 
 ## Final state at log time
@@ -360,5 +360,5 @@ Operator: "if it takes ten minutes, too long — under 2 minutes max, e.g. 12k �
   `laya-ft-ml-ckpt/` (retained, unserved).
 - Headline measured numbers (500-claim holdout, 7 decisions): Laya 46.4% → 100.0% after the
   12k-claim fine-tune (1/500 → 500/500 all-7); decider-4b zero-shot 70.8% (21/500), LoRA 100.0%;
-  rules 100.0% English / `unparsed` otherwise. Studio teach: ~80 s click to result, 16–22/30
+  rules 100.0% English / `unparsed` otherwise. Studio teach: ~1½ min click to result, 14–22/30
   fresh in-template (0/30 zero-shot), 0–3/3 reworded probes.
