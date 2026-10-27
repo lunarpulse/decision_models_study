@@ -198,6 +198,22 @@ does the percentage come from, and why does decider show a red dot — "check th
     (auto-paid / flagged → SIU / adjuster review) drive every counter; views per engine disposition
     with stable rows, ↺ override marks, disabled current-action button, reset; rounded touches.
     Verified in the browser: each button moves the expected cards, reset restores 346/$1,205,920/68.
+18. The Domain Builder did not land with an audience (operator review, 2026-10-28): no business
+    reason to edit a cell in a 12 × 7 chip grid, "before" was an untrained model so *everything*
+    differed and the taught change drowned in noise (0% → 47% all-7), and nothing could be tried
+    afterwards. A design failure, not a crash. Replaced by v3 (Phase 10).
+19. First live v3 re-teach crashed at the exam: the worker deleted `last-result.json`, then asked
+    `engines()` for the re-taught model — which only loads once that file exists — and got None.
+    Fixed: the worker installs the fresh engine itself. Caught by the first browser run, before
+    any audience.
+20. Two display bugs found in the same smoke run: the warning-sign list split "USD 18,500" at
+    its thousands comma (split now needs ", " with a space); and the CTA bar showed on the Domain
+    tab since Phase 8 because `.ctabar{display:flex}` beat the `hidden` attribute (global
+    `[hidden]{display:none!important}`).
+21. Measurement bookkeeping: the distrobox has its own `$HOME` (`~/.boxes/ai-dev`), so the first
+    measurement runs wrote there; consolidating them overwrote the HR runs' `results.jsonl`, which
+    was restored line-for-line from the run's console output. The script now defaults to
+    `studio-runs/policy-measure/` in the demo tree.
 
 ## Phase 6 — Demo v2: journey questions, ops floor, Engine D, decider parity (2026-10-13)
 
@@ -358,6 +374,66 @@ Operator: "if it takes ten minutes, too long — under 2 minutes max, e.g. 12k �
    (14–22/30 vs 28–30/30). The ~11-minute quality setting stays available via the env file
    (DEMO_MANUAL §3 operator notes).
 
+## Phase 10 — Domain Builder v3: change one rule, watch the model change (2026-10-28)
+
+Operator: "the domain page is boring — no definitive change between before and after, no clear
+way to change the model interactively and see it behave differently. What would product sales
+do?" Plan and reasoning: `docs/PLAN_DOMAIN_DEMO_V3.md`.
+
+1. **Story**: your model today → change a rule → re-teach → what changed → try to break it.
+   "Before" is now the business's *production model* (Laya trained once on its rulebook), so the
+   only difference after a re-teach is the rule the room chose.
+2. **Policy changes are rulebook edits** (`domain_factory.apply_policy`): reassign a category to
+   another desk (routing), a tier's minimum urgency (urgency), warning signs needed for a review
+   flag (routing, flag, money band, touches). New knobs `signals.flag_markers` and
+   `urgency.tier_floor` default to today's rules — all three corpora regenerate byte-identical,
+   and `decide()` replays 2,000/2,000 training and 500/500 test rows. Routing in `decide()` now
+   picks the best category, then its desk (two categories may share one after a reassignment).
+   The rule sentence is appended to the affected questions' instructions.
+3. **Production checkpoints** (`train_prod_ckpt.sh`): 2,000 rows, 3 epochs, micro-batch 8 —
+   437 / 433 / 424 s. Holdout all-7: support 487/500 (99.5% of decisions), logistics 498/500
+   (99.8%), HR 493/500 (99.7%). Out-of-the-box Laya on the same: 5 / 0 / 10.
+4. **Re-teach** = fine-tune from `prod-ckpt` on 300 changed + 300 unchanged rows relabeled by the
+   rules engine. Measured on all 500 test rows (`measure_policy_teach.py`, results in
+   `studio-runs/policy-measure/results.jsonl`):
+
+   | business · rule | changed decisions before → after | untouched decisions after (prod) | all-7 before → after | train s |
+   |---|---|---|---|---:|
+   | support · account → T&S | 0/116 → 116/116 | 3,363/3,384 (3,365) | 372 → 490 | 49 |
+   | support · Premium ≥ urgent | 0/107 → 107/107 | 3,362/3,393 (3,374) | 380 → 486 | 59 |
+   | support · flag at 1 sign | 2/886 → 886/886 | 2,608/2,614 (2,604) | 261 → 496 | 61 |
+   | logistics · customs → compliance | 0/111 → 111/111 | 3,372/3,389 (3,383) | 388 → 488 | 52 |
+   | logistics · Premium ≥ urgent | 0/88 → 88/88 | 3,404/3,412 (3,406) | 410 → 496 | 46 |
+   | logistics · flag at 1 sign | 0/843 → 843/843 | 2,655/2,657 (2,653) | 273 → 498 | 48 |
+   | HR · conduct → ethics | 0/123 → 123/123 | 3,361/3,377 (3,366) | 371 → 488 | 61 |
+   | HR · Premium ≥ urgent | 0/95 → 95/95 | 3,382/3,405 (3,394) | 399 → 491 | 59 |
+   | HR · flag at 1 sign | 1/899 → 899/899 | 2,584/2,601 (2,593) | 257 → 485 | 54 |
+
+   One pass, every changed decision learned; untouched decisions 99.1–99.9% (production model on
+   the same: 99.4–99.9%) — a small, stated cost. Two passes (support, 93–101 s) learned the same
+   and kept no more, so the default is one pass.
+5. **Studio rewritten** (`studio_service.py`): `/studio/session` (rulebook, presets, baselines,
+   showcase, last result), `/studio/impact` (CPU: what a rule changes + the 24-row exam with
+   production answers cached once per checkpoint), `/studio/train {domain, policy}` (token),
+   `/studio/compare` (both models + rulebook under both rules, open, one at a time, 409 while
+   training). The zero-shot Router left the studio (its numbers come from the portfolio file):
+   studio VRAM 7.0 → 4.5–4.8 GiB. New checkpoints train into `ft-ckpt.new` and replace `ft-ckpt`
+   only on success. Removed with the old flow: teach-case stratification, cell edits, profile
+   relabeling, the drift route, `/studio/presets`, `/studio/portfolio`, `/studio/predict`; the v2
+   `ft-ckpt` directories were deleted.
+6. **Console**: five-step page (sticky step bar), plain words ("your model", "the new rule",
+   "tickets it never saw"), rule cards with dropdowns, instant impact, exam tiles that flip on
+   the result, a facilitation prompt instead of an unmeasured "weeks" claim during the minute of
+   training, side-by-side compare with one-click edits and hand-written rewordings, watchers
+   following a presenter's run (their page switches to the rule being taught), fine print with
+   the table above. When the rulebook can't read a rewording it stops refereeing (no ✓/✗).
+7. **Measured live** (full stack serving, via the tunnel, desktop and phone layouts): click →
+   result 51–64 s over five runs; every changed exam decision right in every run (before 0);
+   untouched 155/156 once, full marks otherwise; GPU peak 27.6 GiB for the whole card; `/predict`
+   70/70 during a re-teach. Production models on the hand-reworded probes: support 0/3 fully
+   right (16/21 decisions), logistics 3/3 (21/21), HR 2/3 (20/21); the rulebook can't read 26 of
+   those 63 decisions.
+
 ## Final state at log time
 
 - Services (systemd user units `decision-demo-{laya,decider,studio}`, target `decision-demo`):
@@ -366,8 +442,10 @@ Operator: "if it takes ten minutes, too long — under 2 minutes max, e.g. 12k �
 - Public URL (ephemeral quick tunnel): see `tunnel-url.txt`; refresh procedure in `DEMO_MANUAL.md` §2.
 - Deploy: `sync_live.sh` from the repo; `VERSION` in the live tree = deployed commit.
 - Data: `data/` (corpus + presets + measured `stats.json`); checkpoints `laya-ft-ckpt/` (served),
-  `laya-ft-ml-ckpt/` (retained, unserved).
+  `laya-ft-ml-ckpt/` (retained, unserved), `studio-runs/<domain>/prod-ckpt` (Domain Builder
+  production models) and `ft-ckpt` (last re-teach).
 - Headline measured numbers (500-claim holdout, 7 decisions): Laya 46.4% → 100.0% after the
   12k-claim fine-tune (1/500 → 500/500 all-7); decider-4b zero-shot 70.8% (21/500), LoRA 100.0%;
-  rules 100.0% English / `unparsed` otherwise. Studio teach: ~1½ min click to result, 14–22/30
-  fresh in-template (0/30 zero-shot), 0–3/3 reworded probes.
+  rules 100.0% English / `unparsed` otherwise. Domain Builder re-teach: 51–64 s click to result;
+  every decision the new rule changes learned (all 500 test rows, all nine presets); untouched
+  decisions 99.1–99.9%; production models 0–3/3 on reworded probes.

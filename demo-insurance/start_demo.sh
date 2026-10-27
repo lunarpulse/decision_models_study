@@ -106,5 +106,6 @@ echo "Demo console:  http://127.0.0.1:$LAYA_PORT/?mode=day1     (Day 1 — nothi
 echo "               http://127.0.0.1:$LAYA_PORT/?mode=after    (after 12,000-claim training)"
 echo "               http://127.0.0.1:$LAYA_PORT/?mode=compare  (all three engines)"
 echo "               http://127.0.0.1:$LAYA_PORT/?mode=ops      (ops floor, sealed 500)"
-echo "               http://127.0.0.1:$LAYA_PORT/?mode=domain   (Domain Builder + Teach)"
-echo "Teach/drift need the studio token (studio-token.txt); train logs land in studio-runs/<domain>/."
+echo "               http://127.0.0.1:$LAYA_PORT/?mode=domain   (Domain Builder: change a rule, re-teach live)"
+echo "Re-teach needs the studio token (studio-token.txt) and studio-runs/<domain>/prod-ckpt (train_prod_ckpt.sh);"
+echo "train logs land in studio-runs/<domain>/."

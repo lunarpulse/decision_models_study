@@ -24,9 +24,11 @@ with `LAYA_PY` / `DECIDER_PY` / `STUDIO_PY` (absolute python paths) and `LAYA_PO
   (auto language routing) + fine-tuned English + fine-tuned multilingual checkpoints.
   Also proxies `/dec/*` and `/studio/*` — one public origin.
 - **decider service** `:8902` — decider-4b v2.1, always untrained (that is the point of Engine C).
-- **studio service** `:8903` — Teach/drift/status for the Domain Builder. Mutating routes need the
-  token in `studio-token.txt` (auto-generated with a random secret on first start, chmod 600, never
-  echoed); the presenter types it once in the console.
+- **studio service** `:8903` — the Domain Builder: rule-change impact, re-teach, side-by-side
+  compare, status. The re-teach route needs the token in `studio-token.txt` (auto-generated with a
+  random secret on first start, chmod 600, never echoed); the presenter types it once in the
+  console. It also needs each business's production model, `studio-runs/<domain>/prod-ckpt`
+  (`train_prod_ckpt.sh`, ~7 min per business; stop the studio while it trains).
 
 **Supervised (live machine):** the same services run as systemd `--user` units
 `decision-demo-{laya,decider,studio,tunnel}.service`, grouped by `decision-demo.target`
@@ -67,10 +69,12 @@ First request after a cold start takes ~1–2 s (CUDA warm-up); afterwards 10–
 
 1. Units green: `systemctl --user status decision-demo.target` — laya, decider, studio `active (running)` (tunnel too, if used).
 2. Health ok: `curl -s :8901/health`, `:8901/dec/health`, `:8901/studio/health` all report ok.
-3. GPU room to teach: `/studio/health` free GiB ≥ its `teach_min_free_gib`; `pgrep -af laya.train_cli` finds nothing.
+3. GPU room to teach: `/studio/health` free GiB ≥ its `teach_min_free_gib`, `warm` true and
+   `prod_ready` true for every business; `pgrep -af laya.train_cli` finds nothing.
 4. One phone test on mobile data through the tunnel URL — page loads, one preset answers.
-5. Domain card renders in `?mode=domain` (cards, struggle cases, no blank pane).
-6. Wrong-token test: teach with a garbage token is rejected and re-prompts; the real token works.
+5. `?mode=domain&d=support_tickets` renders all five steps; picking a rule shows its impact and the
+   24-case exam; *Ask both models* answers.
+6. Wrong-token test: Re-teach with a garbage token is rejected and re-prompts; the real token works.
 7. `VERSION` in the live tree equals the repo HEAD you meant to ship.
 8. Disk and logs sane: `df -h .`, `du -sh studio-runs`, journal not ballooning.
 9. After any restart, run one warm-up predict — first answer is the slow CUDA one (~1–2 s).
@@ -134,40 +138,60 @@ network see traffic metadata. Fine for a session with known recipients; revoke w
 
 ### The Domain Builder (the closer) — `?mode=domain`
 
-7. **Pick a business (2 min):** support tickets, logistics exceptions, HR exceptions. A seeded
-   corpus with rule-verifiable gold generates instantly (500/500 replay-validated per domain,
-   enforced in CI). The measured-struggle screen shows zero-shot engines failing real cases from
-   that domain — picked from measured errors, not staged. Point at the fourth card: the
-   decider-4b *trained on insurance* scoring high here with zero domain training — the journey
-   itself transfers.
-8. **Teach it (a talk beat):** bulk-accept the rule gold, then deliberately change ONE decision on
-   ONE case ("our policy differs"). Press ⚡ Teach: a real fine-tune runs on this machine (450
-   corpus rows — those with the edited case's rule profile relabeled to your decision, the badge
-   shows how many — plus your 12 cases ×5, 2 epochs; ~1½ min click to result). A progress bar with elapsed time ticks
-   live. The headline score is on 30 held-out cases the model never saw (edited-profile rows
-   scored against your edited policy); the 12 taught cases are shown separately and labeled as
-   such. The hand-written paraphrase probes humble it — in-template perfection,
-   out-of-template honesty.
-9. **The retainer (1 min):** press "A year later" — deductibles double, and the taught engine's
-   measured decay shows on screen. The fix is a 30-case re-teach. That loop is the recurring
-   business.
+The story: *every business runs on a rulebook that changes; a decision model is only useful if
+it keeps up.* Five steps on screen (sticky step bar at the top), about six minutes. Deep link a
+business with `?mode=domain&d=support_tickets` (or `logistics_exceptions`, `hr_exceptions`).
+
+7. **Your model today (45 s).** Pick a business. Two numbers: out-of-the-box Laya gets 5 of 500
+   support tickets fully right (0 logistics, 10 HR); the same Laya trained once on 2,000 past
+   cases gets 487 (498, 493). Under it, one ticket and its seven decisions — out of the box ✗,
+   your model ✓, the rulebook. *"This is your production model. Now the business changes."*
+8. **Change a rule (60 s).** Let the room pick one of three memos; every value is a dropdown:
+   - 🔀 *Escalate a whole queue* — "[account] tickets go to [trust and safety]" (one decision)
+   - ⭐ *VIP fast lane* — "[Premium]-tier tickets are always at least [urgent]" (one decision)
+   - 🛡 *Zero tolerance* — "Flag for review at [1] warning sign(s)" (four decisions move)
+
+   The impact appears instantly: how many of the 500 test cases the rule changes, which
+   decisions, and the exam — 24 cases the model never saw, 12 the rule changes (amber: today's
+   model still follows the old rule) and 12 it doesn't. Setting a value back to today's rule
+   disables Re-teach ("that is today's rule").
+9. **Re-teach (≈1 min).** Press ⚡ Re-teach (token once per browser session). Phases: prepare →
+   learn (loading your model, then the pass) → exam, with a clock. Use the minute: *ask the room
+   how long their last rule change took to reach the system that decides, and who had to be
+   involved* — that answer is the business case; no number is claimed on screen.
+10. **What changed.** The exam flips with an animation: "On the 12 unseen tickets the new rule
+    changes, your model now follows it on 12 (before: 0). On the 12 it leaves alone, 12 are
+    still fully right." Three tiles: changed decisions right before → after, untouched decisions
+    still right, cases fully right under the new rulebook. A red tile is a real miss — read it out.
+11. **Try to break it (2 min).** Click any exam tile (or edit the text box). **Ask both models**:
+    today's model, the re-taught model and the rulebook side by side, the changed decision
+    highlighted, latency in ms. One-click edits flip the rule on purpose — the button matching
+    the taught rule is highlighted (make it Premium / remove the evidence / make it a conduct
+    case). ✍️ *Reword it* loads a hand-written rewording: the rulebook can't read it, so the
+    console stops refereeing and says so — the incumbent's real weakness; the models still
+    answer. Anyone on the public URL can do this step from a phone (read-only inference).
 
 Studio notes for the operator: runs as `decision-demo-studio` (systemd user unit; localhost
-:8903, proxied through :8901). Teach needs the token — anonymous visitors watch (a running or
-finished teach shows on their Domain tab) but cannot teach or run the drift beat. One job at a
-time. Before training the studio unloads its own zero-shot engine and any taught checkpoint, then
-refuses to start below `TEACH_MIN_FREE_GIB` (11.5) free — a plain "not enough GPU memory" message
-instead of a crash. Measured with the full live stack serving and a script calling `/predict`
-once a second, all three domains, click to result:
+:8903, proxied through :8901). Re-teach needs the token — anonymous visitors follow a running
+re-teach live (their page switches to the rule being taught and shows the result) but cannot start
+one; while it runs, compare answers "the model is being re-taught". One job at a time. Before
+training the studio unloads its two engines, then refuses to start below `TEACH_MIN_FREE_GIB`
+(11.5) free — a plain "not enough GPU memory" message instead of a crash. Each re-teach starts
+from `prod-ckpt` (never cumulative) and replaces `ft-ckpt` only on success; its result persists
+in `last-result.json`, so a reload or a latecomer sees the last run.
 
-| setting (`~/.config/systemd/user/decision-demo.env`) | time | fresh 30 (zero → taught) | taught 12 | GPU peak |
-|---|---|---|---|---|
-| **default**: 450 rows + 12×5, 2 epochs, micro-batch 8 (3,570 items) | **78–93 s** | 0 → 14–22/30 | 9–11/12 | 27.3 GiB |
-| quality: `TEACH_BG_ROWS=1500 TEACH_UPSAMPLE=20 TEACH_MICRO_BATCH=2 TEACH_GRAD_ACCUM=8` (~11,800 items) | ~11 min | 0 → 28–30/30 | 12/12 | 28.4 GiB |
+| measured with the full live stack serving | value |
+|---|---|
+| click → result (browser via the tunnel, phone layout, API) | **51–64 s** (support VIP 64 s; logistics zero tolerance 52 s; HR escalate 51 s; support zero tolerance 51 s; support escalate 51 s) |
+| exam: decisions the rule changed, right | every one in every live run — 12/12 (VIP, escalate), 41/41 and 45/45 (zero tolerance); before: 0 |
+| exam: untouched decisions, right | 155/156 (support VIP) and full marks in the other four runs |
+| all 500 test cases, per preset (offline, one pass) | changed decisions 88/88 … 899/899; untouched 99.1–99.9% |
+| GPU peak (whole card) / `/predict` during a re-teach | 27.6 GiB / 70 of 70 requests OK |
 
-The presenter's edit was learned in every run. Same-config reruns vary by ±3–5 on the fresh 30,
-so quote the range, not one run. Live `/predict` during training: 0 errors, max 0.19 s. Every run's
-full log, with per-line timestamps: `studio-runs/<domain>/train-<timestamp>.log`.
+Knobs (env file `~/.config/systemd/user/decision-demo.env`): `TEACH_EPOCHS` (1),
+`TEACH_CHANGED_ROWS` (300), `TEACH_SAME_ROWS` (300), `TEACH_MICRO_BATCH` (8), `TEACH_GRAD_ACCUM`
+(2). A second pass measured no better (DEVELOPMENT_LOG Phase 10). Every run's full log:
+`studio-runs/<domain>/train-<timestamp>.log`.
 
 ## 4. Numbers you may quote (measured on 500 unseen claims, 7 questions each, this machine)
 
@@ -234,6 +258,11 @@ synthetic data), not English-only data.
   authority (same recommend–authorize–execute pattern as the study decks).
 - *"Where does training data come from?"* — 12,000 synthetic past claims with rule-computed answers
   (`gen_corpus.py`); in production this would be your historical labeled claims.
+- *"Did the re-taught model just memorize the exam?"* — No: the exam cases are sealed test rows it
+  never trained on; it learned from past cases the rulebook re-decided under the new rule. Then hand
+  it your own wording in step 5.
+- *"Can we change several rules at once?"* — Each re-teach starts from the production model and
+  teaches one rule; combined changes have not been measured yet — say so.
 
 ## 7. Troubleshooting
 

@@ -73,7 +73,7 @@ def make_row(spec, rng, i, force=None):
     if not docs_ok: markers += 1
     if age_days <= S["fresh_days"]: markers += 1
     if amount >= S["large_amount"]: markers += 1
-    flag = markers >= 2
+    flag = markers >= S.get("flag_markers", 2)
 
     gold = {}
     Q = spec["questions"]
@@ -85,6 +85,7 @@ def make_row(spec, rng, i, force=None):
     elif any(w in thing for w in urg["urgent_words"]): u = 2
     elif amount >= HIGH_VALUE or cat in urg["priority_cats"]: u = 1
     else: u = 0
+    u = max(u, urg.get("tier_floor", {}).get(tier, 0))     # policy knob (default: none)
     gold[Q["archetypes"]["urgency"]] = u
 
     # eligibility (mirrors insurance logic, domain-worded options)
@@ -218,7 +219,8 @@ def decide(spec, state):
         fired.append(spec["evidence"]["fresh"].format(start=p["start"]))
     if p.get("amount", 0) >= S["large_amount"]:
         fired.append(spec["evidence"]["large"].format(amount=p["amount"]))
-    flag = len(fired) >= 2
+    need = S.get("flag_markers", 2)
+    flag = len(fired) >= need
     answers[A["risk_flag"]] = {"type": "noul", "noul": 1.0 if flag else 0.0}
     evidence[A["risk_flag"]] = fired or [spec["evidence"]["no_markers"]]
 
@@ -227,11 +229,12 @@ def decide(spec, state):
         evidence[A["routing"]] = [spec["evidence"]["no_ref"]]
     elif flag:
         answers[A["routing"]] = {"type": "choice", "choice": S["flag_unit"]}
-        evidence[A["routing"]] = [spec["evidence"]["flag_route"]]
+        evidence[A["routing"]] = [spec["evidence"]["flag_route"].replace("2+", f"{need}+")]
     else:
-        scores = {u: sum(w in state for w in c["things"]) for u, c in
-                  ((c["unit"], c) for c in spec["categories"].values())}
-        unit = max(scores, key=scores.get) if max(scores.values()) > 0 else "unparsed"
+        # best category by keyword hits, then its unit (a policy may give two categories one unit)
+        hits = {k: sum(w in state for w in c["things"]) for k, c in spec["categories"].items()}
+        best = max(hits, key=hits.get)
+        unit = spec["categories"][best]["unit"] if hits[best] > 0 else "unparsed"
         answers[A["routing"]] = {"type": "choice", "choice": unit}
         evidence[A["routing"]] = [spec["evidence"]["keyword_route"].format(unit=unit)]
 
@@ -241,8 +244,14 @@ def decide(spec, state):
     elif any(w in state for w in urg["urgent_words"]): u = 2
     elif p.get("amount", 0) >= HIGH_VALUE or (p.get("cat", "") in urg["priority_cats"]): u = 1
     else: u = 0
+    floor = urg.get("tier_floor", {}).get(p.get("tier"), 0)    # policy knob (default: none)
+    if floor > u:
+        u = floor
+        evidence_urg = [f"rule level {u} ({p.get('tier')} tier floor)"]
+    else:
+        evidence_urg = [f"rule level {u}"]
     answers[A["urgency"]] = {"type": "score", "score": u}
-    evidence[A["urgency"]] = [f"rule level {u}"]
+    evidence[A["urgency"]] = evidence_urg
 
     E = spec["eligibility"]
     if "incident" not in p or "start" not in p:
@@ -281,3 +290,151 @@ def decide(spec, state):
     evidence[A["touches"]] = [f"complications={comps}" + (" + flag" if flag else "")]
 
     return {"engine": f"rules-{spec['name']}", "ms": 0.1, "answers": answers, "evidence": evidence}
+
+
+# ---------------- policy changes (Domain Builder: "change the rulebook, re-teach") ----------------
+# A policy change is a spec edit. decide() under the edited spec recomputes the rule answer for
+# any template state, so relabeled training rows and the exam's "new rule" answers stay
+# rule-verifiable. Three kinds, each one plain-English sentence with editable values:
+#   reassign  {cat, unit}     unflagged cases of one category go to another desk   (routing)
+#   vip       {tier, level}   a tier's cases are at least this urgent              (urgency)
+#   risk      {markers}       warning signs needed before a review flag (was 2)    (routing,
+#                             risk flag, money band, touches)
+URGENCY_NAMES = ["routine", "priority", "urgent", "critical"]
+POLICY_KINDS = ("reassign", "vip", "risk")
+MEMO_PREFIX = "POLICY UPDATE (effective today; overrides any rule above): "
+
+
+def _human(key):
+    return str(key).replace("_", " ")
+
+
+def policy_choices(spec):
+    """Allowed values per policy kind and parameter (the rulebook editor's dropdowns)."""
+    A = spec["questions"]["archetypes"]
+    return {"reassign": {"cat": list(spec["categories"]),
+                         "unit": list(spec["questions"]["defs"][A["routing"]]["criteria"])},
+            "vip": {"tier": list(spec.get("tiers", TIERS)), "level": [1, 2, 3]},
+            "risk": {"markers": [1, 2, 3]}}
+
+
+def normalize_policy(spec, pol):
+    """{kind, params} with every value checked against policy_choices; ValueError otherwise."""
+    if not isinstance(pol, dict) or pol.get("kind") not in POLICY_KINDS:
+        raise ValueError(f"policy kind must be one of {', '.join(POLICY_KINDS)}")
+    allowed = policy_choices(spec)[pol["kind"]]
+    params = pol.get("params") if isinstance(pol.get("params"), dict) else {}
+    out = {}
+    for name, values in allowed.items():
+        v = params.get(name)
+        if v not in values:
+            raise ValueError(f"{pol['kind']}.{name} must be one of {values}")
+        out[name] = v
+    return {"kind": pol["kind"], "params": out}
+
+
+def policy_sentence(spec, pol):
+    """The policy as one plain-English rule (also appended to the affected instructions)."""
+    k, p = pol["kind"], pol["params"]
+    nouns = spec.get("noun_plural", "cases")
+    if k == "reassign":
+        old = spec["categories"][p["cat"]]["unit"]
+        return (f"{_human(p['cat']).capitalize()} {nouns} that are not flagged for review go to "
+                f"{_human(p['unit'])} (previously {_human(old)}).")
+    if k == "vip":
+        return f"{p['tier']}-tier {nouns} are always at least {URGENCY_NAMES[p['level']]}."
+    n = p["markers"]
+    return (f"Flag for review when at least {n} warning sign{'s' if n > 1 else ''} "
+            f"appear{'s' if n == 1 else ''} (previously 2).")
+
+
+def policy_is_noop(spec, pol):
+    """True when the edited rule is today's rule (nothing to teach)."""
+    k, p = pol["kind"], pol["params"]
+    if k == "reassign":
+        return spec["categories"][p["cat"]]["unit"] == p["unit"]
+    if k == "risk":
+        return p["markers"] == spec["signals"].get("flag_markers", 2)
+    return False
+
+
+def apply_policy(spec, pol):
+    """A deep copy of `spec` under the policy, with the rule appended to the affected questions."""
+    import copy
+    s = copy.deepcopy(spec)
+    k, p = pol["kind"], pol["params"]
+    A = s["questions"]["archetypes"]
+    if k == "reassign":
+        s["categories"][p["cat"]]["unit"] = p["unit"]
+        qids = [A["routing"]]
+    elif k == "vip":
+        s["urgency"]["tier_floor"] = {p["tier"]: p["level"]}
+        qids = [A["urgency"]]
+    else:
+        s["signals"]["flag_markers"] = p["markers"]
+        qids = [A["routing"], A["risk_flag"]]
+    memo = MEMO_PREFIX + policy_sentence(spec, pol)
+    for q in qids:
+        s["questions"]["defs"][q]["instructions"] += " " + memo
+    return s
+
+
+def rule_gold(spec, state):
+    """decide() answers as gold values (bool / int / option key), or None if any is unparsed."""
+    gold = {}
+    for qid, a in decide(spec, state)["answers"].items():
+        if a["type"] == "noul":
+            gold[qid] = a["noul"] > 0.5
+        elif a["type"] == "score":
+            gold[qid] = int(a["score"])
+        elif a["choice"] == "unparsed":
+            return None
+        else:
+            gold[qid] = a["choice"]
+    return gold
+
+
+def changed_decisions(old_gold, new_gold):
+    """Question ids whose rule answer differs between two gold dicts."""
+    return [q for q in old_gold if new_gold.get(q) != old_gold[q]]
+
+
+def policy_training_rows(spec, train_rows, pol, n_changed=300, n_same=300, seed=11):
+    """Re-teach set for a policy: corpus rows relabeled under the new rule.
+
+    `n_changed` rows whose answers the policy changes (all of them when fewer exist) plus
+    `n_same` it leaves alone — the second half keeps the rest of the rulebook in place. Rows
+    carry the policy's question defs, so the taught model reads the updated rule text."""
+    import random as _random
+    new_spec = apply_policy(spec, pol)
+    defs = new_spec["questions"]["defs"]
+    changed, same = [], []
+    for t in train_rows:
+        new = rule_gold(new_spec, t["state"])
+        if new is None:
+            continue
+        row = {"state": t["state"], "questions": defs, "expected": new}
+        (changed if changed_decisions(t["expected"], new) else same).append(row)
+    rng = _random.Random(seed)
+    rows = rng.sample(changed, min(n_changed, len(changed))) + rng.sample(same, min(n_same, len(same)))
+    rng.shuffle(rows)
+    return rows, len(changed), len(same)
+
+
+def policy_exam(spec, holdout_rows, pol, n_changed=12, n_same=12):
+    """Unseen exam for a policy: the first `n_changed` holdout rows the policy changes and the
+    first `n_same` it does not, in file order (deterministic, disjoint from training rows)."""
+    new_spec = apply_policy(spec, pol)
+    changed, same = [], []
+    for r in holdout_rows:
+        new = rule_gold(new_spec, r["state"])
+        if new is None:
+            continue
+        diff = changed_decisions(r["gold"], new)
+        bucket = changed if diff else same
+        if len(bucket) < (n_changed if diff else n_same):
+            bucket.append({"id": r["id"], "state": r["state"], "old_gold": r["gold"],
+                           "new_gold": new, "changed": diff})
+        if len(changed) >= n_changed and len(same) >= n_same:
+            break
+    return changed + same

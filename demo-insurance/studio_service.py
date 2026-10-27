@@ -1,42 +1,40 @@
-"""Teaching Studio service (Domain Builder): live fine-tuning of laya on a chosen domain.
+"""Teaching Studio service (Domain Builder v3): change a domain's rulebook, re-teach its
+production model live, and put the old and new model side by side.
 
 Port 8903 (localhost by default). The demo console reaches it through the laya service's
 /studio/* proxy, so one public origin serves everything and this service needs no CORS.
-Mutating routes (/studio/train, /studio/drift) require the studio token (env STUDIO_TOKEN;
-the presenter types it once in the console — it is never baked into the page); the service
-refuses to start without one unless STUDIO_ALLOW_OPEN=1. Wrong tokens are compared with
-hmac.compare_digest and throttled: five misses buy a 60 s timeout (429).
+The mutating route (/studio/train) requires the studio token (env STUDIO_TOKEN; the presenter
+types it once in the console — it is never baked into the page); the service refuses to start
+without one unless STUDIO_ALLOW_OPEN=1. Wrong tokens are compared with hmac.compare_digest and
+throttled: five misses buy a 60 s timeout (429).
 
-One training job at a time; the subprocess uses the same loss and option shuffling as
-train_laya.sh (soft-ce, shuffled options), TEACH_EPOCHS epochs (default 2) at micro-batch
-TEACH_MICRO_BATCH (8) over TEACH_BG_ROWS background rows (default 450) plus the teach cases
-upsampled xTEACH_UPSAMPLE (5) — ~1½ min click to result. The zero-shot "before" scores reuse the
-answers cached when the domain was warmed, and the zero-shot engine is reloaded after the
-result is published, so neither sits on the teach's critical path.
+Models per domain, both under studio-runs/<domain>/:
+  prod-ckpt   "your model": Laya fine-tuned once on the domain's 2,000 training rows under
+              today's rulebook (train_prod_ckpt.sh). Never written by this service.
+  ft-ckpt     the re-taught model: prod-ckpt fine-tuned on the presenter's policy change.
+              Its policy and exam result persist in last-result.json next to it.
 
-Memory discipline (the live OOM fix): before launching a run the studio evicts everything it
-holds on the accelerator — all taught checkpoints and the zero-shot Router — then reads
-torch.cuda.mem_get_info() and refuses (503) below TEACH_MIN_FREE_GIB (default 11.5 GiB).
-laya's Router has no in-place device move, so "move the router to CPU during training" is
-implemented as Router.unload() — which frees the checkpoint and its VRAM outright — and a
-rebuild from the local cache after training; that is strictly less resident memory than a
-CPU copy would be. Only ONE taught checkpoint is ever resident: /studio/predict and
-/studio/drift lazy-load studio-runs/<domain>/ft-ckpt and loading one evicts the others.
+A policy change is a rulebook edit (domain_factory.apply_policy: reassign / vip / risk). The
+rules engine relabels corpus rows under the new rule (TEACH_CHANGED_ROWS rows the rule changes,
+TEACH_SAME_ROWS it leaves alone), train_cli fine-tunes FROM prod-ckpt with the updated rule text
+in the question instructions, and the result is an exam on unseen holdout rows (EXAM_CHANGED
+the rule changes + EXAM_SAME it does not): production answers (cached once per checkpoint in
+prod-holdout.json) against the re-taught model's answers, both scored against the NEW rule.
 
-Full train_cli output goes to studio-runs/<domain>/train-<YYYYmmdd-HHMMSS>.log; only parsed
-progress ({epoch, epochs, step, steps}) and short human messages are kept in memory for
-/studio/status. Failures are classified from the log (out_of_gpu_memory vs train_failed) and
-reported as a plain sentence. The train PID persists in studio-runs/<domain>/train.pid and
-the job state in studio-runs/last_job.json; on startup a leftover train_cli process is
-killed — only after verifying its cmdline — and the interrupted job is reported as failed
-with error_kind "lost", so the console can re-enable Teach immediately.
+/studio/compare answers any ticket with both models (production under today's question text,
+re-taught under its policy's text) plus the rules engine under both rulebooks — open to every
+viewer, one inference at a time, 409 while training.
 
-Session policy relabeling (deterministic): an edit on a teach case propagates to corpus rows
-with the same rule profile (category, docs_ok, fresh-account, large-amount) — "all cases like
-this are now decided this way" — plus the teach cases themselves repeated xTEACH_UPSAMPLE. Corpus rows
-carry no meta, so every profile is parsed from the row's own state text
-(domain_factory.parse_state); the old holdout-meta lookup keyed on state text never matched a
-single train row, which is exactly the bug this replaces.
+Memory discipline: only one domain's two engines are resident. Before a run the studio evicts
+them, reads torch.cuda.mem_get_info() and refuses (503) below TEACH_MIN_FREE_GIB. The new
+checkpoint trains into ft-ckpt.new and replaces ft-ckpt only on success.
+
+Full train_cli output goes to studio-runs/<domain>/train-<YYYYmmdd-HHMMSS>.log; parsed progress
+({epoch, epochs, step, steps}) and short messages are kept for /studio/status. Failures are
+classified from the log (out_of_gpu_memory vs train_failed). The train PID persists in
+studio-runs/<domain>/train.pid and the job state in studio-runs/last_job.json; on startup a
+leftover train_cli process is killed — only after verifying its cmdline — and the interrupted
+job is reported as failed with error_kind "lost".
 """
 import copy
 import gc
@@ -45,17 +43,16 @@ import json
 import math
 import os
 import pathlib
-import random
 import re
+import shutil
 import signal
 import subprocess
 import sys
 import threading
 import time
 import traceback
-import shutil
 import urllib.parse
-from collections import deque
+from collections import Counter, deque
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 
 ROOT = pathlib.Path(os.environ.get("DEMO_ROOT", pathlib.Path(__file__).resolve().parent))
@@ -70,49 +67,50 @@ if not TOKEN and os.environ.get("STUDIO_ALLOW_OPEN") != "1":
 PORT = int(sys.argv[1]) if len(sys.argv) > 1 else 8903
 PY = os.environ.get("STUDIO_PY", str(ROOT.parent / ".venv-laya" / "bin" / "python"))
 DEVICE = os.environ.get("STUDIO_DEVICE", "cuda")
-# Teach defaults measured on this machine with the live stack serving (DEVELOPMENT_LOG Phase 9):
-# 450 corpus rows + 12 teach cases x5 = 510 rows (3,570 items), 2 epochs at micro-batch 8
-# finishes click-to-result in 78-93 s with ~5 GiB GPU headroom. The previous 1,500 rows x20 at
-# micro-batch 2 took ~11 min (more accurate: 28-30/30 fresh vs 14-22/30); raised learning
-# rates did worse at this step count, so laya's defaults stay.
-TEACH_EPOCHS = int(os.environ.get("TEACH_EPOCHS", "2"))
+# Re-teach defaults measured on this machine (DEVELOPMENT_LOG Phase 10): 300 changed + 300
+# unchanged corpus rows, ONE pass at micro-batch 8 from prod-ckpt — every changed decision on the
+# 500-row holdout learned in 49–61 s of training; a second pass bought nothing.
+TEACH_EPOCHS = int(os.environ.get("TEACH_EPOCHS", "1"))
 TEACH_MICRO_BATCH = int(os.environ.get("TEACH_MICRO_BATCH", "8"))
 TEACH_GRAD_ACCUM = int(os.environ.get("TEACH_GRAD_ACCUM", "2"))
-TEACH_BG_ROWS = int(os.environ.get("TEACH_BG_ROWS", "450"))
-TEACH_UPSAMPLE = int(os.environ.get("TEACH_UPSAMPLE", "5"))               # repeats per teach case
+TEACH_CHANGED_ROWS = int(os.environ.get("TEACH_CHANGED_ROWS", "300"))
+TEACH_SAME_ROWS = int(os.environ.get("TEACH_SAME_ROWS", "300"))
 _max_len = os.environ.get("TEACH_MAX_LEN", "").strip()
 TEACH_MAX_LEN = int(_max_len) if _max_len else None   # unset = flag not passed
 TEACH_MIN_FREE_GIB = float(os.environ.get("TEACH_MIN_FREE_GIB", "11.5"))
 TEACH_ENCODER_LR = os.environ.get("TEACH_ENCODER_LR", "").strip() or None  # unset = laya default
 TEACH_HEAD_LR = os.environ.get("TEACH_HEAD_LR", "").strip() or None        # unset = laya default
+EXAM_CHANGED = 12
+EXAM_SAME = 12
+SHOWCASE_N = 5
 BODY_CAP = 64 * 1024
 STATE_CAP = 4000
 TOKEN_MISSES_ALLOWED = 5
 THROTTLE_S = 60.0
+COMPARE_WAIT_S = 15.0
 WARM_UP = os.environ.get("STUDIO_WARMUP", "1").strip().lower() not in ("0", "false", "no", "off")
 
 sys.path.insert(0, str(ROOT))
 from domains import DOMAINS as DOM                                   # noqa: E402
-from domain_factory import parse_state                               # noqa: E402
+from domain_factory import (URGENCY_NAMES, apply_policy, changed_decisions,  # noqa: E402
+                            decide, normalize_policy, policy_choices, policy_exam,
+                            policy_is_noop, policy_sentence, policy_training_rows, rule_gold)
 
 import laya                                                          # noqa: E402
-from laya import Router                                              # noqa: E402
-
-zero = Router(preload=True, device=DEVICE)
-print(f"[studio] zero-shot Router loaded on {DEVICE} (for teach-case stratification)", flush=True)
 
 _lock = threading.RLock()
-_ft = {}                       # taught engines; at most ONE resident (see get_engine)
-_ft_lock = threading.Lock()
-_resident = {"domain": None}   # which taught checkpoint is loaded right now
 _messages = deque(maxlen=20)
-_job = {"state": "idle", "domain": None, "started": None, "started_epoch": None,
-        "ended_epoch": None, "pid": None, "progress": None,
+_job = {"state": "idle", "domain": None, "policy": None, "sentence": None, "started": None,
+        "started_epoch": None, "ended_epoch": None, "pid": None, "progress": None,
         "error_kind": None, "error": None}          # "result" added when a run finishes
-_router_ready = threading.Event()   # zero-shot Router resident (cleared while a teach trains)
-_router_ready.set()
-_warm_done = threading.Event()     # startup warm-up finished: no zero-shot pass can race a teach
+_warm_done = threading.Event()     # production answers cached: no warm-up pass can race a teach
 _token_state = {"misses": 0, "blocked_until": 0.0}
+_eng = {"domain": None, "prod": None, "taught": None}   # ONE domain's engines resident
+_eng_lock = threading.Lock()
+_compare_sem = threading.BoundedSemaphore(1)
+_data, _data_lock = {}, threading.Lock()
+_prod_vals, _prod_lock = {}, threading.Lock()
+_impact_cache, _impact_lock = {}, threading.Lock()
 
 _STEP_RE = re.compile(r"epoch (\d+)/(\d+) step (\d+)")
 _MEAN_RE = re.compile(r"epoch (\d+)/(\d+) mean loss")
@@ -121,6 +119,137 @@ _ITEMS_RE = re.compile(r"train items (\d+)")
 
 def _msg(text):
     _messages.append(text[:200])
+
+
+def prod_ckpt(domain):
+    return OUT / domain / "prod-ckpt"
+
+
+def taught_ckpt(domain):
+    return OUT / domain / "ft-ckpt"
+
+
+# ------------------------------------------------------------------ answers & scoring
+
+def answer_value(a):
+    """Engine answer → gold-comparable value (bool / int / option key); None if missing."""
+    if not isinstance(a, dict):
+        return None
+    if a.get("type") == "noul":
+        return float(a.get("noul", 0)) > 0.5
+    if a.get("type") == "score":
+        return int(round(float(a["score"]))) if a.get("score") is not None else None
+    return a.get("choice")
+
+
+def answer_conf(a):
+    """Confidence in the chosen value (0..1) where the engine reports one."""
+    try:
+        if a.get("type") == "noul":
+            p = float(a.get("noul", 0))
+            return round(max(p, 1 - p), 3)
+        probs = a.get("probabilities") or {}
+        key = a.get("choice") if a.get("type") == "choice" else str(answer_value(a))
+        return round(float(probs[key]), 3) if key in probs else None
+    except Exception:
+        return None
+
+
+def values(answers):
+    return {q: answer_value(a) for q, a in (answers or {}).items()}
+
+
+def rules_view(spec, state):
+    """Rules-engine answers ('unparsed' kept) with evidence, for the compare panel."""
+    res = decide(spec, state)
+    out = {}
+    for q, a in res["answers"].items():
+        v = a.get("choice") if a["type"] == "choice" else answer_value(a)
+        out[q] = {"v": v, "why": res["evidence"].get(q, [])}
+    return out
+
+
+def tally(rows, key):
+    """{changed, kept, all7} as [ok, n] for exam rows scored against new_gold."""
+    ch = [0, 0]; kept = [0, 0]; all7 = [0, 0]
+    for r in rows:
+        ans = r.get(key) or {}
+        diff = set(r["changed"])
+        all7[1] += 1
+        all7[0] += all(ans.get(q) == g for q, g in r["new_gold"].items())
+        for q, g in r["new_gold"].items():
+            bucket = ch if q in diff else kept
+            bucket[1] += 1
+            bucket[0] += ans.get(q) == g
+    return {"changed": ch, "kept": kept, "all7": all7}
+
+
+# ------------------------------------------------------------------ domain data (CPU)
+
+def data(domain):
+    """Training/holdout rows and the zero-shot portfolio answers, loaded once per domain."""
+    with _data_lock:
+        got = _data.get(domain)
+        if got is not None:
+            return got
+        train = [json.loads(l) for l in open(DATA / domain / "train.jsonl")]
+        hold = [json.loads(l) for l in open(DATA / domain / "holdout_eval.jsonl")]
+        zero, summary = {}, {}
+        try:
+            pkg = json.load(open(DATA / domain / "portfolio_results.json"))
+            summary = pkg.get("summary", {})
+            zero = {c["id"]: values(c["arms"]["zero"]["answers"]) for c in pkg.get("claims", [])
+                    if "zero" in c.get("arms", {})}
+        except FileNotFoundError:
+            pass
+        got = {"train": train, "hold": hold, "zero": zero, "summary": summary}
+        _data[domain] = got
+        return got
+
+
+def warning_signs(spec):
+    """The warning signs as the routing instruction lists them (its first parenthesis)."""
+    text = spec["questions"]["defs"][spec["questions"]["archetypes"]["routing"]]["instructions"]
+    m = re.search(r"\(([^)]*)\)", text)
+    if not m:
+        return []
+    return [s.strip() for s in re.split(r",\s+(?:or\s+)?|\s+or\s+", m.group(1)) if s.strip()]
+
+
+# ------------------------------------------------------------------ engines (GPU)
+
+def _empty_cache():
+    gc.collect()
+    try:
+        import torch
+        if torch.cuda.is_available():
+            torch.cuda.empty_cache()
+    except Exception:
+        pass
+
+
+def engines(domain, want_taught=True):
+    """(production, re-taught) engines for `domain`; loading a domain evicts the previous one.
+
+    The re-taught checkpoint loads only once its result is published (last-result.json names
+    its policy); train_worker installs the fresh one itself for the exam."""
+    with _eng_lock:
+        if _eng["domain"] != domain:
+            _eng.update(domain=None, prod=None, taught=None)
+            _empty_cache()
+            _eng["domain"] = domain
+        if _eng["prod"] is None and prod_ckpt(domain).exists():
+            _eng["prod"] = laya.load(str(prod_ckpt(domain)), device=DEVICE)
+        if want_taught and _eng["taught"] is None and last_result(domain) is not None:
+            _eng["taught"] = laya.load(str(taught_ckpt(domain)), device=DEVICE)
+        return _eng["prod"], _eng["taught"]
+
+
+def free_own_memory():
+    """Evict both resident engines before a training run."""
+    with _eng_lock:
+        _eng.update(domain=None, prod=None, taught=None)
+    _empty_cache()
 
 
 def gpu_info():
@@ -135,296 +264,170 @@ def gpu_info():
         return None
 
 
-def free_own_memory():
-    """Evict everything the studio itself holds on the accelerator (plan 0.3).
+def prod_values(domain):
+    """Production answers for every holdout row (list aligned with holdout order).
 
-    The Router cannot move a resident checkpoint to CPU in place, and unload() beats a CPU
-    copy anyway: it frees the weights and their VRAM (it runs gc + empty_cache itself) and
-    the next predict rebuilds the checkpoint from the local HF cache."""
-    with _ft_lock:
-        _ft.clear()
-        _resident["domain"] = None
-    _router_ready.wait(60)       # a post-teach reload may still be in flight: let it land first
-    try:
-        _router_ready.clear()
-        zero.unload()
-    except Exception:
-        traceback.print_exc()
-    gc.collect()
-    try:
-        import torch
-        if torch.cuda.is_available():
-            torch.cuda.empty_cache()
-    except Exception:
-        pass
-
-
-def restore_router_async():
-    threading.Thread(target=_restore_router, daemon=True).start()
-
-
-def _restore_router():
-    """Bring the zero-shot checkpoints back after a train (rebuild from the local cache)."""
-    try:
-        zero.preload()
-        _msg("zero-shot engine back in memory")
-    except Exception:
-        traceback.print_exc()
-    finally:
-        _router_ready.set()
-
-
-def get_engine(domain):
-    """The taught engine for `domain`, lazy-loaded from studio-runs/<domain>/ft-ckpt.
-
-    Only one taught checkpoint stays resident: loading one drops the others (plan 0.3)."""
-    eng = _ft.get(domain)
-    if eng is not None:
-        return eng
-    ckpt = OUT / domain / "ft-ckpt"
-    if not ckpt.exists():
-        return None
-    with _ft_lock:
-        eng = _ft.get(domain)
-        if eng is not None:
-            return eng
-        eng = laya.load(str(ckpt), device=DEVICE)
-        _ft.clear()
-        _ft[domain] = eng
-        _resident["domain"] = domain
-        return eng
-
-
-def busy():
-    with _lock:
-        return _job["state"] in ("training", "evaluating")
-
-
-def stratified_cases(domain, n=12, err_n=6):
-    """Teach cases: `err_n` where the zero-shot engine errs on >=1 question, rest random.
-
-    Deterministic: fixed holdout order, Random(7) shuffles, one batched pass. cached_cases()
-    computes this once per domain and deep-copies from then on."""
-    spec = DOM[domain]
-    rows = [json.loads(l) for l in open(DATA / domain / "holdout_eval.jsonl")]
-    reqs = [{"state": r["state"], "questions": spec["questions"]["defs"]} for r in rows]
-    _router_ready.wait(120)
-    answers = [d.get("answers", {}) for d in zero.predict_batch(reqs, batch_size=16)]
-    rng = random.Random(7)
-    errs, oks = [], []
-    for r, res in zip(rows, answers):
-        wrong = 0
-        for qid, g in r["gold"].items():
-            a = res.get(qid, {})
-            v = a.get("choice", a.get("score"))
-            if a.get("type") == "noul":
-                v = int(a.get("noul", 0) > 0.5)
-            elif a.get("type") == "score" and v is not None:
-                v = int(round(float(v)))
-            gv = g if not isinstance(g, bool) else int(g)
-            wrong += (v != gv)
-        (errs if wrong else oks).append(r)
-    rng.shuffle(errs); rng.shuffle(oks)
-    cases = errs[:err_n] + oks[: n - err_n]
-    for r in errs[err_n:]:          # fill up if too few all-correct rows
-        if len(cases) >= n:
-            break
-        cases.append(r)
-    rng.shuffle(cases)
-    try:
-        import torch
-        torch.cuda.empty_cache()    # free the stratification pass before any training subprocess
-    except Exception:
-        pass
-    picked = [{"id": r["id"], "state": r["state"], "gold": r["gold"], "meta": r["meta"]} for r in cases]
-    return picked, {r["id"]: res for r, res in zip(rows, answers)}
-
-
-_cases = {}                        # domain -> pristine teach-case list
-_zero_answers = {}                 # domain -> {holdout row id: zero-shot answers}, same pass
-_cases_lock = threading.Lock()
-
-
-def cached_cases(domain):
-    """stratified_cases per domain, computed once (deterministic), deep-copied per call (0.5).
-
-    Concurrent first callers share one computation; nobody re-runs the zero-shot pass. The
-    pass's answers for every holdout row are kept too: the "before" scores reuse them instead
-    of re-predicting after a teach (the zero-shot engine is deterministic)."""
-    with _cases_lock:
-        got = _cases.get(domain)
-    if got is not None:
-        return copy.deepcopy(got)
-    with _cases_lock:
-        got = _cases.get(domain)
-        if got is None:
-            got, _zero_answers[domain] = stratified_cases(domain)
-            _cases[domain] = got
-    return copy.deepcopy(got)
+    Computed once per checkpoint and cached in studio-runs/<domain>/prod-holdout.json, keyed
+    by the checkpoint's mtime and size; None when the domain has no production checkpoint."""
+    with _prod_lock:
+        if domain in _prod_vals:
+            return _prod_vals[domain]
+        weights = prod_ckpt(domain) / "model.safetensors"
+        if not weights.exists():
+            return None
+        st = weights.stat()
+        key = f"{st.st_mtime_ns}:{st.st_size}"
+        cache = OUT / domain / "prod-holdout.json"
+        try:
+            got = json.load(open(cache))
+            if got.get("key") == key:
+                _prod_vals[domain] = got["answers"]
+                return got["answers"]
+        except Exception:
+            pass
+        hold = data(domain)["hold"]
+        prod, _ = engines(domain, want_taught=False)
+        t = time.time()
+        res = prod.predict_batch([r["state"] for r in hold], DOM[domain]["questions"]["defs"],
+                                 batch_size=16)
+        vals = [values(r.get("answers")) for r in res]
+        cache.write_text(json.dumps({"key": key, "answers": vals}))
+        print(f"[studio] production answers for {domain}: {len(vals)} rows in "
+              f"{time.time() - t:.1f}s", flush=True)
+        _prod_vals[domain] = vals
+        return vals
 
 
 def warm_up():
-    """Optional background warm-up: precompute teach cases so the first card opens fast.
-
-    Teach waits for this to finish: a stratification pass running during a train would
-    lazily reload the zero-shot Router onto the GPU the trainer was promised."""
+    """Cache production answers for every domain so sessions and exams never wait on the GPU."""
     try:
         for domain in DOM:
             try:
-                cached_cases(domain)
-                print(f"[studio] warmed teach cases for {domain}", flush=True)
+                if prod_values(domain) is not None:
+                    print(f"[studio] warmed {domain}", flush=True)
             except Exception:
                 traceback.print_exc()
     finally:
         _warm_done.set()
 
 
-def state_profile(spec, state):
-    """Rule profile of a raw state: (category, docs_ok, fresh account, large amount).
+# ------------------------------------------------------------------ session / impact
 
-    Parsed from the text itself (domain_factory.parse_state) so train rows — which carry no
-    meta — and holdout rows land in the same key space (fixes plan 1.4)."""
-    p = parse_state(spec, state)
-    start = p.get("start")
-    fresh = bool(start) and (spec["signals"]["today"] - start).days <= spec["signals"]["fresh_days"]
-    return (p.get("cat"), bool(p.get("docs_ok")), bool(fresh),
-            p.get("amount", 0) >= spec["signals"]["large_amount"])
+def arm_summary(summary, arm):
+    acc = (summary.get("accuracy") or {}).get(arm)
+    if not acc:
+        return None
+    return {"avg": round(sum(acc.values()) / len(acc), 4),
+            "all7": (summary.get("all_correct") or {}).get(arm)}
 
 
-def profile_label(prof):
-    cat, docs_ok, fresh, large = prof
-    return (f"{cat or 'unparsed'} · docs {'attached' if docs_ok else 'missing'} · "
-            f"{'fresh' if fresh else 'aged'} account · {'large' if large else 'normal'} amount")
+def last_result(domain):
+    """The persisted result of the checkpoint in ft-ckpt, or None."""
+    if not (taught_ckpt(domain) / "model.safetensors").exists():
+        return None
+    try:
+        return json.load(open(OUT / domain / "last-result.json"))
+    except Exception:
+        return None
 
 
-def _coerce(to, like):
-    """Keep the gold value's type when applying an edit (bool stays bool)."""
-    return (to in ("yes", "True", True)) if isinstance(like, bool) else to
-
-
-def build_training_set(domain, cases, edits, n_rows=None, upsample=None):
-    """Corpus rows relabeled under the session policy + teach cases (with edits) x N.
-
-    Returns (rows, relabeled_rows, edited_profiles). Each corpus row's profile is parsed from
-    its own state text; a row is relabeled when an edited teach case shares that profile, and
-    relabeled_rows counts the corpus rows that actually changed (plan 1.4)."""
+def session_payload(domain):
     spec = DOM[domain]
-    rng = random.Random(11)
-    n_rows = n_rows or TEACH_BG_ROWS
-    upsample = upsample or TEACH_UPSAMPLE
-    train = [json.loads(l) for l in open(DATA / domain / "train.jsonl")]
-    edit_map = {(e["case_id"], e["qid"]): e["to"] for e in edits}
-
-    edited_profiles = {}
-    for c in cases:
-        for (cid, qid), to in edit_map.items():
-            if cid == c["id"]:
-                edited_profiles.setdefault(state_profile(spec, c["state"]), {})[qid] = to
-
-    out_rows, relabeled = [], 0
-    cand = rng.sample(train, min(n_rows, len(train)))
-    for t in cand:
-        exp = dict(t["expected"])
-        if edited_profiles and state_profile(spec, t["state"]) in edited_profiles:
-            touched = False
-            for qid, to in edited_profiles[state_profile(spec, t["state"])].items():
-                if exp.get(qid) != to:
-                    exp[qid] = _coerce(to, exp.get(qid))
-                    touched = True
-            relabeled += touched
-        out_rows.append({"state": t["state"], "questions": t["questions"], "expected": exp})
-
-    for c in cases:
-        exp = dict(c["gold"])
-        for (cid, qid), to in edit_map.items():
-            if cid == c["id"]:
-                exp[qid] = _coerce(to, exp.get(qid))
-        for _ in range(upsample):
-            out_rows.append({"state": c["state"], "questions": spec["questions"]["defs"], "expected": exp})
-    return out_rows, relabeled, edited_profiles
-
-
-def fresh_holdout(domain, cases, edited_profiles):
-    """The headline sample: the first 30 holdout rows EXCLUDING the teach-case ids (plan 1.5).
-
-    Rows whose rule profile was edited stay in the sample but are scored against the EDITED
-    gold, not the original. That is the honest choice, deliberately: scoring the original gold
-    would fail the model for exactly the policy change the session taught, while excluding the
-    rows would hide whether the edit propagated to unseen same-profile states. The relabeling
-    is disclosed to the user via result.edited_profiles."""
-    spec = DOM[domain]
-    teach_ids = {c["id"] for c in cases}
-    out = []
-    for r in (json.loads(l) for l in open(DATA / domain / "holdout_eval.jsonl")):
-        if r["id"] in teach_ids:
+    d = data(domain)
+    hold, zero = d["hold"], d["zero"]
+    pv = _prod_vals.get(domain)
+    if pv is None and _warm_done.is_set() and not busy():
+        pv = prod_values(domain)
+    prod = None
+    if pv is not None:
+        per_q = Counter()
+        all7 = 0
+        for r, v in zip(hold, pv):
+            ok = {q: v.get(q) == g for q, g in r["gold"].items()}
+            per_q.update(q for q, good in ok.items() if good)
+            all7 += all(ok.values())
+        n = len(hold)
+        prod = {"avg": round(sum(per_q.values()) / (n * len(hold[0]["gold"])), 4), "all7": all7}
+    show = []
+    for i, r in enumerate(hold):
+        z = zero.get(r["id"])
+        if not z:
             continue
-        gold = dict(r["gold"])
-        prof = state_profile(spec, r["state"])
-        if prof in edited_profiles:
-            for qid, to in edited_profiles[prof].items():
-                gold[qid] = _coerce(to, gold.get(qid))
-        out.append({"id": r["id"], "state": r["state"], "gold": gold})
-        if len(out) >= 30:
-            break
-    return out
+        z_wrong = sum(z.get(q) != g for q, g in r["gold"].items())
+        p_ok = pv is not None and all(pv[i].get(q) == g for q, g in r["gold"].items())
+        if z_wrong >= 3 and (p_ok or pv is None):
+            show.append({"id": r["id"], "state": r["state"], "gold": r["gold"], "zero": z,
+                         "prod": pv[i] if pv is not None else None})
+            if len(show) >= SHOWCASE_N:
+                break
+    choices = policy_choices(spec)
+    presets = []
+    for p in spec.get("policies", []):
+        pol = normalize_policy(spec, p)
+        presets.append({**pol, "title": p.get("title", ""), "story": p.get("story", ""),
+                        "sentence": policy_sentence(spec, pol)})
+    lr = last_result(domain)
+    return {
+        "domain": domain, "noun_plural": spec.get("noun_plural", "cases"),
+        "questions": spec["questions"]["defs"], "stages": spec["stages"],
+        "archetypes": spec["questions"]["archetypes"],
+        "current": {"units": {k: c["unit"] for k, c in spec["categories"].items()},
+                    "flag_markers": spec["signals"].get("flag_markers", 2),
+                    "warning_signs": warning_signs(spec)},
+        "choices": choices, "urgency_names": URGENCY_NAMES, "presets": presets,
+        "baseline": {"n": len(hold), "zero": arm_summary(d["summary"], "zero"),
+                     "dec": arm_summary(d["summary"], "dec"), "prod": prod},
+        "showcase": show,
+        "prod_ready": prod_ckpt(domain).exists(),
+        "taught": lr,
+        # for the console's ticket highlighter and one-click edits ("try to break it")
+        "text": {"parsers": spec["parsers"], "doc_missing": spec["doc_missing_phrase"],
+                 "doc_missing_marker": spec["doc_missing_marker"],
+                 "doc_ok_prefix": spec["doc_ok_template"].split("{")[0].strip(),
+                 "things": {k: c["things"] for k, c in spec["categories"].items()},
+                 "today": spec["signals"]["today"].isoformat(),
+                 "fresh_days": spec["signals"]["fresh_days"],
+                 "large_amount": spec["signals"]["large_amount"]},
+        "probes": [{"label": p["label"], "state": p["state"]} for p in spec.get("paraphrase_probes", [])],
+    }
 
 
-def apply_edits(cases, edits):
-    """Fold the session's edits into the teach cases' gold (what the model was taught)."""
-    for c in cases:
-        for e in edits:
-            if e["case_id"] == c["id"]:
-                c["gold"][e["qid"]] = _coerce(e["to"], c["gold"].get(e["qid"]))
-
-
-def _score(c, res):
-    row = {"id": c.get("id", "?"), "label": c.get("label", ""), "questions": {}}
-    ok_all = True
-    for qid, g in c["gold"].items():
-        a = res.get(qid, {})
-        v = a.get("choice", a.get("score"))
-        if a.get("type") == "noul":
-            v = int(a.get("noul", 0) > 0.5)
-        elif a.get("type") == "score" and v is not None:
-            v = int(round(float(v)))
-        gv = g if not isinstance(g, bool) else int(g)
-        ok = v == gv
-        ok_all &= ok
-        row["questions"][qid] = {"pred": v if not isinstance(v, float) else round(v, 2),
-                                 "gold": gv, "ok": ok,
-                                 "prob": round(float(a.get("probabilities", {}).get(
-                                     str(g if not isinstance(g, bool) else int(g)), 0) or 0), 3)}
-    row["ok_all"] = ok_all
-    return row
-
-
-def run_eval(domain, eng, cases):
+def impact(domain, pol):
+    """What a policy changes (CPU only): corpus/holdout counts, per-decision counts, the exam."""
+    key = (domain, json.dumps(pol, sort_keys=True))
+    with _impact_lock:
+        if key in _impact_cache:
+            return copy.deepcopy(_impact_cache[key])
     spec = DOM[domain]
-    return [_score(c, eng.predict(c["state"], spec["questions"]["defs"]).get("answers", {}))
-            for c in cases]
+    d = data(domain)
+    new_spec = apply_policy(spec, pol)
+    corpus_changed = sum(1 for t in d["train"]
+                         if changed_decisions(t["expected"], rule_gold(new_spec, t["state"]) or t["expected"]))
+    by_q, hold_changed = Counter(), 0
+    for r in d["hold"]:
+        diff = changed_decisions(r["gold"], rule_gold(new_spec, r["state"]) or r["gold"])
+        hold_changed += bool(diff)
+        by_q.update(diff)
+    exam = policy_exam(spec, d["hold"], pol, EXAM_CHANGED, EXAM_SAME)
+    pv = _prod_vals.get(domain)
+    if pv is not None:
+        idx = {r["id"]: i for i, r in enumerate(d["hold"])}
+        for e in exam:
+            e["before"] = pv[idx[e["id"]]]
+    out = {"policy": pol, "sentence": policy_sentence(spec, pol), "noop": policy_is_noop(spec, pol),
+           "corpus": {"changed": corpus_changed, "total": len(d["train"])},
+           "holdout": {"changed": hold_changed, "total": len(d["hold"]), "by_decision": dict(by_q)},
+           "teach": {"changed_rows": min(TEACH_CHANGED_ROWS, corpus_changed),
+                     "same_rows": min(TEACH_SAME_ROWS, len(d["train"]) - corpus_changed),
+                     "epochs": TEACH_EPOCHS},
+           "exam": exam}
+    if pv is not None:                # never cache an exam without production answers
+        with _impact_lock:
+            _impact_cache[key] = out
+    return copy.deepcopy(out)
 
 
-def score_zero(domain, cases):
-    """Zero-shot scores for holdout cases from the stratification pass's cached answers.
-
-    Keeps the zero-shot engine off the post-training critical path; rows missing from the
-    cache (none in practice — every teach case and fresh row is a holdout row) are predicted."""
-    spec = DOM[domain]
-    cached = _zero_answers.get(domain, {})
-    return [_score(c, cached[c["id"]]) if c.get("id") in cached
-            else _score(c, zero.predict(c["state"], spec["questions"]["defs"]).get("answers", {}))
-            for c in cases]
-
-
-def lite_portfolio(pkg):
-    """Lite portfolio: the same JSON minus the `probabilities` key in every answer dict."""
-    pkg = copy.deepcopy(pkg)
-    for claim in pkg.get("claims", []):
-        for arm in (claim.get("arms") or {}).values():
-            for a in (arm.get("answers") or {}).values():
-                a.pop("probabilities", None)
-    return pkg
-
+# ------------------------------------------------------------------ preflight & failures
 
 def vram_error(free_gib):
     return (f"Not enough GPU memory free ({free_gib:g} GiB free, {TEACH_MIN_FREE_GIB:g} GiB "
@@ -432,7 +435,7 @@ def vram_error(free_gib):
 
 
 def preflight_gpu_free():
-    """Plan 0.2 — call AFTER free_own_memory(). None = may launch; else the 503 payload."""
+    """Call AFTER free_own_memory(). None = may launch; else the 503 payload."""
     try:
         import torch
         if not torch.cuda.is_available():
@@ -470,11 +473,11 @@ def _plain_train_error(kind, log_path):
             f"studio-runs/<domain>/{name}.")
 
 
-# --------------------------------------------------------------- job persistence (0.9)
+# ------------------------------------------------------------------ job persistence
 
 def _persist_job():
     with _lock:
-        snap = {k: _job.get(k) for k in ("state", "domain", "started", "started_epoch",
+        snap = {k: _job.get(k) for k in ("state", "domain", "policy", "started", "started_epoch",
                                          "ended_epoch", "pid", "error_kind", "error")}
     try:
         (OUT / "last_job.json").write_text(json.dumps(snap, indent=1))
@@ -509,7 +512,7 @@ def _pid_cmdline(pid):
 
 
 def kill_stale_train(domain):
-    """Kill a leftover train_cli for `domain` — only after verifying its cmdline (plan 0.9)."""
+    """Kill a leftover train_cli for `domain` — only after verifying its cmdline."""
     candidates = []
     try:
         candidates.append(int((OUT / domain / "train.pid").read_text().strip()))
@@ -546,7 +549,9 @@ def kill_stale_train(domain):
 
 
 def recover_stale_job():
-    """Startup: a previous studio process died mid-Teach — stop the orphan and say so (0.9)."""
+    """Startup: a previous studio process died mid-Teach — stop the orphan and say so."""
+    for d in DOM:
+        shutil.rmtree(OUT / d / "ft-ckpt.new", ignore_errors=True)
     try:
         prev = json.load(open(OUT / "last_job.json"))
     except Exception:
@@ -554,14 +559,11 @@ def recover_stale_job():
     if prev.get("state") not in ("training", "evaluating"):
         return
     domain = prev.get("domain")
-    if domain and domain in DOM:
-        killed = kill_stale_train(domain)
-    else:
-        killed = False
+    killed = kill_stale_train(domain) if domain in DOM else False
     with _lock:
-        _job.update(state="failed", domain=domain, started=prev.get("started"),
-                    started_epoch=prev.get("started_epoch"), ended_epoch=time.time(),
-                    pid=None, progress=None, error_kind="lost",
+        _job.update(state="failed", domain=domain, policy=prev.get("policy"),
+                    started=prev.get("started"), started_epoch=prev.get("started_epoch"),
+                    ended_epoch=time.time(), pid=None, progress=None, error_kind="lost",
                     error=("The studio restarted during Teach; the training process was "
                            + ("stopped." if killed else "already gone.")
                            + " No audience traffic was lost — start Teach again."))
@@ -572,7 +574,7 @@ def recover_stale_job():
 
 
 def _token_check(header_value):
-    """None when allowed, else (code, payload). compare_digest + 5-miss throttle (plan 4.5)."""
+    """None when allowed, else (code, payload). compare_digest + 5-miss throttle."""
     if not TOKEN:
         return None
     now = time.time()
@@ -588,12 +590,29 @@ def _token_check(header_value):
         if _token_state["misses"] == TOKEN_MISSES_ALLOWED:
             _token_state["blocked_until"] = now + THROTTLE_S
             _token_state["misses"] = 0   # after the timeout lapses, five fresh tries
-    print("[studio] token miss (studio_train/drift)", flush=True)
+    print("[studio] token miss (studio/train)", flush=True)
     return 403, {"error_kind": "token", "error": "studio token required"}
 
 
-def train_worker(domain, rows, edits, relabeled_rows, edited_profiles):
+def busy():
+    with _lock:
+        return _job["state"] in ("training", "evaluating")
+
+
+# ------------------------------------------------------------------ the re-teach
+
+def _fail(domain, kind, error, note):
+    _msg(note)
+    with _lock:
+        _job.update(state="failed", ended_epoch=time.time(), pid=None, error_kind=kind, error=error)
+    _persist_job()
+    _unlink_pid(domain)
+    shutil.rmtree(OUT / domain / "ft-ckpt.new", ignore_errors=True)
+
+
+def train_worker(domain, pol, rows, corpus_changed):
     t_start = _job.get("started_epoch") or time.time()
+    spec = DOM[domain]
     try:
         run_dir = OUT / domain
         run_dir.mkdir(parents=True, exist_ok=True)
@@ -601,10 +620,11 @@ def train_worker(domain, rows, edits, relabeled_rows, edited_profiles):
         with open(data_path, "w") as f:
             for r in rows:
                 f.write(json.dumps(r) + "\n")
-        ckpt = run_dir / "ft-ckpt"
+        new_ckpt = run_dir / "ft-ckpt.new"
+        shutil.rmtree(new_ckpt, ignore_errors=True)
         log_path = run_dir / f"train-{time.strftime('%Y%m%d-%H%M%S')}.log"
         cmd = [PY, "-m", "laya.train_cli", "--data", str(data_path),
-               "--base", "convaiinnovations/laya", "--out", str(ckpt),
+               "--base", str(prod_ckpt(domain)), "--out", str(new_ckpt),
                "--loss", "soft-ce", "--shuffle-options",
                "--epochs", str(TEACH_EPOCHS), "--micro-batch", str(TEACH_MICRO_BATCH),
                "--grad-accum", str(TEACH_GRAD_ACCUM), "--device", DEVICE]
@@ -614,7 +634,7 @@ def train_worker(domain, rows, edits, relabeled_rows, edited_profiles):
             cmd += ["--encoder-lr", TEACH_ENCODER_LR]
         if TEACH_HEAD_LR:
             cmd += ["--head-lr", TEACH_HEAD_LR]
-        _msg(f"training subprocess started on {DEVICE}")
+        _msg(f"re-teaching your model on {len(rows)} relabeled rows ({DEVICE})")
         t0 = time.time()
         with open(log_path, "w") as logf:
             logf.write("# " + " ".join(cmd) + "\n")
@@ -641,74 +661,67 @@ def train_worker(domain, rows, edits, relabeled_rows, edited_profiles):
                 m = _ITEMS_RE.match(line)
                 if m:   # exact item count → exact step total
                     steps = max(1, math.ceil(int(m.group(1)) / TEACH_MICRO_BATCH))
+                    with _lock:
+                        _job["progress"] = {"epoch": 1, "epochs": TEACH_EPOCHS, "step": 0, "steps": steps}
                 if _MEAN_RE.match(line) or m:
                     _msg(line)
         rc = proc.wait()
         train_s = round(time.time() - t0, 1)
         if rc != 0:
             kind = classify_failure(log_path.read_text(errors="replace"))
-            _msg(f"training failed ({kind}) after {train_s}s — see {log_path.name}")
-            with _lock:
-                _job.update(state="failed", ended_epoch=time.time(), pid=None, error_kind=kind,
-                            error=_plain_train_error(kind, log_path))
-            _persist_job()
-            _unlink_pid(domain)
-            restore_router_async()
+            _fail(domain, kind, _plain_train_error(kind, log_path),
+                  f"training failed ({kind}) after {train_s}s — see {log_path.name}")
             return
         # The trainer also writes a per-epoch copy byte-identical to the final save; drop it.
-        shutil.rmtree(ckpt / "checkpoint_latest", ignore_errors=True)
-        _msg(f"training done in {train_s}s; loading studio checkpoint")
+        shutil.rmtree(new_ckpt / "checkpoint_latest", ignore_errors=True)
         with _lock:
             _job["state"] = "evaluating"
             _job["progress"] = None
         _persist_job()
+        _msg(f"training done in {train_s}s; taking the exam")
         t_eval = time.time()
-        eng = laya.load(str(ckpt), device=DEVICE)
-        with _ft_lock:
-            _ft.clear()
-            _ft[domain] = eng
-            _resident["domain"] = domain
-        _msg("checkpoint loaded; evaluating")
-        cases = cached_cases(domain)
-        apply_edits(cases, edits)
-        fresh = fresh_holdout(domain, cases, edited_profiles)
-        probes = json.load(open(DATA / domain / "demo_presets.json")).get("paraphrase_probes", [])
-        result = {
-            "train_seconds": train_s, "train_rows": len(rows),
-            "relabeled_rows": relabeled_rows,
-            "edited_profiles": [{"profile": profile_label(p), "questions": sorted(qs)}
-                                for p, qs in edited_profiles.items()],
-            "before": score_zero(domain, cases),
-            "after": run_eval(domain, eng, cases),
-            "fresh_holdout": run_eval(domain, eng, fresh),     # headline: unseen cases
-            "fresh_holdout_zero": score_zero(domain, fresh),   # same 30, before teaching
-            "paraphrase_probes": run_eval(domain, eng, probes),
-            "config": {"bg_rows": TEACH_BG_ROWS, "upsample": TEACH_UPSAMPLE,
-                       "epochs": TEACH_EPOCHS, "micro_batch": TEACH_MICRO_BATCH,
-                       "grad_accum": TEACH_GRAD_ACCUM},
-        }
+        shutil.rmtree(taught_ckpt(domain), ignore_errors=True)
+        new_ckpt.rename(taught_ckpt(domain))
+        (OUT / domain / "last-result.json").unlink(missing_ok=True)
+        taught = laya.load(str(taught_ckpt(domain)), device=DEVICE)   # the exam needs only this one
+        with _eng_lock:
+            if _eng["domain"] != domain:
+                _eng.update(domain=domain, prod=None, taught=None)
+            _eng["taught"] = taught
+        new_spec = apply_policy(spec, pol)
+        exam = impact(domain, pol)["exam"]
+        res = taught.predict_batch([e["state"] for e in exam], new_spec["questions"]["defs"],
+                                   batch_size=16)
+        for e, r in zip(exam, res):
+            e["after"] = values(r.get("answers"))
         t_done = time.time()
-        result["timing"] = {"prepare_s": round(t0 - t_start, 1), "train_s": train_s,
-                            "evaluate_s": round(t_done - t_eval, 1),
-                            "total_s": round(t_done - t_start, 1)}
+        result = {
+            "domain": domain, "policy": pol, "sentence": policy_sentence(spec, pol),
+            "train_seconds": train_s, "train_rows": len(rows), "corpus_changed": corpus_changed,
+            "exam": exam,
+            "summary": {"before": tally(exam, "before"), "after": tally(exam, "after")},
+            "config": {"changed_rows": TEACH_CHANGED_ROWS, "same_rows": TEACH_SAME_ROWS,
+                       "epochs": TEACH_EPOCHS, "micro_batch": TEACH_MICRO_BATCH,
+                       "grad_accum": TEACH_GRAD_ACCUM, "base": "prod-ckpt",
+                       "log": log_path.name},
+            "timing": {"prepare_s": round(t0 - t_start, 1), "train_s": train_s,
+                       "evaluate_s": round(t_done - t_eval, 1),
+                       "total_s": round(t_done - t_start, 1)},
+            "finished": time.strftime("%Y-%m-%d %H:%M:%S"),
+        }
+        (OUT / domain / "last-result.json").write_text(json.dumps(result))
         with _lock:
             _job["result"] = result
             _job.update(state="done", ended_epoch=t_done, pid=None)
         _msg(f"done in {result['timing']['total_s']}s")
         _persist_job()
         _unlink_pid(domain)
-        restore_router_async()     # zero-shot back for drift/sessions, off the critical path
+        threading.Thread(target=engines, args=(domain,), daemon=True).start()   # prod back for compare
     except Exception:
         traceback.print_exc()
-        with _lock:
-            _job.update(state="failed", ended_epoch=time.time(), pid=None,
-                        error_kind=_job.get("error_kind") or "train_failed",
-                        error=_job.get("error") or
-                        "Teach hit an unexpected error — the studio log on the host has details.")
-        _msg("failed: unexpected error")
-        _persist_job()
-        _unlink_pid(domain)
-        restore_router_async()
+        _fail(domain, _job.get("error_kind") or "train_failed",
+              _job.get("error") or "Teach hit an unexpected error — the studio log on the host has details.",
+              "failed: unexpected error")
 
 
 def status_snapshot():
@@ -716,7 +729,8 @@ def status_snapshot():
         started_epoch = _job["started_epoch"]
         elapsed = (round((_job["ended_epoch"] or time.time()) - started_epoch, 1)
                    if started_epoch else None)
-        out = {"state": _job["state"], "domain": _job["domain"], "started": _job["started"],
+        out = {"state": _job["state"], "domain": _job["domain"], "policy": _job["policy"],
+               "sentence": _job["sentence"], "started": _job["started"],
                "started_epoch": started_epoch, "elapsed_s": elapsed,
                "progress": _job["progress"], "messages": list(_messages),
                "error_kind": _job["error_kind"], "error": _job["error"]}
@@ -727,8 +741,7 @@ def status_snapshot():
 
 def _unknown_domain(domain):
     shown = domain if isinstance(domain, str) else type(domain).__name__
-    return 404, {"error_kind": "unknown_domain",
-                 "error": f"unknown domain {shown[:40]!r}"}
+    return 404, {"error_kind": "unknown_domain", "error": f"unknown domain {shown[:40]!r}"}
 
 
 class H(BaseHTTPRequestHandler):
@@ -741,48 +754,25 @@ class H(BaseHTTPRequestHandler):
         self.wfile.write(body)
 
     def do_GET(self):
-        u = urllib.parse.urlsplit(self.path)
-        p, qs = u.path, dict(urllib.parse.parse_qsl(u.query))
+        p = urllib.parse.urlsplit(self.path).path
         if p in ("/health", "/studio/health"):
             with _lock:
                 job_state = _job["state"]
             self._send(200, {"ok": True, "job": job_state, "token_required": bool(TOKEN),
                              "gpu": gpu_info(), "teach_min_free_gib": TEACH_MIN_FREE_GIB,
-                             "resident_ckpt": _resident["domain"]})
+                             "resident": _eng["domain"], "warm": _warm_done.is_set(),
+                             "prod_ready": {d: prod_ckpt(d).exists() for d in DOM}})
         elif p == "/studio/domains":
-            self._send(200, {"domains": {k: {"stages": v["stages"]} for k, v in DOM.items()}})
+            self._send(200, {"domains": {k: {"stages": v["stages"],
+                                             "noun_plural": v.get("noun_plural", "cases")}
+                                         for k, v in DOM.items()}})
         elif p == "/studio/status":
             self._send(200, status_snapshot())
-        elif p == "/studio/presets":
-            domain = qs.get("domain")
-            if domain not in DOM:
-                self._send(*_unknown_domain(domain))
-                return
-            try:
-                self._send(200, json.load(open(DATA / domain / "demo_presets.json")))
-            except FileNotFoundError:
-                self._send(404, {"error_kind": "no_presets",
-                                 "error": "no presets file for this domain yet"})
-        elif p == "/studio/portfolio":
-            domain = qs.get("domain")
-            if domain not in DOM:
-                self._send(*_unknown_domain(domain))
-                return
-            try:
-                pkg = json.load(open(DATA / domain / "portfolio_results.json"))
-            except FileNotFoundError:
-                self._send(404, {"error_kind": "no_portfolio",
-                                 "error": "no portfolio for this domain yet"})
-                return
-            if qs.get("lite") in ("1", "true"):
-                pkg = lite_portfolio(pkg)
-            self._send(200, pkg)
         else:
             self._send(404, {"error_kind": "not_found", "error": "no such route"})
 
-    def do_POST(self):
-        u = urllib.parse.urlsplit(self.path)
-        p, qs = u.path, dict(urllib.parse.parse_qsl(u.query))
+    def _body(self):
+        """Parsed JSON object, or None after sending the 400/413."""
         try:
             n = int(self.headers.get("Content-Length") or 0)
         except ValueError:
@@ -790,158 +780,152 @@ class H(BaseHTTPRequestHandler):
         if n < 0:
             self.close_connection = True
             self._send(400, {"error_kind": "bad_json", "error": "invalid Content-Length"})
-            return
+            return None
         if n > BODY_CAP:
             self.close_connection = True
-            self._send(413, {"error_kind": "too_large",
-                             "error": "request body exceeds the 64 KB cap"})
-            return
+            self._send(413, {"error_kind": "too_large", "error": "request body exceeds the 64 KB cap"})
+            return None
         raw = self.rfile.read(n) if n else b""
         try:
             body = json.loads(raw or b"{}")
             if not isinstance(body, dict):
                 raise ValueError("not an object")
         except (ValueError, UnicodeDecodeError):
-            self._send(400, {"error_kind": "bad_json",
-                             "error": "request body is not a JSON object"})
+            self._send(400, {"error_kind": "bad_json", "error": "request body is not a JSON object"})
+            return None
+        return body
+
+    def _policy(self, domain, body):
+        try:
+            return normalize_policy(DOM[domain], body.get("policy"))
+        except ValueError as e:
+            self._send(400, {"error_kind": "bad_policy", "error": str(e)})
+            return None
+
+    def do_POST(self):
+        p = urllib.parse.urlsplit(self.path).path
+        body = self._body()
+        if body is None:
+            return
+        domain = body.get("domain")
+        if p not in ("/studio/session", "/studio/impact", "/studio/train", "/studio/compare"):
+            self._send(404, {"error_kind": "not_found", "error": "no such route"})
+            return
+        if domain not in DOM:
+            self._send(*_unknown_domain(domain))
             return
 
         if p == "/studio/session":
-            domain = body.get("domain")
-            if domain not in DOM:
-                self._send(*_unknown_domain(domain))
+            if not _warm_done.is_set() and domain not in _prod_vals and prod_ckpt(domain).exists():
+                self._send(503, {"error_kind": "warming_up",
+                                 "error": "the studio is measuring your model after a restart — retry in a few seconds"})
                 return
-            if busy():
-                self._send(409, {"error_kind": "busy",
-                                 "error": "teach is running — the studio pauses other GPU work"})
-                return
-            cases = cached_cases(domain)
-            self._send(200, {"cases": cases,
-                             "questions": DOM[domain]["questions"]["defs"]})
+            self._send(200, session_payload(domain))
+            if not busy():     # have both engines resident by the time the room tries a ticket
+                threading.Thread(target=engines, args=(domain,), daemon=True).start()
+            return
+
+        if p == "/studio/impact":
+            pol = self._policy(domain, body)
+            if pol:
+                self._send(200, impact(domain, pol))
             return
 
         if p == "/studio/train":
-            domain = body.get("domain")
-            if domain not in DOM:
-                self._send(*_unknown_domain(domain))
-                return
             bad = _token_check(self.headers.get("X-Studio-Token"))
             if bad:
                 self._send(*bad)
                 return
-            cases = body.get("cases")
-            if (not isinstance(cases, list) or not cases
-                    or not all(isinstance(c, dict) and {"id", "state", "gold"} <= set(c)
-                               for c in cases)):
-                self._send(400, {"error_kind": "bad_request",
-                                 "error": "cases must be the teach cases from /studio/session"})
+            pol = self._policy(domain, body)
+            if not pol:
                 return
-            edits = body.get("edits", [])
-            if not isinstance(edits, list) or not all(
-                    isinstance(e, dict) and {"case_id", "qid", "to"} <= set(e) for e in edits):
-                self._send(400, {"error_kind": "bad_request",
-                                 "error": "edits must be {case_id, qid, to} objects"})
+            spec = DOM[domain]
+            if policy_is_noop(spec, pol):
+                self._send(400, {"error_kind": "noop",
+                                 "error": "that is today's rule — change a value first"})
+                return
+            if not (prod_ckpt(domain) / "model.safetensors").exists():
+                self._send(503, {"error_kind": "no_prod",
+                                 "error": "no production model for this domain on this host (train_prod_ckpt.sh)"})
                 return
             if not _warm_done.wait(20):
                 self._send(503, {"error_kind": "warming_up",
                                  "error": "the studio is still warming up after a restart — retry in a few seconds"})
                 return
-            cached_cases(domain)              # zero-shot pass cached while the router is resident
-            rows, relabeled, edited_profiles = build_training_set(domain, cases, edits)
-            free_own_memory()                 # plan 0.3: evict before measuring (0.2)
+            prod_values(domain)               # production answers cached before the GPU is lent out
+            impact(domain, pol)               # exam rows with those answers
+            rows, n_changed, _ = policy_training_rows(spec, data(domain)["train"], pol,
+                                                      TEACH_CHANGED_ROWS, TEACH_SAME_ROWS)
+            with _lock:                       # claim first: nothing reloads an engine from here on
+                if _job["state"] in ("training", "evaluating"):
+                    self._send(409, {"error_kind": "busy", "error": "a training job is already running"})
+                    return
+                prev = copy.deepcopy(_job)
+                _job.update(state="training", domain=domain, policy=pol,
+                            sentence=policy_sentence(spec, pol),
+                            started=time.strftime("%H:%M:%S"), started_epoch=time.time(),
+                            ended_epoch=None, pid=None, progress=None, error_kind=None, error=None)
+                _job.pop("result", None)
+            with _compare_sem:                # no inference mid-eviction
+                free_own_memory()
             refuse = preflight_gpu_free()
             if refuse:
-                restore_router_async()        # keep the console's zero-shot cards warm
+                with _lock:
+                    _job.clear()
+                    _job.update(prev)
+                threading.Thread(target=engines, args=(domain,), daemon=True).start()
                 self._send(503, refuse)
                 return
-            with _lock:
-                if _job["state"] in ("training", "evaluating"):
-                    self._send(409, {"error_kind": "busy",
-                                     "error": "a training job is already running"})
-                    return
-                _job.update(state="training", domain=domain,
-                            started=time.strftime("%H:%M:%S"), started_epoch=time.time(),
-                            ended_epoch=None, pid=None, progress=None,
-                            error_kind=None, error=None)
-                _job.pop("result", None)
-                _messages.clear()
-            threading.Thread(target=train_worker,
-                             args=(domain, rows, edits, relabeled, edited_profiles),
+            _messages.clear()
+            _persist_job()
+            threading.Thread(target=train_worker, args=(domain, pol, rows, n_changed),
                              daemon=True).start()
-            self._send(200, {"started": True, "rows": len(rows), "relabeled_rows": relabeled})
+            self._send(200, {"started": True, "rows": len(rows), "corpus_changed": n_changed})
             return
 
-        if p == "/studio/predict":
-            domain = body.get("domain")
-            if domain not in DOM:
-                self._send(*_unknown_domain(domain))
-                return
+        # /studio/compare — any ticket, both models, both rulebooks
+        state = body.get("state")
+        if not isinstance(state, str) or not state.strip():
+            self._send(400, {"error_kind": "bad_request", "error": "state is required"})
+            return
+        if len(state) > STATE_CAP:
+            self._send(400, {"error_kind": "bad_request", "error": f"state longer than {STATE_CAP} chars"})
+            return
+        if busy():
+            self._send(409, {"error_kind": "busy", "error": "the model is being re-taught — try again when it finishes"})
+            return
+        if not _compare_sem.acquire(timeout=COMPARE_WAIT_S):
+            self._send(503, {"error_kind": "busy", "error": "many people are asking at once — try again"})
+            return
+        try:
             if busy():
-                self._send(409, {"error_kind": "busy",
-                                 "error": "teach is running — try again when it finishes"})
-                return
-            eng = get_engine(domain)
-            if not eng:
-                self._send(404, {"error_kind": "no_ckpt",
-                                 "error": "no studio checkpoint for this domain yet"})
-                return
-            state = body.get("state")
-            if not isinstance(state, str) or not state:
-                self._send(400, {"error_kind": "bad_request", "error": "state is required"})
-                return
-            if len(state) > STATE_CAP:
-                self._send(400, {"error_kind": "bad_request",
-                                 "error": f"state longer than {STATE_CAP} chars"})
+                self._send(409, {"error_kind": "busy", "error": "the model is being re-taught — try again when it finishes"})
                 return
             spec = DOM[domain]
-            res = eng.predict(state, spec["questions"]["defs"]).get("answers", {})
-            out = {}
-            for qid, a in res.items():
-                d = {"type": a.get("type")}
-                for k in ("choice", "score", "noul"):
-                    if k in a:
-                        d[k] = a[k]
-                if isinstance(a.get("probabilities"), dict):
-                    d["probabilities"] = {str(k): round(float(v), 4)
-                                          for k, v in a["probabilities"].items()}
-                out[qid] = d
-            self._send(200, {"answers": out})
-            return
-
-        if p == "/studio/drift":
-            # "A year later": the policy changed (deductibles doubled). Measured decay of the
-            # taught engine on 30 fresh rows from the drifted spec, versus the zero-shot base.
-            domain = body.get("domain")
-            if domain not in DOM:
-                self._send(*_unknown_domain(domain))
+            prod, taught = engines(domain)
+            if prod is None:
+                self._send(404, {"error_kind": "no_prod", "error": "no production model for this domain on this host"})
                 return
-            bad = _token_check(self.headers.get("X-Studio-Token"))
-            if bad:
-                self._send(*bad)
-                return
-            if busy():
-                self._send(409, {"error_kind": "busy",
-                                 "error": "teach is running — try again when it finishes"})
-                return
-            eng = get_engine(domain)
-            if not eng:
-                self._send(404, {"error_kind": "no_ckpt",
-                                 "error": "no studio checkpoint for this domain yet"})
-                return
-            spec = DOM[domain]
-            from domain_factory import make_row
-            drifted = copy.deepcopy(spec)
-            drifted["deductibles"] = {k: 2 * v for k, v in spec["deductibles"].items()}
-            rng = random.Random(4242)
-            rows = [make_row(drifted, rng, 700000 + i) for i in range(30)]
-            cases = [{"id": r["id"], "state": r["state"], "gold": r["gold"]} for r in rows]
-            _router_ready.wait(60)            # zero-shot may still be reloading after a teach
-            self._send(200, {"drift": "deductibles doubled",
-                             "taught": run_eval(domain, eng, cases),
-                             "zero": run_eval(domain, zero, cases)})
-            return
-
-        self._send(404, {"error_kind": "not_found", "error": "no such route"})
+            lr = last_result(domain)
+            out = {"policy": lr["policy"] if lr else None, "sentence": lr["sentence"] if lr else None,
+                   "rules_old": rules_view(spec, state), "rules_new": None, "after": None}
+            t = time.time()
+            ans = prod.predict(state, spec["questions"]["defs"]).get("answers", {})
+            out["before"] = {"answers": {q: {"v": answer_value(a), "c": answer_conf(a)} for q, a in ans.items()},
+                             "ms": round(1000 * (time.time() - t))}
+            if taught is not None and lr:
+                new_spec = apply_policy(spec, lr["policy"])
+                out["rules_new"] = rules_view(new_spec, state)
+                t = time.time()
+                ans = taught.predict(state, new_spec["questions"]["defs"]).get("answers", {})
+                out["after"] = {"answers": {q: {"v": answer_value(a), "c": answer_conf(a)} for q, a in ans.items()},
+                                "ms": round(1000 * (time.time() - t))}
+            self._send(200, out)
+        except Exception:
+            traceback.print_exc()
+            self._send(500, {"error_kind": "internal", "error": "the model could not answer — try again"})
+        finally:
+            _compare_sem.release()
 
 
 if __name__ == "__main__":

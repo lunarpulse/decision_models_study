@@ -219,6 +219,21 @@ SUPPORT_TICKETS = {
         {"stage": "4 · Operations", "questions": ["expected_touches"]},
     ],
 
+    # Domain Builder policy changes (domain_factory.apply_policy): the presets the presenter
+    # picks from; every value stays editable in the rulebook editor.
+    "noun_plural": "tickets",
+    "policies": [
+        {"kind": "reassign", "params": {"cat": "account", "unit": "trust_and_safety"},
+         "title": "Escalate a whole queue",
+         "story": "After last month's account-takeover wave, security wants every account ticket."},
+        {"kind": "vip", "params": {"tier": "Premium", "level": 2},
+         "title": "VIP fast lane",
+         "story": "Sales promised Premium customers a faster answer."},
+        {"kind": "risk", "params": {"markers": 1},
+         "title": "Zero tolerance",
+         "story": "Refund abuse is up: the CFO wants every warning sign reviewed."},
+    ],
+
     "preset_forces": [
         {"cat": "billing", "desc": "plain billing refund, evidence attached", "want_flag": False},
         {"cat": "billing", "desc": "gateway double charge", "want_flag": False},
@@ -446,6 +461,19 @@ LOGISTICS_EXCEPTIONS = {
         {"stage": "2 · Liability & recovery", "questions": ["liability_eligibility", "recovery_band"]},
         {"stage": "3 · Investigation", "questions": ["contract_abuse_review", "subcarrier_recovery"]},
         {"stage": "4 · Operations", "questions": ["expected_touches"]},
+    ],
+
+    "noun_plural": "exceptions",
+    "policies": [
+        {"kind": "reassign", "params": {"cat": "customs", "unit": "contract_compliance"},
+         "title": "Escalate a whole queue",
+         "story": "A new trade-compliance mandate: compliance owns every customs case."},
+        {"kind": "vip", "params": {"tier": "Premium", "level": 2},
+         "title": "VIP fast lane",
+         "story": "Premium shippers were promised a faster response."},
+        {"kind": "risk", "params": {"markers": 1},
+         "title": "Zero tolerance",
+         "story": "Claim abuse is up: every warning sign goes to compliance."},
     ],
 
     "preset_forces": [
@@ -699,6 +727,19 @@ HR_EXCEPTIONS = {
         {"stage": "2 · Eligibility & payment", "questions": ["exception_eligibility", "exception_band"]},
         {"stage": "3 · Investigation", "questions": ["policy_circumvention_review", "external_party_involved"]},
         {"stage": "4 · Operations", "questions": ["expected_touches"]},
+    ],
+
+    "noun_plural": "requests",
+    "policies": [
+        {"kind": "reassign", "params": {"cat": "conduct", "unit": "ethics_review"},
+         "title": "Escalate a whole queue",
+         "story": "The board wants ethics review to see every conduct matter."},
+        {"kind": "vip", "params": {"tier": "Premium", "level": 2},
+         "title": "VIP fast lane",
+         "story": "Premium-tier (executive) requests get answered first."},
+        {"kind": "risk", "params": {"markers": 1},
+         "title": "Zero tolerance",
+         "story": "After an audit finding, every warning sign goes to ethics review."},
     ],
 
     "preset_forces": [

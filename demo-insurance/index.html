@@ -12,6 +12,7 @@
   --era1:#8a5300; --era1-soft:#fff8ec; --era2:#0b6e4f; --era2-soft:#f0f9f4;
 }
 *{box-sizing:border-box}
+[hidden]{display:none !important}
 body{margin:0;background:var(--bg);color:var(--ink);line-height:1.5;
   font-family:system-ui,-apple-system,"Segoe UI",Roboto,"Helvetica Neue",Arial,"Noto Sans",sans-serif;
   font-size:clamp(14px,1.25vw,18px)}
@@ -106,19 +107,97 @@ footer{border-top:1px solid var(--line);margin-top:1.2rem;padding:.7rem 0;font-s
 .opstable tr.ovr td{background:#fffaf0}
 .mini{font-size:.78em;padding:.12rem .5rem;margin-right:.2rem;border:1px solid var(--line);border-radius:6px;background:#fff;cursor:pointer}
 .mini:hover{border-color:var(--accent);color:var(--accent)}
-.gchip{display:inline-block;font:inherit;font-size:.8em;padding:.05rem .5rem;border-radius:999px;border:1px solid var(--line);
-  background:#f6f8fa;cursor:pointer}
-.gchip:hover{border-color:var(--accent)}
-.gchip.edited{background:#fff3d6;border-color:var(--warnline);font-weight:700}
-.gselect{font:inherit;font-size:.8em;max-width:11em}
+.ok{color:var(--ok);font-weight:700} .no{color:var(--bad);font-weight:700}
 .calrow{display:flex;gap:.25rem;align-items:center;margin:.3rem 0;flex-wrap:wrap}
 .calrow .k{width:11em;font-weight:700;font-size:.8em}
 .calbin{display:inline-flex;flex-direction:column;align-items:center;min-width:3em;padding:.15rem .25rem;border:1px solid var(--line);border-radius:5px;font-size:.78em;font-weight:700;background:#fff}
 .calbin small{font-weight:400;color:var(--muted);font-size:.85em}
 .pbar{display:inline-block;vertical-align:middle;width:140px;max-width:38vw;height:.6em;background:#e8edf3;border-radius:999px;overflow:hidden}
 .pbar i{display:block;height:100%;background:var(--accent);border-radius:999px;transition:width .5s}
-.dompick{font:inherit;text-align:left;cursor:pointer;border:1px solid var(--line);border-radius:10px;background:#fff;padding:.6rem .8rem}
-.dompick:hover{border-color:var(--accent);background:var(--accent-soft)}
+/* Domain Builder v3 */
+.db-pick{display:grid;grid-template-columns:repeat(auto-fit,minmax(230px,1fr));gap:.6rem;margin:.4rem 0 .8rem}
+.db-dom{font:inherit;text-align:left;cursor:pointer;border:1.5px solid var(--line);border-radius:12px;background:#fff;
+  padding:.55rem .8rem;display:flex;flex-direction:column;gap:.15rem}
+.db-dom .t{font-weight:800}
+.db-dom:hover{border-color:var(--accent)}
+.db-dom.on{border-color:var(--accent);background:var(--accent-soft);box-shadow:0 0 0 3px rgba(31,95,168,.12)}
+.db-steps{position:sticky;top:2.6rem;z-index:4;display:flex;gap:.3rem;flex-wrap:wrap;margin:.4rem 0 .6rem;padding:.3rem 0;
+  background:linear-gradient(var(--bg) 75%,transparent)}
+.db-steps button{font:inherit;font-size:.78em;font-weight:700;padding:.2rem .7rem;border-radius:999px;border:1px solid var(--line);
+  background:#fff;color:var(--muted);cursor:pointer}
+.db-steps button.done{border-color:var(--ok);color:var(--ok);background:var(--era2-soft)}
+.db-act{background:#fff;border:1px solid var(--line);border-radius:14px;padding:1rem 1.1rem;margin:.9rem 0;
+  box-shadow:0 1px 3px rgba(20,30,50,.05);scroll-margin-top:5rem}
+.db-act>.kicker{color:var(--accent);margin-bottom:.1rem}
+.db-act h2{margin-top:0}
+.db-vs{display:grid;grid-template-columns:1fr auto 1fr;gap:.8rem;align-items:stretch;margin:.7rem 0}
+.db-stat{border:1px solid var(--line);border-radius:12px;padding:.65rem .9rem;background:#fafbfd}
+.db-stat.good{border-color:#bcd9cb;background:#f4faf7}
+.db-stat.bad{border-color:#e3c3c3;background:#fdf6f6}
+.db-stat .big{font-size:clamp(1.5rem,3.6vw,2.5rem);font-weight:800;font-variant-numeric:tabular-nums;line-height:1.15}
+.db-stat .big small{font-size:.5em;color:var(--muted);font-weight:700}
+.db-res .big{font-size:clamp(1.15rem,2.2vw,1.75rem);white-space:nowrap}
+.db-stat .lbl,.db-impact .lbl{font-size:.78em;color:var(--muted);font-weight:600}
+.db-arrow{align-self:center;font-size:1.8rem;color:var(--muted)}
+.db-showhead{display:flex;gap:.5rem;align-items:center;flex-wrap:wrap;margin-top:.8rem}
+.db-showhead h3{margin:0 .4rem 0 0}
+.db-ticket{background:#f7f9fc;border:1px solid var(--line);border-left:4px solid var(--accent);border-radius:8px;
+  padding:.55rem .8rem;margin:.5rem 0;font-size:.92em}
+.db-ticket b{background:#fff1bf;border-radius:3px;padding:0 .12em;font-weight:700}
+.db-dt{width:100%;border-collapse:collapse;font-size:.9em;margin:.4rem 0}
+.db-dt th{text-align:left;font-size:.72em;text-transform:uppercase;letter-spacing:.06em;color:var(--muted);padding:.3rem .45rem;
+  border-bottom:2px solid var(--line)}
+.db-dt td{padding:.3rem .45rem;border-bottom:1px solid var(--line);vertical-align:top}
+.db-dt tfoot td{border-bottom:none;font-weight:800}
+.db-dt tr.diff td{background:#fff6e0}
+.db-pol{display:grid;grid-template-columns:repeat(auto-fit,minmax(260px,1fr));gap:.7rem;margin:.6rem 0}
+.db-card{border:1.5px solid var(--line);border-radius:12px;background:#fff;padding:.7rem .85rem;cursor:pointer}
+.db-card:hover{border-color:var(--accent)}
+.db-card.on{border-color:var(--accent);background:var(--accent-soft);box-shadow:0 0 0 3px rgba(31,95,168,.12)}
+.db-card .t{font-weight:800;font-size:1.02em}
+.db-card .story{font-size:.8em;color:var(--muted);font-style:italic;margin:.1rem 0 .45rem}
+.db-rule{line-height:2}
+.db-rule select{font:inherit;font-weight:700;color:var(--accent);border:1.5px solid var(--accent);border-radius:7px;
+  background:#fff;padding:.02rem .25rem;max-width:12em}
+.db-today{font-size:.75em;color:var(--muted)}
+.db-impact{display:grid;grid-template-columns:minmax(170px,240px) 1fr;gap:1rem;align-items:start;margin:.5rem 0}
+.db-chip{display:inline-block;font-size:.78em;font-weight:700;border-radius:999px;padding:.08rem .55rem;border:1px solid var(--line);
+  background:#f6f8fa;margin:.15rem .2rem .1rem 0}
+.db-chip.acc{background:var(--accent-soft);border-color:var(--accent);color:var(--accent)}
+.db-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(230px,1fr));gap:.55rem;margin:.6rem 0}
+.db-tile{border:1.5px solid var(--line);border-radius:10px;background:#fff;padding:.45rem .6rem;font-size:.8em;cursor:pointer}
+.db-tile:hover,.db-tile:focus{box-shadow:0 2px 7px rgba(20,30,50,.15);outline:none}
+.db-tile .id{font-weight:800}
+.db-tile .facts{color:var(--muted);margin-bottom:.2rem}
+.db-tile .q{font-weight:700;color:#2c4a6e}
+.db-tile.chg{border-style:dashed;border-color:var(--warnline);background:#fffaf0}
+.db-tile.win{border-color:var(--ok);background:#effaf4}
+.db-tile.kept{border-color:#bcd9cb}
+.db-tile.miss{border-color:var(--bad);background:#fdf4f4}
+.db-tile.flip{animation:dbflip .7s ease both}
+@keyframes dbflip{0%{transform:perspective(600px) rotateY(0)}50%{transform:perspective(600px) rotateY(90deg)}100%{transform:perspective(600px) rotateY(0)}}
+.db-teachrow{display:flex;gap:1rem;align-items:center;flex-wrap:wrap;margin:.4rem 0}
+.db-go{font:inherit;font-weight:800;font-size:1.08em;background:var(--ok);color:#fff;border:none;border-radius:12px;
+  padding:.7rem 1.3rem;cursor:pointer}
+.db-go:disabled{opacity:.45;cursor:default}
+.db-phases{display:flex;gap:.45rem;flex-wrap:wrap;margin:.7rem 0 .4rem}
+.db-phase{flex:1 1 170px;border:1px solid var(--line);border-radius:10px;padding:.45rem .6rem;font-size:.8em;color:var(--muted);background:#fafbfd}
+.db-phase.now{border-color:var(--accent);color:var(--ink);background:var(--accent-soft)}
+.db-phase.done{border-color:#bcd9cb;color:var(--ok);background:#f4faf7}
+.db-clock{font-size:2.1rem;font-weight:800;font-variant-numeric:tabular-nums}
+.db-ask{border:1.5px dashed var(--warnline);background:var(--era1-soft);border-radius:10px;padding:.55rem .8rem;margin:.6rem 0;font-size:.92em}
+.db-headline{font-size:clamp(1.05rem,2.2vw,1.4rem);font-weight:800;line-height:1.3;margin:.3rem 0 .6rem}
+.db-try{display:grid;grid-template-columns:minmax(260px,1fr) minmax(300px,1.3fr);gap:1rem;align-items:start}
+.db-mut{display:flex;gap:.35rem;flex-wrap:wrap;margin:.4rem 0}
+.db-mut button,.db-mut select{font:inherit;font-size:.8em;border:1px solid var(--line);border-radius:999px;background:#fff;
+  padding:.2rem .65rem;cursor:pointer}
+.db-mut button:hover{border-color:var(--accent)}
+.db-mut .hint,.db-mut .hint button{border-color:var(--accent);background:var(--accent-soft);font-weight:700}
+.db-fine{border:1px solid var(--line);border-radius:12px;background:#fff;padding:.5rem .9rem;margin:.9rem 0}
+.db-fine summary{cursor:pointer;font-weight:700}
+.db-live{border:1.5px solid var(--warnline);background:var(--era1-soft);border-radius:10px;padding:.5rem .8rem;margin:.5rem 0}
+@media (max-width:760px){.db-try,.db-impact{grid-template-columns:1fr}.db-vs{grid-template-columns:1fr}
+  .db-arrow{transform:rotate(90deg);justify-self:center}.db-steps{position:static}}
 </style>
 </head>
 <body>
@@ -149,7 +228,7 @@ footer{border-top:1px solid var(--line);margin-top:1.2rem;padding:.7rem 0;font-s
     <button class="tab" role="tab" id="tab-after" data-mode="after" aria-controls="era-after">After training · 12,000 past claims</button>
     <button class="tab" role="tab" id="tab-compare" data-mode="compare" aria-controls="era-compare">Side-by-side compare</button>
     <button class="tab" role="tab" id="tab-ops" data-mode="ops" aria-controls="era-ops">🚦 Ops floor · straight-through processing</button>
-    <button class="tab" role="tab" id="tab-domain" data-mode="domain" aria-controls="era-domain">🏭 Domain builder · teach it your business</button>
+    <button class="tab" role="tab" id="tab-domain" data-mode="domain" aria-controls="era-domain">🏭 Domain builder · change a rule, re-teach live</button>
   </div>
 
   <div class="era day1" id="era-day1" role="tabpanel" hidden>
@@ -183,11 +262,10 @@ footer{border-top:1px solid var(--line);margin-top:1.2rem;padding:.7rem 0;font-s
   </div>
 
   <div class="era" id="era-domain" role="tabpanel" style="border-color:var(--line);background:#fff" hidden>
-    <h2><span aria-hidden="true">🏭</span> The Domain Builder — your business, not insurance</h2>
-    <p>Pick a domain. A seeded corpus with rule-verifiable answers generates instantly. Watch the
-      zero-shot engines struggle on it (measured, not staged), then teach a small model your rules —
-      a real fine-tune, live on this machine — and watch the scoreboard flip. Same 7-decision
-      journey as insurance: route, flag, prioritize, eligibility, money band, third party, touches.</p>
+    <h2><span aria-hidden="true">🏭</span> The Domain Builder — change the rulebook, watch the model change</h2>
+    <p>Pick a business. Meet the model trained on its rulebook, change one rule the way the business
+      would, and re-teach the model live on this machine. Then test it on cases it has never seen —
+      and hand both models any case you like.</p>
   </div>
 
   <div id="domainfloor" hidden style="margin:.4rem 0 1rem"></div>
@@ -218,7 +296,7 @@ footer{border-top:1px solid var(--line);margin-top:1.2rem;padding:.7rem 0;font-s
     </div>
   </div>
 
-  <p class="callout"><strong>How to read it:</strong> every engine answers every question with a
+  <p class="callout" id="readHint"><strong>How to read it:</strong> every engine answers every question with a
     probability, never prose. <span style="color:var(--ok);font-weight:700">✓</span> matches the
     claims manual's rule (hover a preset to see it); <span style="color:var(--bad);font-weight:700">✗</span>
     does not. Pasted free text has no rule answer — judge the plausibility yourself.</p>
@@ -227,8 +305,9 @@ footer{border-top:1px solid var(--line);margin-top:1.2rem;padding:.7rem 0;font-s
     <div>Engines: laya 0.3.28 (Apache-2.0) — zero-shot Router; insurance fine-tune: laya-train,
       soft-ce loss, 3 epochs, 12,000 claims. decider-4b (Apache-2.0) — zero-shot generalist plus a
       LoRA fine-tune (switch engines on the ops floor; both appear in compare).
-      Rules answers computed by the hand-coded claims manual. Studio teach: a real fine-tune,
-      typically <span id="etaOut"></span> click to result (see <code>/studio/health</code> for live status).</div>
+      Rules answers computed by the hand-coded claims manual. Domain Builder re-teach: a real fine-tune
+      from the domain's production model, typically <span id="etaOut"></span> click to result
+      (see <code>/studio/health</code> for live status).</div>
     <div>Evidence: <a href="/report" target="_blank" rel="noopener">experiment report</a>.
       All inference local to this machine.<span id="verLine"></span></div>
   </footer>
@@ -249,8 +328,8 @@ const QTITLE = {routing:"Route to unit", fraud_review:"Flag for fraud investigat
 const ARM_LABEL = {zero:"Laya zero-shot", ft:"Laya fine-tuned", dec:"decider-4b zero-shot",
   dec_ft:"decider-4b fine-tuned", rules:"Rules engine (hand-coded policy)"};
 const OPS_ARMS = [["ft","Laya fine-tuned"],["dec_ft","decider-4b fine-tuned"],["dec","decider-4b zero-shot"],["zero","Laya zero-shot"]];
-const CAVEAT_100 = "train and test share one generator — studio-taught models score 0–3/3 on hand-reworded probes; shifted-phrasing study 92.0%";
-const TEACH_ETA = "~1½ min";   // measured click-to-result 78–93 s (3,570 items, 2 epochs, micro-batch 8) with the live stack serving
+const CAVEAT_100 = "train and test share one generator — on hand-reworded cases the Domain Builder's production models get 0–3 of 3 fully right per business (57/63 decisions); shifted-phrasing study 92.0%";
+const TEACH_ETA = "~1 min";   // Domain Builder re-teach, measured click-to-result 64–65 s (600 rows, 1 pass from the production model) with the live stack serving
 let PRESETS = [], QUESTIONS = null, STAGES = [], SCORES = {}, MODE = "day1", LAST = null;
 
 const $ = (id) => document.getElementById(id);
@@ -282,8 +361,8 @@ const DEC = DECBASE + "/predict";
 const HERO = {
   insurance: {title:"One Claim, Two Eras —<br>Watch the Decision Happen",
     lead:`Real models, running live on this machine. Pick a claim, press <strong>Run decision</strong>, and see exactly what each engine is asked and what it answers — with the probabilities your thresholds would act on.`},
-  domain: {title:"The Domain Builder —<br>Teach a Small Model Your Business",
-    lead:`Pick a business, watch the zero-shot engines struggle on its rules, then teach a small model from a handful of cases — a real fine-tune, live on this machine.`},
+  domain: {title:"Change One Rule —<br>Watch the Model Change",
+    lead:`A decision model is only useful if it keeps up with the business. Pick a rule change, re-teach the model live on this GPU, and see exactly which decisions move — on cases it has never seen.`},
 };
 function applyHero(kind){
   const h = HERO[kind] || HERO.insurance;
@@ -312,6 +391,7 @@ function setMode(m, keepClaim, push){
   // compare keeps the claim picker but drops the measured-stat cards: the matrix is the content
   $("mainStats").style.display = wide || m === "compare" ? "none" : "";
   $("claimGrid").style.display = wide ? "none" : "";
+  $("readHint").hidden = wide;           // the ✓/✗ claims legend belongs to the claim console
   $("cardFt").hidden = (m === "day1");   // day1: the fine-tuned card would spoil the reveal
   applyHero(m === "domain" ? "domain" : m === "compare" ? "compare" : "insurance");
   if (m === "compare" && !$("compareMatrix").innerHTML)
@@ -791,336 +871,683 @@ async function initOps(){
 }
 
 
-// ======================= Domain Builder (teach it your business) =======================
-let DOMS = null, DOM_STATE = {domain: null, questions: null, cases: null, edits: {}};
+// ============ Domain Builder v3: change the rulebook, re-teach the model live, compare ============
+let DOMS = null, DB = null, DB_WATCH = null, DB_CLOCK = null;
 const DOM_META = {
-  support_tickets:      {icon:"🎫", blurb:"SaaS helpdesk: route, abuse-flag, prioritize, refund eligibility & band, vendor recovery, agent touches"},
-  logistics_exceptions: {icon:"🚚", blurb:"Shipping exceptions: damage/loss/customs/carrier desks, contract-abuse flags, liability & recovery bands"},
-  hr_exceptions:        {icon:"🧑‍💼", blurb:"People ops: leave/benefits/payroll/conduct desks, circumvention flags, exception bands, external parties"},
+  support_tickets:      {icon:"🎫", name:"Support desk", blurb:"SaaS helpdesk tickets: which team, abuse review, urgency, refund eligibility and amount, vendor chargeback, agent effort"},
+  logistics_exceptions: {icon:"🚚", name:"Logistics exceptions", blurb:"Damaged, lost, held or late shipments: which desk, compliance review, urgency, liability, recovery amount, sub-carrier recovery"},
+  hr_exceptions:        {icon:"🧑‍💼", name:"HR exceptions", blurb:"Leave, benefits, payroll and conduct requests: which desk, ethics review, urgency, policy scope, amount, external party"},
+};
+const ARCH_TITLE = {routing:"Route to", risk_flag:"Flag for review?", urgency:"Urgency", eligibility:"Eligible?",
+  money_band:"Amount band", third_party:"Recover from a third party?", touches:"Handling effort"};
+const POLICY_ICON = {reassign:"🔀", vip:"⭐", risk:"🛡"};
+const DB_STEPS = ["Your model today", "Change a rule", "Re-teach", "What changed", "Try to break it"];
+// Measured offline on all 500 sealed test cases per preset (measure_policy_teach.py; DEVELOPMENT_LOG Phase 10):
+// decisions the rule changes right before → after, decisions it leaves alone right after, all-7 after, train s.
+const DB_MEASURED = {
+  support_tickets: {
+    reassign: {rule:"Account tickets → trust and safety", changed_before:"0/116", changed_after:"116/116", kept_after:"3,363/3,384", all7_before:372, all7_after:490, train_s:49},
+    vip:      {rule:"Premium tier → at least urgent",   changed_before:"0/107", changed_after:"107/107", kept_after:"3,362/3,393", all7_before:380, all7_after:486, train_s:59},
+    risk:     {rule:"Flag at 1 warning sign (was 2)",   changed_before:"2/886", changed_after:"886/886", kept_after:"2,608/2,614", all7_before:261, all7_after:496, train_s:61}},
+  logistics_exceptions: {
+    reassign: {rule:"Customs → contract compliance",    changed_before:"0/111", changed_after:"111/111", kept_after:"3,372/3,389", all7_before:388, all7_after:488, train_s:52},
+    vip:      {rule:"Premium tier → at least urgent",   changed_before:"0/88",  changed_after:"88/88",   kept_after:"3,404/3,412", all7_before:410, all7_after:496, train_s:46},
+    risk:     {rule:"Flag at 1 warning sign (was 2)",   changed_before:"0/843", changed_after:"843/843", kept_after:"2,655/2,657", all7_before:273, all7_after:498, train_s:48}},
+  hr_exceptions: {
+    reassign: {rule:"Conduct → ethics review",          changed_before:"0/123", changed_after:"123/123", kept_after:"3,361/3,377", all7_before:371, all7_after:488, train_s:61},
+    vip:      {rule:"Premium tier → at least urgent",   changed_before:"0/95",  changed_after:"95/95",   kept_after:"3,382/3,405", all7_before:399, all7_after:491, train_s:59},
+    risk:     {rule:"Flag at 1 warning sign (was 2)",   changed_before:"1/899", changed_after:"899/899", kept_after:"2,584/2,601", all7_before:257, all7_after:485, train_s:54}},
+};
+const DB_PROD_NOTE = "about 7 minutes per business on this GPU (424–437 s measured; train_prod_ckpt.sh)";
+// Production models on the 3 hand-reworded cases per business (measured via /studio/compare, DEVELOPMENT_LOG Phase 10).
+const DB_PROBES = {
+  support_tickets:      {all7:"0/3", decisions:"16/21", unread:"9/21"},
+  logistics_exceptions: {all7:"3/3", decisions:"21/21", unread:"8/21"},
+  hr_exceptions:        {all7:"2/3", decisions:"20/21", unread:"9/21"},
 };
 
 function studioURL(p){ return LAYA + "/studio" + p; }
+async function studioCall(path, body, token){
+  const opt = body === undefined ? {} : {method:"POST", headers:{"Content-Type":"application/json"}, body: JSON.stringify(body)};
+  if (token) opt.headers["X-Studio-Token"] = token;
+  const r = await fetch(studioURL(path), opt);
+  let data = {};
+  try { data = await r.json(); } catch (e) { /* non-JSON error body */ }
+  return {code: r.status, data};
+}
+const dbNoun = () => (DB && DB.s ? DB.s.noun_plural.replace(/s$/, "") : "case");
+const dbNouns = () => (DB && DB.s ? DB.s.noun_plural : "cases");
+function dbArch(qid){ const a = DB.s.archetypes || {}; for (const k in a) if (a[k] === qid) return k; return ""; }
+function dbTitle(qid){ return ARCH_TITLE[dbArch(qid)] || humanize(qid); }
+function dbQids(){ return DB.s.stages.flatMap(st => st.questions); }
+function dbVal(qid, v){
+  if (v === null || v === undefined) return "—";
+  if (v === "unparsed") return "can't read it";
+  if (typeof v === "boolean") return v ? "yes" : "no";
+  const q = DB.s.questions[qid] || {};
+  if (typeof v === "number" && Array.isArray(q.criteria)) return String(q.criteria[v] ?? v).split(/ \(| \//)[0];
+  return humanize(v).replace(/\d{4,}/g, d => Number(d).toLocaleString("en-US"));
+}
+function dbMark(ok){ return ok ? `<span class="ok">✓</span>` : `<span class="no">✗</span>`; }
 
-function optsFor(q){
-  if (!q) return ["0","1","2","3","4"].map(v => ({v, l:v}));
-  if (q.type === "noul") return [{v:"no", l:"no"}, {v:"yes", l:"yes"}];
-  if (Array.isArray(q.criteria)) return q.criteria.map((c,i) => ({v:String(i), l:i + " · " + String(c).slice(0,44)}));
-  if (q.criteria && typeof q.criteria === "object") return Object.keys(q.criteria).map(k => ({v:k, l:humanize(k)}));
-  return ["0","1","2","3","4"].map(v => ({v, l:v}));
+// ---- ticket text: highlight the facts the rules hinge on; one-click edits ----
+function dbRe(name){ try { return new RegExp(DB.s.text.parsers[name], "d"); } catch (e) { return null; } }
+function dbGroup(text, name){ const re = dbRe(name); const m = re && re.exec(text); return m ? m[1] : null; }
+function dbFacts(text){
+  const T = DB.s.text, out = [];
+  const cat = dbGroup(text, "ref"), tier = dbGroup(text, "tier"), amt = dbGroup(text, "amount"), start = dbGroup(text, "start");
+  if (cat) out.push(cat.toLowerCase());
+  if (tier) out.push(tier);
+  if (amt) out.push("USD " + amt);
+  if (text.includes(T.doc_missing_marker)) out.push("no evidence");
+  if (start){
+    const days = Math.round((new Date(T.today) - new Date(start)) / 864e5);
+    if (days >= 0 && days <= T.fresh_days) out.push(`started ${days} days ago`);
+  }
+  return out.join(" · ");
+}
+function dbTicketHTML(text){
+  const T = DB.s.text, spans = [];
+  for (const n of ["ref", "start", "incident", "amount", "tier"]){
+    const re = dbRe(n); const m = re && re.exec(text);
+    if (m && m.indices && m.indices[1]) spans.push(m.indices[1]);
+  }
+  for (const list of Object.values(T.things)) for (const th of list){
+    const i = text.indexOf(th); if (i >= 0) spans.push([i, i + th.length]);
+  }
+  const mi = text.indexOf(T.doc_missing_marker);
+  if (mi >= 0) spans.push([mi, mi + T.doc_missing_marker.length]);
+  spans.sort((a, b) => a[0] - b[0]);
+  let html = "", pos = 0;
+  for (const [s, e] of spans){
+    if (s < pos) continue;
+    html += esc(text.slice(pos, s)) + "<b>" + esc(text.slice(s, e)) + "</b>"; pos = e;
+  }
+  return html + esc(text.slice(pos));
+}
+function dbSetGroup(text, name, value){
+  const re = dbRe(name); const m = re && re.exec(text);
+  if (!m || !m.indices || !m.indices[1]) return text;
+  const [s, e] = m.indices[1];
+  return text.slice(0, s) + value + text.slice(e);
+}
+function dbDaysBefore(iso, days){
+  const d = new Date(iso + "T00:00:00Z"); d.setUTCDate(d.getUTCDate() - days); return d.toISOString().slice(0, 10);
+}
+function dbMakeCat(text, cat){
+  const T = DB.s.text;
+  let done = false;
+  for (const list of Object.values(T.things)){
+    for (const th of list) if (text.includes(th)){ text = text.replace(th, T.things[cat][0]); done = true; break; }
+    if (done) break;
+  }
+  return dbSetGroup(text, "ref", cat.toUpperCase());
+}
+function dbNoDocs(text){
+  const T = DB.s.text, i = text.indexOf(T.doc_ok_prefix);
+  if (i < 0) return text;
+  const j = text.indexOf(".", i);
+  return text.slice(0, i) + T.doc_missing + (j >= 0 ? text.slice(j + 1) : "");
 }
 
-function teachSelectHTML(c, qid, g){
-  const key = c.id + "|" + qid;
-  const edited = key in DOM_STATE.edits;
-  const val = String(edited ? DOM_STATE.edits[key] : (typeof g === "boolean" ? (g ? "yes" : "no") : g));
-  return `<select class="gselect" data-case="${esc(c.id)}" data-qid="${esc(qid)}">` +
-    optsFor(DOM_STATE.questions ? DOM_STATE.questions[qid] : null).map(o =>
-      `<option value="${esc(o.v)}" ${o.v === val ? "selected" : ""}>${esc(o.l)}</option>`).join("") +
-    `</select>`;
+// ---- page skeleton ----
+function dbPickerHTML(){
+  return `<div class="db-pick" role="radiogroup" aria-label="pick a business">${Object.keys(DOMS).map(k => {
+    const m = DOM_META[k] || {icon:"🗂", name:humanize(k), blurb:""};
+    const on = DB && DB.domain === k;
+    return `<button type="button" class="db-dom${on ? " on" : ""}" role="radio" aria-checked="${on}" data-dom="${esc(k)}">
+      <span class="t"><span aria-hidden="true">${m.icon}</span> ${esc(m.name)}</span><span class="small">${esc(m.blurb)}</span></button>`;
+  }).join("")}</div>`;
 }
-function renderDomTeach(){
+function dbStepsHTML(){
+  return `<nav class="db-steps" aria-label="demo steps">${DB_STEPS.map((t, i) =>
+    `<button type="button" data-step="${i + 1}">${i + 1} · ${t}</button>`).join("")}</nav>`;
+}
+function dbSteps(done){   // highlight steps 1..done as reached
+  document.querySelectorAll(".db-steps button").forEach(b => b.classList.toggle("done", Number(b.dataset.step) <= done));
+}
+function dbRender(){
   const el = $("domainfloor");
-  const qs = DOM_STATE.questions || {};
-  el.querySelector("#teachTable").innerHTML = `<thead><tr><th>case</th>${
-    Object.keys(DOM_STATE.cases[0].gold).map(q => `<th>${esc(humanize(q))}</th>`).join("")}</tr></thead><tbody>` +
-    DOM_STATE.cases.map(c => {
-      const cells = Object.entries(c.gold).map(([qid, g]) => {
-        const key = c.id + "|" + qid;
-        const edited = key in DOM_STATE.edits;
-        return `<td><button type="button" class="gchip${edited ? " edited" : ""}" data-case="${esc(c.id)}" data-qid="${esc(qid)}"
-          title="${edited ? "edited (rule gold: " + esc(goldDisp(g)) + ")" : "rule gold — click to edit"}: ${esc(c.state)}">${esc(goldDisp(edited ? DOM_STATE.edits[key] : g))}</button></td>`;
-      }).join("");
-      return `<tr><td class="small" title="${esc(c.state)}">${esc(c.state.slice(0, 60))}…</td>${cells}</tr>`;
-    }).join("") + `</tbody>`;
-  el.querySelectorAll("#teachTable .gchip").forEach(chip => {
-    chip.onclick = () => {
-      const c = DOM_STATE.cases.find(x => x.id === chip.dataset.case);
-      const qid = chip.dataset.qid;
-      const td = chip.parentElement;
-      td.innerHTML = teachSelectHTML(c, qid, c.gold[qid]);
-      const sel = td.querySelector("select");
-      sel.focus();
-      const commit = () => {
-        const g = c.gold[qid];
-        const gv = typeof g === "boolean" ? (g ? "yes" : "no") : String(g);
-        if (String(sel.value) === gv) delete DOM_STATE.edits[c.id + "|" + qid];
-        else DOM_STATE.edits[c.id + "|" + qid] = sel.value;
-        renderDomTeach();
-        updateEditBadge();
-      };
-      sel.onchange = commit;
-      sel.onblur = commit;
+  el.innerHTML = `<div id="dbLive"></div>` + dbPickerHTML() + dbStepsHTML() +
+    dbAct1HTML() + dbAct2HTML() + dbAct3HTML() +
+    `<section class="db-act" id="dbAct4" hidden></section>` + dbAct5HTML() + dbFineHTML();
+  el.querySelectorAll(".db-dom").forEach(b => b.onclick = () => dbPick(b.dataset.dom));
+  el.querySelectorAll(".db-steps button").forEach(b => b.onclick = () => {
+    const t = $("dbAct" + b.dataset.step); if (t && !t.hidden) t.scrollIntoView({behavior:"smooth", block:"start"});
+  });
+  dbRenderShow();
+  dbWireCards();
+  $("dbTeach").onclick = dbTeach;
+  dbRenderMutators();
+  $("dbAskBtn").onclick = dbAsk;
+  dbSteps(1);
+}
+
+// ---- act 1: your model today ----
+function dbAct1HTML(){
+  const B = DB.s.baseline, n = B.n, z = B.zero, p = B.prod;
+  const pct = (x) => x == null ? "—" : (100 * x).toFixed(1) + "%";
+  return `<section class="db-act" id="dbAct1"><p class="kicker">① Your model today</p>
+    <h2>Out of the box, AI doesn't know your rulebook. Your model does.</h2>
+    <p class="lead">Every ${dbNoun()} needs seven decisions: where it goes, whether to flag it, how urgent it is,
+      whether it qualifies, how much, whether someone else pays, and how much work it takes. Scored on ${n} past
+      ${dbNouns()} neither model trained on, against the written rulebook:</p>
+    <div class="db-vs">
+      <div class="db-stat bad"><div class="lbl">Out-of-the-box AI · Laya, general model, no training</div>
+        <div class="big">${z ? z.all7 : "—"}<small> / ${n}</small></div>
+        <div class="lbl">${dbNouns()} with all 7 decisions right · ${pct(z && z.avg)} of single decisions</div></div>
+      <div class="db-arrow" aria-hidden="true">→</div>
+      <div class="db-stat good"><div class="lbl">Your model · the same Laya, trained once on 2,000 past ${dbNouns()}</div>
+        <div class="big">${p ? p.all7 : "…"}<small> / ${n}</small></div>
+        <div class="lbl">${dbNouns()} with all 7 decisions right · ${pct(p && p.avg)} of single decisions</div></div>
+    </div>
+    ${B.dec ? `<p class="small">For scale: decider-4b, a 4-billion-parameter generalist with no training, gets ${B.dec.all7} / ${n} (${pct(B.dec.avg)} of single decisions).</p>` : ""}
+    ${DB.s.prod_ready ? "" : `<p class="note">No production model on this host yet — run <code>train_prod_ckpt.sh</code>; re-teaching needs it.</p>`}
+    <div id="dbShow"></div></section>`;
+}
+function dbRenderShow(){
+  const list = DB.s.showcase || [];
+  const box = $("dbShow");
+  if (!list.length){ box.innerHTML = ""; return; }
+  const c = list[DB.showIdx % list.length];
+  const qids = dbQids();
+  const zOK = qids.filter(q => c.zero[q] === c.gold[q]).length;
+  const pOK = c.prod ? qids.filter(q => c.prod[q] === c.gold[q]).length : null;
+  box.innerHTML = `<div class="db-showhead"><h3>One ${dbNoun()}, seven decisions</h3>
+      <button type="button" class="mini" id="dbShowNext">another ${dbNoun()} ↻</button>
+      <button type="button" class="mini" id="dbShowTry">try it yourself ↓</button></div>
+    <div class="db-ticket">${dbTicketHTML(c.state)}</div>
+    <div class="tablewrap"><table class="db-dt"><thead><tr><th>decision</th><th>out of the box</th><th>your model</th><th>rulebook</th></tr></thead><tbody>${
+      qids.map(q => `<tr><td>${esc(dbTitle(q))}</td>
+        <td>${dbMark(c.zero[q] === c.gold[q])} ${esc(dbVal(q, c.zero[q]))}</td>
+        <td>${c.prod ? dbMark(c.prod[q] === c.gold[q]) + " " + esc(dbVal(q, c.prod[q])) : "…"}</td>
+        <td>${esc(dbVal(q, c.gold[q]))}</td></tr>`).join("")}</tbody>
+      <tfoot><tr><td></td><td class="no">${zOK} / 7</td><td class="ok">${pOK === null ? "…" : pOK + " / 7"}</td><td></td></tr></tfoot></table></div>`;
+  $("dbShowNext").onclick = () => { DB.showIdx++; dbRenderShow(); };
+  $("dbShowTry").onclick = () => dbTry(c.state, true);
+}
+
+// ---- act 2: change a rule ----
+function dbAct2HTML(){
+  return `<section class="db-act" id="dbAct2"><p class="kicker">② The business changes</p>
+    <h2>Pick a rule change — every value is yours to set</h2>
+    <p class="small">The rulebook re-decides every past ${dbNoun()} under the new rule; the ones that change become the lesson.</p>
+    <div class="db-pol" role="radiogroup" aria-label="rule changes">${DB.s.presets.map(dbCardHTML).join("")}</div>
+    <div id="dbImpact"><p class="small">Pick a change above to see what it touches.</p></div></section>`;
+}
+function dbSel(kind, name, values, cur, label){
+  return `<select data-kind="${kind}" data-param="${name}" aria-label="${esc(kind + " " + name)}">${values.map(v =>
+    `<option value="${esc(String(v))}"${String(v) === String(cur) ? " selected" : ""}>${esc(label(v))}</option>`).join("")}</select>`;
+}
+function dbRuleHTML(kind, p){
+  const C = DB.s.choices[kind], nouns = dbNouns();
+  if (kind === "reassign")
+    return `${dbSel(kind, "cat", C.cat, p.cat, humanize)} ${nouns} go to ${dbSel(kind, "unit", C.unit, p.unit, humanize)}`;
+  if (kind === "vip")
+    return `${dbSel(kind, "tier", C.tier, p.tier, v => v)}-tier ${nouns} are always at least ${dbSel(kind, "level", C.level, p.level, v => DB.s.urgency_names[v])}`;
+  return `Flag for review at ${dbSel(kind, "markers", C.markers, p.markers, String)} warning sign(s)`;
+}
+function dbTodayText(kind, p){
+  const cur = DB.s.current;
+  if (kind === "reassign") return `today: ${humanize(p.cat)} ${dbNouns()} go to ${humanize(cur.units[p.cat])}`;
+  if (kind === "vip") return "today: no tier gets a minimum urgency";
+  return `today: ${cur.flag_markers} of these — ${cur.warning_signs.join(" · ")}`;
+}
+function dbCardHTML(pre){
+  const on = DB.pol && DB.pol.kind === pre.kind;
+  const p = on ? DB.pol.params : pre.params;
+  return `<div class="db-card${on ? " on" : ""}" role="radio" aria-checked="${on}" tabindex="0" data-kind="${pre.kind}">
+    <div class="t"><span aria-hidden="true">${POLICY_ICON[pre.kind] || "📝"}</span> ${esc(pre.title)}</div>
+    <div class="story">“${esc(pre.story)}”</div>
+    <div class="db-rule">${dbRuleHTML(pre.kind, p)}</div>
+    <div class="db-today">${esc(dbTodayText(pre.kind, p))}</div></div>`;
+}
+function dbWireCards(){
+  document.querySelectorAll("#dbAct2 .db-card").forEach(card => {
+    card.onclick = (ev) => { if (ev.target.closest("select")) return; dbChoose(card.dataset.kind); };
+    card.onkeydown = (ev) => {
+      if ((ev.key === "Enter" || ev.key === " ") && !ev.target.closest("select")){ ev.preventDefault(); dbChoose(card.dataset.kind); }
     };
+    card.querySelectorAll("select").forEach(sel => sel.onchange = () => dbChoose(card.dataset.kind));
   });
 }
-function updateEditBadge(){
-  const el = $("domainfloor");
-  const n = Object.keys(DOM_STATE.edits).length;
-  const badge = el.querySelector("#editBadge");
-  if (badge) badge.textContent = n
-    ? `${n} deliberate edit${n > 1 ? "s" : ""} — also applied to background training rows with the same rule profile (count shown after Teach)`
-    : "no edits — the rule gold stands (bulk-accepted)";
-}
-
-function statusHTML(s){
-  const st = s.state || "unknown";
-  const elapsed = mmss(s.elapsed_s);
-  const p = s.progress;
-  if (p && typeof p === "object" && !Array.isArray(p) && p.epochs){
-    const frac = Math.min(1, ((p.epoch - 1 + (p.steps ? (p.step||0)/p.steps : 0)) / p.epochs));
-    return `<div style="display:flex;gap:.6rem;align-items:center;flex-wrap:wrap">` +
-      `<span class="pbar"><i style="width:${(100*frac).toFixed(1)}%"></i></span>` +
-      `<span class="small">${esc(st)} · ${elapsed} elapsed · epoch ${p.epoch}/${p.epochs} · step ${p.step ?? "?"}/${p.steps}</span></div>`;
-  }
-  const last = Array.isArray(p) ? (p[p.length-1] || "") : (s.messages && s.messages.length ? s.messages[s.messages.length-1] : "");
-  return `<span class="small">[${esc(st)}] ${elapsed} elapsed · ${esc(String(last).slice(0, 110))}</span>`;
-}
-function classifiedFail(s){
-  const kind = s.error_kind;
-  if (kind === "out_of_gpu_memory"){
-    const free = s.free_gib !== undefined ? `${s.free_gib} GiB` : "?? GiB";
-    const need = s.need_gib !== undefined ? `${s.need_gib} GiB` : "?? GiB";
-    return `Not enough GPU memory free (${free} of ${need} needed) — no audience traffic is lost; free VRAM (stop another training run) and press Teach again.`;
-  }
-  if (kind === "lost") return "training lost — studio restarted. Press Teach again when ready.";
-  if (kind === "train_failed") return "training failed — the run crashed on the server (full log: studio-runs/" + esc(DOM_STATE.domain||"") + "/). Nothing else broke; you can retry.";
-  return "training failed: " + esc(s.error || "unknown error");
-}
-// Polls /studio/status while a run is in flight; renders progress into statusEl and
-// re-enables btn (if given) when the run finishes, fails, or is lost.
-function startStatusPoll(statusEl, btn, watchOnly){
-  const stop = () => clearInterval(poll);
-  const finish = (msg, reopen) => { stop(); if (statusEl) statusEl.innerHTML = msg; if (reopen && btn) btn.disabled = false; };
-  const poll = setInterval(async () => {
-    let s;
-    try { s = await fetch(studioURL("/status")).then(x => x.json()); } catch (e) { return; }  // transient blip: keep polling
-    if (!s) return;
-    if (s.state === "done"){
-      if (watchOnly){
-        stop();
-        const busy = document.getElementById("studioBusy");
-        if (busy){ busy.querySelector("h3").textContent = `Teach finished — ${humanize(s.domain || "")}`; busy.querySelector("p.small")?.remove(); }
-        if (statusEl) statusEl.innerHTML = `<span class="small">results below; reload the page to teach or explore.</span>`;
-        if (s.result && !DOM_STATE.cases){ DOM_STATE.domain = s.domain; domResults(s.result); }
-      }
-      else { stop(); if (statusEl) statusEl.textContent = ""; if (btn) btn.disabled = false; domResults(s.result); }
-      return;
-    }
-    if (s.state === "failed"){ finish(classifiedFail(s), true); return; }
-    if (s.state === "idle" || s.error_kind === "lost"){
-      finish(`<span class="small" style="color:var(--bad)">training lost — studio restarted. Press Teach again when ready.</span>`, true);
-      return;
-    }
-    if (statusEl) statusEl.innerHTML = statusHTML(s);
-  }, 2000);
-  return stop;
-}
-
-async function domTeach(){
-  const el = $("domainfloor");
-  const btn = el.querySelector("#teachBtn");
-  const stat = el.querySelector("#teachStatus");
-  const edits = Object.entries(DOM_STATE.edits).map(([k, to]) => {
-    const [case_id, qid] = k.split("|");
-    return {case_id, qid, to};
+function dbChoose(kind){
+  const card = document.querySelector(`#dbAct2 .db-card[data-kind="${kind}"]`);
+  const params = {};
+  card.querySelectorAll("select").forEach(sel => {
+    const v = sel.value; params[sel.dataset.param] = /^\d+$/.test(v) ? Number(v) : v;
   });
-  const tok = sessionStorage.getItem("studioToken") || prompt("Studio token (presenter only):") || "";
-  btn.disabled = true;
-  const fail = (msg) => { stat.innerHTML = msg; btn.disabled = false; };
+  DB.pol = {kind, params};
+  document.querySelectorAll("#dbAct2 .db-card").forEach(c => {
+    const on = c.dataset.kind === kind;
+    c.classList.toggle("on", on); c.setAttribute("aria-checked", String(on));
+  });
+  card.querySelector(".db-today").textContent = dbTodayText(kind, params);
+  dbRenderMutators();
+  dbImpact();
+}
+async function dbImpact(){
+  const box = $("dbImpact"), want = JSON.stringify(DB.pol), domain = DB.domain;
+  box.innerHTML = `<p class="small thinking">re-deciding every past ${dbNoun()} under the new rule…</p>`;
   let r;
-  try {
-    r = await fetch(studioURL("/train"), {method:"POST",
-      headers:{"Content-Type":"application/json","X-Studio-Token":tok},
-      body: JSON.stringify({domain: DOM_STATE.domain, cases: DOM_STATE.cases, edits})}).then(x => x.json());
-  } catch (e) {
-    sessionStorage.setItem("studioToken", tok);
-    fail(`network error — studio unreachable (${esc(String(e))}). Teach is re-enabled; press it to retry.`);
-    return;
-  }
-  if (r && (r.error_kind === "token" || (r.error && /token/i.test(r.error)))){
-    sessionStorage.removeItem("studioToken");
-    fail("403 — wrong or missing studio token. Teach is re-enabled; press it and enter the token again.");
-    return;
-  }
-  sessionStorage.setItem("studioToken", tok);
-  if (r && r.error_kind === "throttled"){ fail("429 — too many attempts. Wait a minute, then press Teach again."); return; }
-  if (r && r.error_kind === "busy"){ fail("409 — a teach run is already in progress. Wait for it to finish."); return; }
-  if (r && r.error_kind === "out_of_gpu_memory"){ fail(esc(classifiedFail(r))); return; }
-  if (r && r.error_kind === "unknown_domain"){ fail("unknown domain — reload the page and pick the domain again."); return; }
-  if (r && r.error){ fail("couldn't start: " + esc(r.error)); return; }
-  stat.innerHTML = statusHTML({state:"training", elapsed_s:0});
-  startStatusPoll(stat, btn, false);
-}
-
-function domEvalTable(rows, title, note){
-  const okAll = rows.filter(r => r.ok_all).length;
-  return `<div class="card" style="margin:.5rem 0"><h3>${esc(title)} — ${okAll}/${rows.length} fully correct</h3>
-    <div class="tablewrap"><table class="opstable"><thead><tr><th>case</th>${
-      Object.keys(rows[0].questions).map(q => `<th>${esc(humanize(q))}</th>`).join("")}</tr></thead>
-    <tbody>${rows.map(r => `<tr><td class="small">${esc(r.label || r.id)}</td>${
-      Object.values(r.questions).map(v => `<td style="text-align:center">${v.ok ? "✓" : "✗"}</td>`).join("")
-    }</tr>`).join("")}</tbody></table></div>
-    ${note ? `<p class="small">${esc(note)}</p>` : ""}</div>`;
-}
-
-async function domResults(res){
-  const el = $("domainfloor");
-  const freshOK = res.fresh_holdout.filter(r => r.ok_all).length;
-  const fz = res.fresh_holdout_zero || [];
-  const freshZeroOK = fz.filter(r => r.ok_all).length;
-  const pctOf = (k, n) => n ? (100*k/n).toFixed(0) + "%" : "—";
-  el.insertAdjacentHTML("beforeend", `
-    <div class="card" style="border-color:#bcd9cb;background:#f4faf7">
-      <h3><span aria-hidden="true">⚡</span> Taught in ${Math.round(res.timing ? res.timing.total_s : res.train_seconds)}s end to end (real fine-tune on ${res.train_rows} rows${res.relabeled_rows ? `, ${res.relabeled_rows} background rows relabeled to your edit` : ""})</h3>
-      <div class="statsgrid" style="display:grid">
-        <div class="card" style="border-color:#bcd9cb"><div class="statbig">${pctOf(freshZeroOK, fz.length)} → ${pctOf(freshOK, res.fresh_holdout.length)}</div><div class="statl"><b>${res.fresh_holdout.length} held-out cases it never saw</b>, all 7 decisions right: zero-shot → taught (${freshZeroOK} → ${freshOK}; same generator — see the paraphrase probe)</div></div>
-        <div class="card"><div class="statbig">${pctOf(res.before.filter(r=>r.ok_all).length, res.before.length)} → ${pctOf(res.after.filter(r=>r.ok_all).length, res.after.length)}</div><div class="statl">the 12 cases it was taught (training data — expected to flip)</div></div>
-      </div>
-      <p class="small">Calibration caveat: freshly taught confidences are razor-sharp (the calibration fit hits its
-        floor) — read the probabilities as decisions, not as odds, until recalibrated on real data.</p>
+  try { r = await studioCall("/impact", {domain, policy: DB.pol}); }
+  catch (e){ box.innerHTML = `<p class="small no">network error — pick the change again</p>`; return; }
+  if (!DB || DB.domain !== domain || JSON.stringify(DB.pol) !== want) return;   // a newer pick won
+  if (r.code !== 200){ box.innerHTML = `<p class="small no">${esc(r.data.error || "HTTP " + r.code)}</p>`; return; }
+  const I = DB.imp = r.data;
+  dbSteps(2);
+  dbTeachReady();
+  if (I.noop){ box.innerHTML = `<p class="db-headline">That is today's rule — change a value to make it a change.</p>`; return; }
+  const H = I.holdout, nCh = I.exam.filter(e => e.changed.length).length;
+  box.innerHTML = `<p class="db-headline">New rule: “${esc(I.sentence)}”</p>
+    <div class="db-impact">
+      <div class="db-stat"><div class="big">${H.changed}<small> / ${H.total}</small></div>
+        <div class="lbl">test ${dbNouns()} this rule changes (${(100 * H.changed / H.total).toFixed(0)}%)</div></div>
+      <div><div class="lbl">decisions it changes</div>${Object.entries(H.by_decision).map(([q, k]) =>
+        `<span class="db-chip acc">${esc(dbTitle(q))} × ${k}</span>`).join("")}
+        <p class="small">The lesson: ${I.corpus.changed.toLocaleString("en-US")} of ${I.corpus.total.toLocaleString("en-US")} past ${dbNouns()}
+        re-decided by the rulebook. Re-teaching uses ${I.teach.changed_rows} of them plus ${I.teach.same_rows} the rule
+        leaves alone, to hold the rest of the rulebook in place.</p></div>
     </div>
-    ${domEvalTable(res.paraphrase_probes, "Paraphrase probe — hand-reworded cases (out-of-template)",
-      "Missing one of these is the honest point: 12 taught cases buy in-template perfection, not robustness. Teach 30+ and watch this table.")}
-    <button class="primary" id="driftBtn"><span aria-hidden="true">⏭</span> A year later — the policy changes (deductibles double). What happens?</button>
-    <div id="driftOut"></div>`);
-  $("driftBtn").onclick = async () => {
-    $("driftOut").innerHTML = "<p class='small'>measuring decay on 30 drifted cases…</p>";
-    const tok = sessionStorage.getItem("studioToken") || prompt("Studio token (presenter only):") || "";
-    let d;
-    try {
-      d = await fetch(studioURL("/drift"), {method:"POST",
-        headers:{"Content-Type":"application/json","X-Studio-Token":tok},
-        body: JSON.stringify({domain: DOM_STATE.domain})}).then(x => x.json());
-    } catch (e) { $("driftOut").innerHTML = `<p class="small">network error (${esc(String(e))}) — press the button to retry.</p>`; return; }
-    if (d && (d.error_kind === "token" || (d.error && /token/i.test(d.error)))){
-      sessionStorage.removeItem("studioToken");
-      $("driftOut").innerHTML = `<p class="small">403 — wrong token. Press the button again to re-enter it.</p>`; return;
+    <h3>The exam: ${I.exam.length} ${dbNouns()} your model has never seen</h3>
+    <p class="small"><b>${nCh}</b> the new rule changes (amber) — today's model still follows the old rule on them —
+      and <b>${I.exam.length - nCh}</b> it leaves alone. Click any to try it in step ⑤.</p>
+    <div class="db-grid">${I.exam.map((e, i) => dbTileHTML(e, i, null)).join("")}</div>`;
+  dbWireTiles(box, I.exam);
+}
+function dbTileHTML(e, i, after){
+  const before = e.before || {}, qs = e.changed, n = Object.keys(e.new_gold).length;
+  const right = (m) => Object.keys(e.new_gold).filter(q => m && m[q] === e.new_gold[q]).length;
+  let cls = "db-tile", body;
+  if (qs.length){
+    cls += after ? (qs.every(q => after[q] === e.new_gold[q]) ? " win" : " miss") : " chg";
+    body = qs.map(q => {
+      const b = before[q], nv = e.new_gold[q], old = e.old_gold[q];
+      if (!after)
+        return `<div><span class="q">${esc(dbTitle(q))}</span> ${esc(dbVal(q, old))} → <b>${esc(dbVal(q, nv))}</b></div>
+          <div class="small">today's model: ${esc(dbVal(q, b))} ${b === nv ? "✓" : b === old ? "· old rule" : "✗"}</div>`;
+      const a = after[q];
+      return `<div><span class="q">${esc(dbTitle(q))}</span> <s>${esc(dbVal(q, b))}</s> → <b>${esc(dbVal(q, a))}</b>
+        ${a === nv ? dbMark(true) : `<span class="no">✗ rule: ${esc(dbVal(q, nv))}</span>`}</div>`;
+    }).join("");
+  } else if (after){
+    const k = right(after); cls += k === n ? " kept" : " miss";
+    const wrong = Object.keys(e.new_gold).filter(q => after[q] !== e.new_gold[q]);
+    body = `<div class="small">no change under the new rule · re-taught ${k}/${n} right ${dbMark(k === n)}</div>` +
+      wrong.map(q => `<div class="small no">${esc(dbTitle(q))}: ${esc(dbVal(q, after[q]))} (rule: ${esc(dbVal(q, e.new_gold[q]))})</div>`).join("");
+  } else {
+    body = `<div class="small">no change under the new rule · today's model ${right(before)}/${n} right</div>`;
+  }
+  return `<div class="${cls}" data-i="${i}" role="button" tabindex="0" aria-label="try ${esc(e.id)} below">
+    <div class="id">${esc(e.id.toUpperCase())}</div><div class="facts">${esc(dbFacts(e.state))}</div>${body}</div>`;
+}
+function dbWireTiles(root, exam){
+  root.querySelectorAll(".db-tile").forEach(t => {
+    const go = () => dbTry(exam[Number(t.dataset.i)].state, true);
+    t.onclick = go;
+    t.onkeydown = (ev) => { if (ev.key === "Enter" || ev.key === " "){ ev.preventDefault(); go(); } };
+  });
+}
+
+// ---- act 3: re-teach ----
+function dbAct3HTML(){
+  return `<section class="db-act" id="dbAct3"><p class="kicker">③ Re-teach</p>
+    <h2>Teach your model the new rule — live, on this machine</h2>
+    <div class="db-teachrow">
+      <button class="db-go" id="dbTeach" disabled><span aria-hidden="true">⚡</span> Re-teach (${TEACH_ETA}) — presenter</button>
+      <span class="small" id="dbTeachNote">pick a rule change first</span></div>
+    <div id="dbRun" hidden>
+      <div class="db-phases">
+        <div class="db-phase" data-ph="prep"><b>1 · Prepare</b><br>relabel past ${dbNouns()} under the new rule, free the GPU</div>
+        <div class="db-phase" data-ph="learn"><b>2 · Learn</b><br><span id="dbLearn">fine-tune your model</span><br><span class="pbar"><i id="dbBar" style="width:0%"></i></span></div>
+        <div class="db-phase" data-ph="exam"><b>3 · Exam</b><br>the unseen ${dbNouns()}</div>
+      </div>
+      <div class="db-teachrow"><span class="db-clock" id="dbClock">0:00</span><span class="small" id="dbMsg"></span></div>
+      <div class="db-ask"><b>While it learns, ask the room:</b> the last time your team changed a rule like this,
+        how long did it take to reach the system that makes the decisions — and who had to be involved?</div>
+    </div>
+    <p class="small" id="dbTeachErr" role="status"></p></section>`;
+}
+function dbTeachReady(){
+  const btn = $("dbTeach"), note = $("dbTeachNote");
+  if (!btn || DB.running) return;
+  const ok = DB.imp && !DB.imp.noop && DB.s.prod_ready;
+  btn.disabled = !ok;
+  note.textContent = !DB.s.prod_ready ? "no production model on this host"
+    : !DB.imp ? "pick a rule change first"
+    : DB.imp.noop ? "that is today's rule"
+    : `${DB.imp.teach.changed_rows + DB.imp.teach.same_rows} relabeled ${dbNouns()}, ${DB.imp.teach.epochs} pass${DB.imp.teach.epochs === 1 ? "" : "es"}, starting from your model`;
+}
+function dbFailText(d){
+  const k = d.error_kind;
+  if (k === "token") return "Wrong or missing studio token — press Re-teach and enter it again.";
+  if (k === "throttled") return "Too many token attempts — wait a minute, then retry.";
+  if (k === "busy") return "A re-teach is already running — this page follows it.";
+  if (k === "lost") return "The studio restarted during the run — press Re-teach again.";
+  return d.error || ("couldn't re-teach (" + (k || "unknown error") + ")");
+}
+async function dbTeach(){
+  const btn = $("dbTeach"), err = $("dbTeachErr");
+  if (!DB.imp || DB.imp.noop) return;
+  const tok = sessionStorage.getItem("studioToken") || prompt("Studio token (presenter only):") || "";
+  btn.disabled = true; err.textContent = "";
+  let r;
+  try { r = await studioCall("/train", {domain: DB.domain, policy: DB.pol}, tok); }
+  catch (e){ err.textContent = "Network error — the studio is unreachable; press Re-teach to retry."; btn.disabled = false; return; }
+  if (r.data.error_kind === "token") sessionStorage.removeItem("studioToken");
+  else sessionStorage.setItem("studioToken", tok);
+  if (r.code !== 200){
+    err.innerHTML = `<span class="no">${esc(dbFailText(r.data))}</span>`;
+    if (r.data.error_kind !== "busy") btn.disabled = false;
+    return;
+  }
+  $("dbAct4").hidden = true;                 // the previous result is about to be replaced
+  dbRunning({state:"training", elapsed_s:0, progress:null, messages:[], sentence: DB.imp && DB.imp.sentence});
+}
+function dbRunning(s){
+  DB.running = true;
+  $("dbRun").hidden = false;
+  $("dbTeach").disabled = true;
+  $("dbTeachNote").textContent = s.sentence ? `teaching: “${s.sentence}”` : "teaching…";
+  dbSteps(3);
+  const p = s.progress, learning = !!(p && p.epochs);
+  const ph = s.state === "evaluating" ? "exam" : learning ? "learn" : "prep";
+  const order = ["prep", "learn", "exam"];
+  document.querySelectorAll("#dbRun .db-phase").forEach(d => {
+    const k = order.indexOf(d.dataset.ph), cur = order.indexOf(ph);
+    d.classList.toggle("now", k === cur); d.classList.toggle("done", k < cur);
+  });
+  if (p && p.epochs){
+    const frac = Math.min(1, (p.epoch - 1 + (p.steps ? (p.step || 0) / p.steps : 0)) / p.epochs);
+    $("dbBar").style.width = (100 * frac).toFixed(1) + "%";
+    $("dbLearn").textContent = p.step > 0 ? `pass ${p.epoch} of ${p.epochs}` : "loading your model onto the GPU…";
+  }
+  if (ph === "exam") $("dbBar").style.width = "100%";
+  const last = (s.messages || []).slice(-1)[0] || "";
+  const items = /^train items (\d+), calibration items (\d+)/.exec(last);
+  $("dbMsg").textContent = items
+    ? `learning from ${Number(items[1]).toLocaleString("en-US")} decisions; ${items[2]} held back to calibrate confidence`
+    : /^epoch /.test(last) ? "" : last;
+  DB.clock = {base: s.elapsed_s || 0, at: Date.now()};
+  if (!DB_CLOCK) DB_CLOCK = setInterval(() => {
+    if (!DB || !DB.running || !DB.clock || !$("dbClock")) return;
+    $("dbClock").textContent = mmss(DB.clock.base + (Date.now() - DB.clock.at) / 1000);
+  }, 250);
+}
+function dbRunEnd(s){
+  DB.running = false;
+  if ($("dbRun")) $("dbRun").hidden = true;
+  if (s && s.state === "failed") $("dbTeachErr").innerHTML = `<span class="no">${esc(dbFailText(s))}</span>`;
+  dbTeachReady();
+}
+
+// ---- act 4: what changed ----
+function dbShowResult(res, animate){
+  DB.result = res;
+  const sec = $("dbAct4"), ex = res.exam, S = res.summary;
+  const chRows = ex.filter(e => e.changed.length), sameRows = ex.filter(e => !e.changed.length);
+  const follows = (e, m) => e.changed.every(q => m && m[q] === e.new_gold[q]);
+  const allRight = (e, m) => Object.keys(e.new_gold).every(q => m && m[q] === e.new_gold[q]);
+  const winA = chRows.filter(e => follows(e, e.after)).length, winB = chRows.filter(e => follows(e, e.before)).length;
+  const keepA = sameRows.filter(e => allRight(e, e.after)).length, keepB = sameRows.filter(e => allRight(e, e.before)).length;
+  const f = (x) => `${x[0]}/${x[1]}`;
+  sec.hidden = false;
+  sec.innerHTML = `<p class="kicker">④ What changed</p>
+    <p class="db-headline">Re-taught in ${Math.round(res.timing.total_s)} s. On the ${chRows.length} unseen ${dbNouns()} the new
+      rule changes, your model now follows it on <span class="ok">${winA}</span> (before: ${winB}). On the ${sameRows.length}
+      it leaves alone, ${keepA} are still fully right (before: ${keepB}).</p>
+    <p class="small">Rule taught: “${esc(res.sentence)}” · finished ${esc(res.finished || "")}</p>
+    <div class="statsgrid db-res">
+      <div class="db-stat good"><div class="big">${f(S.before.changed)} → ${f(S.after.changed)}</div>
+        <div class="lbl">decisions the rule changed, right under the new rule</div></div>
+      <div class="db-stat"><div class="big">${f(S.before.kept)} → ${f(S.after.kept)}</div>
+        <div class="lbl">decisions the rule left alone, still right</div></div>
+      <div class="db-stat"><div class="big">${f(S.before.all7)} → ${f(S.after.all7)}</div>
+        <div class="lbl">${dbNouns()} with all 7 decisions right under the new rulebook</div></div>
+    </div>
+    <div class="db-grid">${ex.map((e, i) => dbTileHTML(e, i, e.after)).join("")}</div>
+    <p class="small">Green: follows the new rule (or, where the rule changes nothing, still fully right). Red: wrong.
+      Click any ${dbNoun()} to put both models side by side.</p>`;
+  dbWireTiles(sec, ex);
+  dbSteps(4);
+  dbRenderMutators();
+  dbFine();
+  const pre = document.querySelector("#dbAct5 .db-sub");
+  if (pre) pre.innerHTML = dbAct5Sub();
+  if (animate){
+    sec.querySelectorAll(".db-tile").forEach((t, i) => setTimeout(() => t.classList.add("flip"), 90 * i));
+    sec.scrollIntoView({behavior:"smooth", block:"start"});
+    const ch = ex.find(e => e.changed.length);
+    if (ch) dbTry(ch.state, false);
+  }
+}
+
+// ---- act 5: try to break it ----
+function dbAct5Sub(){
+  return DB.result
+    ? `Today's model (the old rule) and the re-taught model (“${esc(DB.result.sentence)}”) answer the same text; the rulebook column is the referee.`
+    : `Re-teach a rule change and the new model joins this table. Until then: today's model against today's rulebook.`;
+}
+function dbAct5HTML(){
+  return `<section class="db-act" id="dbAct5"><p class="kicker">⑤ Try to break it</p>
+    <h2>Hand it any ${dbNoun()} — both models answer, side by side</h2>
+    <p class="small db-sub">${dbAct5Sub()}</p>
+    <p class="small">Open to everyone: open this page on your phone, edit a ${dbNoun()}, press <b>Ask both models</b>.</p>
+    <div class="db-try">
+      <div>
+        <textarea id="dbText" rows="7" aria-label="${dbNoun()} text"></textarea>
+        <div class="db-mut" id="dbMut"></div>
+        <button class="primary" id="dbAskBtn">Ask both models</button>
+      </div>
+      <div id="dbAnswer"><p class="small">Pick a ${dbNoun()} from the exam, use “try it yourself” above, or edit this one — then ask.</p></div>
+    </div></section>`;
+}
+function dbRenderMutators(){
+  const box = $("dbMut"); if (!box) return;
+  const pol = (DB.result && DB.result.policy) || DB.pol;
+  const kind = pol && pol.kind, P = (pol && pol.params) || {};
+  const tier = kind === "vip" ? P.tier : "Premium";
+  const cats = Object.keys(DB.s.text.things);
+  const catSel = kind === "reassign" ? P.cat : cats[0];
+  box.innerHTML = `
+    <button type="button" data-m="tier" class="${kind === "vip" ? "hint" : ""}">⭐ Make it ${esc(tier)}</button>
+    <button type="button" data-m="nodocs" class="${kind === "risk" ? "hint" : ""}">📎 Remove the evidence</button>
+    <button type="button" data-m="big">💰 USD 22,000</button>
+    <button type="button" data-m="fresh">🆕 Started 9 days ago</button>
+    <span class="${kind === "reassign" ? "hint" : ""}"><button type="button" data-m="cat">🔀 Make it</button>
+      <select id="dbCatSel" aria-label="category">${cats.map(c => `<option value="${esc(c)}"${c === catSel ? " selected" : ""}>${esc(humanize(c))}</option>`).join("")}</select></span>
+    ${DB.s.probes.length ? `<button type="button" data-m="reword">✍️ Reword it (hand-written)</button>` : ""}
+    <button type="button" data-m="reset">↺ original</button>`;
+  box.querySelectorAll("button[data-m]").forEach(b => b.onclick = () => {
+    const ta = $("dbText"); let t = ta.value;
+    const m = b.dataset.m;
+    if (m === "tier") t = dbSetGroup(t, "tier", tier);
+    else if (m === "nodocs") t = dbNoDocs(t);
+    else if (m === "big") t = t.replace(/USD [\d,]+/, "USD 22,000");
+    else if (m === "fresh") t = dbSetGroup(t, "start", dbDaysBefore(DB.s.text.today, 9));
+    else if (m === "cat") t = dbMakeCat(t, $("dbCatSel").value);
+    else if (m === "reword"){ const pr = DB.s.probes[(DB.probeIdx = (DB.probeIdx || 0) + 1) % DB.s.probes.length]; t = pr.state; }
+    else if (m === "reset") t = DB.tryOrig || t;
+    ta.value = t;
+    dbAsk();
+  });
+}
+function dbTry(text, scroll){
+  DB.tryOrig = text;
+  $("dbText").value = text;
+  if (scroll) $("dbAct5").scrollIntoView({behavior:"smooth", block:"start"});
+  dbAsk();
+}
+async function dbAsk(){
+  const box = $("dbAnswer"), text = $("dbText").value.trim(), domain = DB.domain;
+  if (!text){ box.innerHTML = `<p class="small">Type or paste a ${dbNoun()} first.</p>`; return; }
+  box.innerHTML = `<p class="thinking">both models are reading it…</p>`;
+  let r;
+  try { r = await studioCall("/compare", {domain, state: text}); }
+  catch (e){ box.innerHTML = `<p class="small no">network error — press Ask again</p>`; return; }
+  if (!DB || DB.domain !== domain || $("dbText").value.trim() !== text) return;   // superseded
+  const d = r.data;
+  if (r.code !== 200){
+    box.innerHTML = `<p class="small no">${esc(d.error_kind === "busy" ? (d.error || "busy") + "." : d.error || "HTTP " + r.code)}</p>`;
+    return;
+  }
+  if (DB.result) dbSteps(5);
+  const qids = dbQids(), A = d.after, RO = d.rules_old, RN = d.rules_new || d.rules_old;
+  const v = (m, q) => m && m.answers[q] ? m.answers[q].v : undefined;
+  // A rulebook that can't read part of the text silently misses facts elsewhere too (an unread date
+  // drops a warning sign), so a partial read referees nothing: no ✓/✗, no "rule applies" claim.
+  const unread = qids.filter(q => RN[q].v === "unparsed" || RO[q].v === "unparsed");
+  const partial = unread.length > 0;
+  const touched = d.rules_new && !partial ? qids.filter(q => RN[q].v !== RO[q].v) : [];
+  const judge = (m, R, q) => partial ? "" : dbMark(v(m, q) === R[q].v);
+  const same = A ? qids.filter(q => v(A, q) === v(d.before, q)).length : 0;
+  let lead;
+  if (partial)
+    lead = `<b>The rulebook can't read this wording</b> (${unread.length} of ${qids.length} decisions unreadable), so it can't
+      referee — rewording is exactly what breaks rules engines. Both models still answer${A ? `; they agree on ${same} of ${qids.length}` : ""}. Judge them yourself.`;
+  else if (!A) lead = `Today's model agrees with today's rulebook on ${qids.filter(q => v(d.before, q) === RO[q].v).length} of ${qids.length} decisions.`;
+  else if (touched.length){
+    const ok = touched.every(q => v(A, q) === RN[q].v);
+    lead = `<b>The new rule applies here</b> (${touched.map(q => esc(dbTitle(q)) + ": " + esc(dbVal(q, RO[q].v)) + " → " + esc(dbVal(q, RN[q].v))).join("; ")}).
+      Today's model follows the old rule; the re-taught model ${ok ? `<span class="ok">follows the new one ✓</span>` : `<span class="no">doesn't yet ✗</span>`}.`;
+  } else {
+    lead = `The new rule doesn't touch this ${dbNoun()} — both models should decide it the same way: they agree on ${same} of ${qids.length}.`;
+  }
+  box.innerHTML = `<p>${lead}</p>
+    <div class="tablewrap"><table class="db-dt"><thead><tr><th>decision</th><th>today's model</th>${A ? "<th>re-taught</th>" : ""}<th>rulebook${A ? " (new)" : ""}${partial ? " — partial read" : ""}</th></tr></thead><tbody>${
+      qids.map(q => `<tr class="${touched.includes(q) ? "diff" : ""}"><td>${esc(dbTitle(q))}</td>
+        <td>${judge(d.before, RO, q)} ${esc(dbVal(q, v(d.before, q)))}</td>
+        ${A ? `<td>${judge(A, RN, q)} <b>${esc(dbVal(q, v(A, q)))}</b></td>` : ""}
+        <td${partial ? ` class="small"` : ""}>${esc(dbVal(q, RN[q].v))}${touched.includes(q) ? ` <span class="db-chip acc">was ${esc(dbVal(q, RO[q].v))}</span>` : ""}
+          <div class="small">${esc((RN[q].why || []).join("; "))}</div></td></tr>`).join("")}</tbody></table></div>
+    <p class="lat">today's model ${d.before.ms} ms${A ? ` · re-taught ${A.ms} ms` : ""} · on this machine's GPU, nothing leaves it.
+      ${partial ? "" : `✓/✗ = agrees with the rulebook ${A ? "each model was taught (today's / new)" : ""}.`}</p>`;
+}
+
+// ---- fine print ----
+function dbFineHTML(){
+  return `<details class="db-fine" id="dbFine"><summary>How this was built and measured</summary><div id="dbFineBody"></div></details>`;
+}
+function dbFine(){
+  const box = $("dbFineBody"); if (!box) return;
+  const nouns = dbNouns(), res = DB.result, M = DB_MEASURED[DB.domain] || {};
+  const rows = Object.entries(M).map(([k, m]) => `<tr><td>${POLICY_ICON[k] || ""} ${esc(m.rule)}</td><td>${m.changed_before} → <b>${m.changed_after}</b></td>
+    <td>${m.kept_after}</td><td>${m.all7_before} → ${m.all7_after}</td><td>${m.train_s}</td></tr>`).join("");
+  box.innerHTML = `<ul class="small">
+    <li><b>Data.</b> A seeded synthetic corpus per business: 2,000 training and ${DB.s.baseline.n} sealed test ${nouns}. Every answer
+      comes from the written rulebook, and the rules engine re-derives all of them from the text alone.</li>
+    <li><b>Your model.</b> Laya (421M parameters, Apache-2.0) fine-tuned once on the 2,000 training ${nouns} — 3 passes,
+      ${esc(DB_PROD_NOTE)}. The out-of-the-box numbers are the same Laya with no training.</li>
+    <li><b>Re-teach.</b> Starts from your model, not from scratch. The rulebook re-decides past ${nouns} under the new rule;
+      the model trains on ${DB.imp && !DB.imp.noop ? DB.imp.teach.changed_rows + " it changes and " + DB.imp.teach.same_rows + " it doesn't" : "300 it changes and 300 it doesn't"},
+      with the new rule also written into the question text.${res ? ` Last run: prepare ${res.timing.prepare_s} s · learn ${res.timing.train_s} s ·
+      exam ${res.timing.evaluate_s} s · total ${res.timing.total_s} s (${res.config.epochs} pass${res.config.epochs === 1 ? "" : "es"}, micro-batch ${res.config.micro_batch}; log ${esc(res.config.log)}).` : ""}</li>
+    <li><b>Limits.</b> All ${nouns} come from one generator: the exam is unseen but same-format. Free rewording is the hard case
+      — try ✍️ <i>Reword it</i>.${DB_PROBES[DB.domain] ? ` Measured on the 3 hand-reworded ${nouns}: your model gets
+      ${DB_PROBES[DB.domain].all7} fully right (${DB_PROBES[DB.domain].decisions} decisions); the rulebook can't read
+      ${DB_PROBES[DB.domain].unread} decisions at all.` : ""} Confidences after fine-tuning are sharp; read them as decisions, not odds.</li></ul>
+    ${rows ? `<h3>Measured offline on all ${DB.s.baseline.n} test ${nouns} (one run per rule; live runs vary)</h3>
+      <div class="tablewrap"><table class="db-dt"><thead><tr><th>rule change</th><th>changed decisions right</th><th>untouched decisions right</th>
+      <th>all 7 right</th><th>learn s</th></tr></thead><tbody>${rows}</tbody></table></div>` : ""}`;
+}
+
+// ---- live status: presenter and audience follow the same run ----
+function dbOnStatus(s){
+  const running = s.state === "training" || s.state === "evaluating";
+  const live = $("dbLive");
+  if (live){
+    const other = running && (!DB || s.domain !== DB.domain);
+    live.innerHTML = other ? `<div class="db-live"><span aria-hidden="true">🔴</span> Live now: re-teaching
+      <b>${esc((DOM_META[s.domain] || {}).name || humanize(s.domain || ""))}</b>${s.sentence ? ` — “${esc(s.sentence)}”` : ""}
+      <button type="button" class="mini" id="dbFollow">follow it</button></div>` : "";
+    if (other) $("dbFollow").onclick = () => dbPick(s.domain);
+  }
+  if (!DB || !DB.s || s.domain !== DB.domain) return;
+  if (running){
+    if (s.policy && JSON.stringify(s.policy) !== JSON.stringify(DB.pol)){   // a teach started elsewhere: show its rule
+      DB.pol = {kind: s.policy.kind, params: {...s.policy.params}};
+      document.querySelector("#dbAct2 .db-pol").innerHTML = DB.s.presets.map(dbCardHTML).join("");
+      dbWireCards();
+      dbRenderMutators();
+      dbImpact();
     }
-    sessionStorage.setItem("studioToken", tok);
-    if (d && d.error_kind === "busy"){ $("driftOut").innerHTML = `<p class="small">409 — a teach run is in progress; try after it finishes.</p>`; return; }
-    if (d && d.error){ $("driftOut").innerHTML = `<p class="small">${esc(d.error)}</p>`; return; }
-    const tOK = d.taught.filter(r => r.ok_all).length, zOK = d.zero.filter(r => r.ok_all).length;
-    $("driftOut").innerHTML = `<div class="card" style="border-color:#d9a5a5;background:#fdf4f4">
-      <h3>The taught engine drops to ${(100*tOK/d.taught.length).toFixed(0)}% on the drifted policy
-        (zero-shot base: ${(100*zOK/d.zero.length).toFixed(0)}%).</h3>
-      <p class="small">This decay is the retainer: policy drift is measured, not hypothetical — and the fix is a
-        30-case re-teach, exactly what you just watched. That loop is the business.</p></div>`;
-  };
-}
-
-async function domPick(name){
-  const el = $("domainfloor");
-  DOM_STATE = {domain: name, questions: null, cases: null, edits: {}};
-  const head = `<h2><span aria-hidden="true">${DOM_META[name]?DOM_META[name].icon:"🗂"}</span> ${esc(name.replace(/_/g," "))}</h2><p class="small">${esc(DOM_META[name]?DOM_META[name].blurb:"")}</p>`;
-  el.innerHTML = head + `<p class="small">loading the measured portfolio…</p>`;
-  const [presetsR, portfolioR] = await Promise.allSettled([
-    fetch(studioURL(`/presets?domain=${name}`)).then(r => { if (!r.ok) throw new Error("HTTP " + r.status); return r.json(); }),
-    fetch(studioURL(`/portfolio?domain=${name}&lite=1`)).then(r => { if (!r.ok) throw new Error("HTTP " + r.status); return r.json(); }),
-  ]);
-  if (presetsR.status !== "fulfilled" || portfolioR.status !== "fulfilled"){
-    const why = presetsR.status !== "fulfilled" ? "presets" : "portfolio";
-    el.innerHTML = head + `<p class="small" style="color:var(--bad)">couldn't load the domain ${why} (${esc(String(presetsR.reason || portfolioR.reason))}).</p>`;
-    const b = document.createElement("button"); b.className = "ghost"; b.textContent = "Retry";
-    b.onclick = () => domPick(name); el.appendChild(b);
+    if (!DB.running) $("dbAct4").hidden = true;   // the previous result is about to be replaced
+    dbRunning(s);
     return;
   }
-  const presets = presetsR.value, portfolio = portfolioR.value;
-  if (portfolio.error){ el.innerHTML = head + `<p>${esc(portfolio.error)}</p>`; return; }
-  DOM_STATE.questions = presets.questions;
-  const S = portfolio.summary;
-  const pct = (arm) => { const a = S.accuracy[arm] || {}; const v = Object.values(a);
-    return v.length ? (100*v.reduce((x,y)=>x+y,0)/v.length).toFixed(1) + "%" : "—"; };
-  const wrong = portfolio.claims.filter(c => Object.entries(c.gold).some(([q, g]) => {
-    const a = c.arms.zero.answers[q] || {};
-    if (a.noul !== undefined) return (a.noul > 0.5 ? 1 : 0) !== (g ? 1 : 0);
-    if (a.choice !== undefined) return a.choice !== g;
-    if (a.score !== undefined) return !scoreEq(a.score, g);
-    return true;
-  })).slice(0, 3);
-  const struggleHTML = wrong.map(c => `<div class="card" style="margin:.4rem 0">
-    <p class="small" style="white-space:pre-wrap">${esc(c.state.slice(0, 200))}…</p>
-    <p class="small"><b>zero-shot:</b> ${Object.entries(c.arms.zero.answers).slice(0,4).map(([q,a]) =>
-      `${esc(humanize(q))}=${esc(a.choice !== undefined ? humanize(a.choice) : a.score !== undefined ? Math.round(a.score) : (a.noul > 0.5 ? "yes" : "no"))}`).join(" · ")}
-      <span style="color:var(--bad)">— gold: ${Object.entries(c.gold).slice(0,4).map(([q,g]) => `${esc(humanize(q))}=${esc(goldDisp(g))}`).join(" · ")}</span></p></div>`).join("");
-  const all7 = (arm) => (S.all_correct && S.all_correct[arm] !== undefined && S.n) ? `all 7 correct: ${S.all_correct[arm]}/${S.n} ${fmtCI(S.all_correct[arm], S.n)}` : "";
-  const pctCard = (arm, label) => {
-    const p = pct(arm), a7 = all7(arm);
-    return `<div class="card"><div class="statbig">${p}</div><div class="statl">${label}${a7 ? " · " + esc(a7) : ""}</div>${p === "100.0%" ? `<div class="caveat">${esc(CAVEAT_100)}</div>` : ""}</div>`;
-  };
-  el.innerHTML = head + `
-    <div class="statsgrid" style="display:grid">
-      ${pctCard("zero", "Laya zero-shot · 500 unseen cases (measured)")}
-      ${pctCard("dec", "decider-4b zero-shot · same 500")}
-      ${pctCard("dec_ft", "decider-4b after insurance training (format + journey transfer)")}
-      ${pctCard("rules", ARM_LABEL.rules + " · perfect on the phrasing it was built for")}
-    </div>
-    <h3>Watch them struggle (cases picked from measured zero-shot errors)</h3>${struggleHTML}
-    <div class="card"><h3>Now teach it — bulk-accept the rule gold, optionally edit one decision</h3>
-      <p class="small" id="editBadge">no edits — the rule gold stands (bulk-accepted)</p>
-      <div class="tablewrap"><table class="opstable" id="teachTable"></table></div>
-      <div style="display:flex;gap:.8rem;align-items:center;margin-top:.6rem;flex-wrap:wrap">
-        <button class="primary" id="teachBtn" disabled><span aria-hidden="true">⚡</span> Teach (real fine-tune, ${TEACH_ETA}) — presenter-only</button>
-        <span class="small" id="teachStatus">loading teach cases…</span>
-      </div>
-    </div>`;
-  let sess;
-  try {
-    sess = await fetch(studioURL("/session"), {method:"POST", headers:{"Content-Type":"application/json"},
-      body: JSON.stringify({domain: name})}).then(r => r.json());
-  } catch (e) {
-    sess = {error: String(e)};
+  if (DB.running){
+    dbRunEnd(s);
+    if (s.state === "done" && s.result) dbShowResult(s.result, true);
   }
-  const stat = el.querySelector("#teachStatus"), btn = el.querySelector("#teachBtn");
-  const sessFail = (msg) => {
-    stat.innerHTML = esc(msg) + ` `;
-    const b = document.createElement("button"); b.className = "mini"; b.textContent = "Retry";
-    b.onclick = () => domPick(name); stat.appendChild(b);
-  };
-  if (sess.error_kind === "busy"){ sessFail("a teach run is already in progress — the studio trains one job at a time; retry after it finishes."); return; }
-  if (sess.error_kind === "out_of_gpu_memory"){ sessFail("the studio is low on GPU memory right now — teach cases can't load; retry in a moment."); return; }
-  if (sess.error || !sess.cases){ sessFail("couldn't load teach cases (" + (sess.error || sess.error_kind || "empty response") + ")."); return; }
-  DOM_STATE.cases = sess.cases;
-  renderDomTeach();
-  btn.disabled = false;
-  stat.textContent = "ready — bulk-accept the gold or edit a cell, then Teach.";
-  btn.onclick = domTeach;
+}
+function dbWatch(){
+  if (DB_WATCH) return;
+  DB_WATCH = setInterval(async () => {
+    if (MODE !== "domain") return;
+    try { const r = await studioCall("/status"); if (r.code === 200) dbOnStatus(r.data); } catch (e) { /* blip: keep polling */ }
+  }, 2000);
+}
+
+async function dbPick(name){
+  const el = $("domainfloor");
+  DB = {domain: name, s: null, pol: null, imp: null, result: null, showIdx: 0, running: false};
+  try { history.replaceState({mode:"domain"}, "", "?mode=domain&d=" + encodeURIComponent(name)); } catch (e) { }
+  el.innerHTML = `<div id="dbLive"></div>` + dbPickerHTML() + `<p class="small thinking">loading ${esc((DOM_META[name] || {}).name || name)}…</p>`;
+  el.querySelectorAll(".db-dom").forEach(b => b.onclick = () => dbPick(b.dataset.dom));
+  let r;
+  try { r = await studioCall("/session", {domain: name}); }
+  catch (e){ r = {code: 0, data: {error: String(e)}}; }
+  if (!DB || DB.domain !== name) return;
+  if (r.code === 503 && r.data.error_kind === "warming_up"){
+    el.insertAdjacentHTML("beforeend", `<p class="small">${esc(r.data.error)}</p>`);
+    setTimeout(() => { if (DB && DB.domain === name && !DB.s) dbPick(name); }, 4000);
+    return;
+  }
+  if (r.code !== 200){
+    el.insertAdjacentHTML("beforeend", `<p class="small no">couldn't load this business (${esc(r.data.error || "HTTP " + r.code)}).</p>`);
+    return;
+  }
+  DB.s = r.data;
+  const T = DB.s.taught;
+  let st = null;
+  try { const s = await studioCall("/status"); if (s.code === 200) st = s.data; } catch (e) { }
+  if (!DB || DB.domain !== name) return;
+  const runHere = st && (st.state === "training" || st.state === "evaluating") && st.domain === name && st.policy;
+  if (runHere) DB.pol = {kind: st.policy.kind, params: {...st.policy.params}};
+  else if (T) DB.pol = {kind: T.policy.kind, params: {...T.policy.params}};
+  dbRender();
+  if (DB.pol) dbImpact();
+  if (T && !runHere) dbShowResult(T, false);
+  dbFine();
+  const first = T && !runHere ? (T.exam.find(e => e.changed.length) || T.exam[0]).state : (DB.s.showcase[0] || {}).state;
+  if (first){ DB.tryOrig = first; $("dbText").value = first; }
+  if (st) dbOnStatus(st);
 }
 
 async function initDomain(){
   const el = $("domainfloor");
   el.hidden = false;
+  dbWatch();
   if (DOMS) return;
-  el.innerHTML = `<p class="small">loading domains…</p>`;
+  el.innerHTML = `<p class="small">loading…</p>`;
   try {
-    const r = await fetch(studioURL("/domains")).then(x => x.json());
-    DOMS = r.domains;
+    const r = await studioCall("/domains");
+    if (r.code !== 200) throw new Error("HTTP " + r.code);
+    DOMS = r.data.domains;
   } catch (e) {
-    el.innerHTML = `<div class="card"><p>Studio service unreachable (${esc(String(e))}). Start it with
-      <code>STUDIO_TOKEN=… python studio_service.py</code> (localhost :8903; the console proxies through :8901).</p></div>`;
+    el.innerHTML = `<div class="db-act"><p>The studio service is unreachable (${esc(String(e))}). It runs on localhost
+      :8903 behind the console's /studio proxy.</p></div>`;
     return;
   }
-  el.innerHTML = `<h2>🏭 Pick a business — any business</h2>
-    <div class="statsgrid" style="display:grid;grid-template-columns:repeat(auto-fit,minmax(260px,1fr))">
-    ${Object.keys(DOMS).map(k => `<button type="button" class="dompick" data-dom="${esc(k)}">
-      <h3><span aria-hidden="true">${(DOM_META[k]||{icon:"🗂"}).icon}</span> ${esc(k.replace(/_/g," "))}</h3>
-      <p class="small">${esc((DOM_META[k]||{blurb:""}).blurb)}</p></button>`).join("")}
-    </div>
-    <p class="small">Every domain ships the same 7-decision journey: route · flag · prioritize · eligibility ·
-      money band · third party · touches. Seeded corpora, rule-verifiable gold, 500/500 replay-validated.</p>`;
-  el.querySelectorAll(".dompick").forEach(c => c.onclick = () => domPick(c.dataset.dom));
-  // If a teach job is already training (e.g. the presenter started it elsewhere), say so up front.
-  try {
-    const s = await fetch(studioURL("/status")).then(x => x.json());
-    if (s && (s.state === "training" || s.state === "evaluating")){
-      if (!el.querySelector("#studioBusy")){
-        el.insertAdjacentHTML("afterbegin", `<div class="card" id="studioBusy" style="border-color:#d9c08f;background:var(--era1-soft)">
-          <h3>A teach run is already in progress</h3>
-          <div id="studioBusyStatus">${statusHTML(s)}</div>
-          <p class="small">The studio trains one job at a time — Teach stays unavailable until it finishes (presenter-only action).</p></div>`);
-        startStatusPoll(el.querySelector("#studioBusyStatus"), null, true);
-      }
-    }
-  } catch (e) { /* status unavailable: proceed without the banner */ }
+  let s = null;
+  try { const r = await studioCall("/status"); if (r.code === 200) s = r.data; } catch (e) { }
+  const want = QP.get("d");
+  if (s && (s.state === "training" || s.state === "evaluating") && DOMS[s.domain]) return dbPick(s.domain);
+  if (want && DOMS[want]) return dbPick(want);
+  el.innerHTML = `<div id="dbLive"></div><h2>Pick a business</h2>` + dbPickerHTML() +
+    `<p class="small">Each one runs on a written rulebook — seven decisions per case, 2,000 past cases to learn from,
+      500 sealed ones to test on.</p>`;
+  el.querySelectorAll(".db-dom").forEach(b => b.onclick = () => dbPick(b.dataset.dom));
 }
 
 const m0 = modeFromLocation();

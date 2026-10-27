@@ -1,5 +1,5 @@
 [Unit]
-Description=Insurance claims demo — studio service (teach/drift)
+Description=Insurance claims demo — studio service (Domain Builder re-teach/compare)
 PartOf=decision-demo.target
 
 [Service]

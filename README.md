@@ -8,7 +8,8 @@ on an insurance-claims journey, anchored on a sealed-evaluation comparison again
 
 - **Live demo**: pick a claim, watch four engines answer a 7-decision claim journey with probabilities,
   press one button to go from "untrained" (46.4% avg per decision) to "trained on 12,000 claims"
-  (100.0% on the in-template holdout); ops floor, Domain Builder (live fine-tune on a new business).
+  (100.0% on the in-template holdout); ops floor; Domain Builder (change one rule of a business's
+  rulebook, re-teach its model live in about a minute, compare old vs new on any case).
 - **Full study evidence**: sealed-split evaluation, serving matrix, GGUF quantization gate,
   option-order controls, calibration analysis, retained-failure ledger — all measured, nothing
   vendor-quoted without a label.
@@ -23,6 +24,7 @@ cd demo-insurance
 bash train_laya.sh                # ~15 min on an RTX 5090 (measured 923.5 s); fine-tunes on the 12k-claim corpus
 python build_portfolio.py         # ~2 min; measures all engines on the sealed 500-claim holdout
                                   # (also regenerates stats.json and the ops-floor data)
+bash train_prod_ckpt.sh           # ~7 min per business; the Domain Builder's production models
 bash start_demo.sh                # → http://127.0.0.1:8901/?mode=day1
 ```
 
@@ -58,6 +60,17 @@ an honest keyword-rules implementation of the same written policy (perfect on th
 was built for, `unparsed` on anything else — the incumbent's real shape).
 
 ![Ops floor — straight-through processing](docs/img/ops-floor.png)
+
+**Domain Builder** (`?mode=domain`): three more businesses (support desk, logistics exceptions,
+HR exceptions), each with a written rulebook and a production model trained once on 2,000 past
+cases. The room picks a rule change — send a whole category to another desk, give a tier a
+minimum urgency, flag at one warning sign instead of two — and the model is re-taught live from
+that production model in about a minute. The 24-case exam it has never seen flips to the new
+rule; anyone can then hand both models a case of their own. Measured on all 500 test cases, for
+all nine preset changes: every decision the rule changes is learned in one pass (46–61 s of
+training); untouched decisions stay 99.1–99.9% right.
+
+![Domain Builder — what changed after a live re-teach](docs/img/domain-builder-taught.png)
 
 ## What's inside
 
@@ -100,8 +113,9 @@ the rows present. Everything the demo shows is fully reproducible from this tree
 | decider-4b, LoRA fine-tune (same 12k) | 100.0% | 500/500 |
 | Rules engine (hand-coded policy) | 100.0% (English only; non-English → `unparsed`) | 500/500 |
 
-In-template caveat: train and holdout come from one templated generator — studio-taught models
-score 0–3/3 on hand-reworded probes, and the shifted-phrasing study figure is 92.0%.
+In-template caveat: train and holdout come from one templated generator — the Domain Builder's
+production models get 0–3 of 3 hand-reworded cases fully right per business (57/63 decisions), and
+the shifted-phrasing study figure is 92.0%.
 
 **Study corpus — sealed evaluation against the CLM-8B anchor** (4,000 sealed ID / 2,000 shifted rows; full tables in `docs/`):
 

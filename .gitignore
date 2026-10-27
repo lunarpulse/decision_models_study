@@ -13,3 +13,5 @@ study/g0-*/
 study/g2-*/
 study/g3-*/
 demo-insurance/deploy/demo.env
+demo-insurance/studio-runs/
+demo-insurance/studio-token.txt
