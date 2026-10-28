@@ -224,6 +224,14 @@ does the percentage come from, and why does decider show a red dot — "check th
     the panel shows out of the box · your model · re-taught · rulebook with a score chip each, exam
     tiles show the out-of-box score, and the result adds an out-of-box tile on the same exam
     (HR VIP run: 0/24 fully right out of the box vs 24/24 re-taught).
+23. No way back to a fresh demo (operator, 2026-10-28): the re-taught model and its result
+    persisted across reloads with no reset, and nothing on screen said whether a business was
+    already re-taught. Added `/studio/reset {domain | "all"}` (token; 409 while training; deletes
+    `ft-ckpt` + `last-result.json`, drops the engine — the production model is never written), a
+    fresh/re-taught state bar with a reset button on each business page, a badge per business card
+    and a "reset every business" button on the picker; `/studio/status`, `/health` and
+    `/studio/domains` report what is active, so every open page re-syncs within ~2 s. Verified in
+    two browsers: reset one → the other page switched to "Fresh start"; reset all → three fresh badges.
 
 ## Phase 6 — Demo v2: journey questions, ops floor, Engine D, decider parity (2026-10-13)
 

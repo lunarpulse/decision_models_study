@@ -3,7 +3,7 @@ production model live, and put the old and new model side by side.
 
 Port 8903 (localhost by default). The demo console reaches it through the laya service's
 /studio/* proxy, so one public origin serves everything and this service needs no CORS.
-The mutating route (/studio/train) requires the studio token (env STUDIO_TOKEN; the presenter
+The mutating routes (/studio/train, /studio/reset) require the studio token (env STUDIO_TOKEN; the presenter
 types it once in the console — it is never baked into the page); the service refuses to start
 without one unless STUDIO_ALLOW_OPEN=1. Wrong tokens are compared with hmac.compare_digest and
 throttled: five misses buy a 60 s timeout (429).
@@ -13,6 +13,7 @@ Models per domain, both under studio-runs/<domain>/:
               today's rulebook (train_prod_ckpt.sh). Never written by this service.
   ft-ckpt     the re-taught model: prod-ckpt fine-tuned on the presenter's policy change.
               Its policy and exam result persist in last-result.json next to it.
+              /studio/reset {domain | "all"} deletes both — a fresh start for the next demo.
 
 A policy change is a rulebook edit (domain_factory.apply_policy: reassign / vip / risk). The
 rules engine relabels corpus rows under the new rule (TEACH_CHANGED_ROWS rows the rule changes,
@@ -746,6 +747,37 @@ def train_worker(domain, pol, rows, corpus_changed):
               "failed: unexpected error")
 
 
+def taught_summary():
+    """{domain: {sentence, finished} | None} — which businesses have a re-taught model right now."""
+    out = {}
+    for d in DOM:
+        lr = last_result(d)
+        out[d] = {"sentence": lr.get("sentence"), "finished": lr.get("finished")} if lr else None
+    return out
+
+
+def reset_taught(domains):
+    """Back to a fresh start: drop the re-taught model (memory, ft-ckpt, last-result.json).
+
+    The production model is never written by a re-teach, so it needs no reset."""
+    with _compare_sem:                # no inference on an engine being dropped
+        with _eng_lock:
+            if _eng["domain"] in domains:
+                _eng["taught"] = None
+        for d in domains:
+            shutil.rmtree(taught_ckpt(d), ignore_errors=True)
+            (OUT / d / "last-result.json").unlink(missing_ok=True)
+    _empty_cache()
+    with _lock:
+        if _job.get("domain") in domains:
+            _job.pop("result", None)
+            _job.update(state="idle", error_kind=None, error=None, progress=None)
+            _messages.clear()
+            _msg("reset to a fresh start (production model only)")
+    _persist_job()
+    print(f"[studio] reset re-taught model(s): {', '.join(domains)}", flush=True)
+
+
 def status_snapshot():
     with _lock:
         started_epoch = _job["started_epoch"]
@@ -756,6 +788,8 @@ def status_snapshot():
                "started_epoch": started_epoch, "elapsed_s": elapsed,
                "progress": _job["progress"], "messages": list(_messages),
                "error_kind": _job["error_kind"], "error": _job["error"]}
+    out["taught"] = {d: (t or {}).get("finished") for d, t in taught_summary().items()}
+    with _lock:
         if _job.get("result"):
             out["result"] = _job["result"]
         return out
@@ -783,10 +817,13 @@ class H(BaseHTTPRequestHandler):
             self._send(200, {"ok": True, "job": job_state, "token_required": bool(TOKEN),
                              "gpu": gpu_info(), "teach_min_free_gib": TEACH_MIN_FREE_GIB,
                              "resident": _eng["domain"], "warm": _warm_done.is_set(),
-                             "prod_ready": {d: prod_ckpt(d).exists() for d in DOM}})
+                             "prod_ready": {d: prod_ckpt(d).exists() for d in DOM},
+                             "taught": taught_summary()})
         elif p == "/studio/domains":
+            taught = taught_summary()
             self._send(200, {"domains": {k: {"stages": v["stages"],
-                                             "noun_plural": v.get("noun_plural", "cases")}
+                                             "noun_plural": v.get("noun_plural", "cases"),
+                                             "taught": taught[k]}
                                          for k, v in DOM.items()}})
         elif p == "/studio/status":
             self._send(200, status_snapshot())
@@ -830,8 +867,22 @@ class H(BaseHTTPRequestHandler):
         if body is None:
             return
         domain = body.get("domain")
-        if p not in ("/studio/session", "/studio/impact", "/studio/train", "/studio/compare"):
+        if p not in ("/studio/session", "/studio/impact", "/studio/train", "/studio/compare", "/studio/reset"):
             self._send(404, {"error_kind": "not_found", "error": "no such route"})
+            return
+        if p == "/studio/reset":      # presenter: back to a fresh start, one business or "all"
+            bad = _token_check(self.headers.get("X-Studio-Token"))
+            if bad:
+                self._send(*bad)
+                return
+            if domain != "all" and domain not in DOM:
+                self._send(*_unknown_domain(domain))
+                return
+            if busy():
+                self._send(409, {"error_kind": "busy", "error": "a re-teach is running — reset after it finishes"})
+                return
+            reset_taught(list(DOM) if domain == "all" else [domain])
+            self._send(200, {"reset": domain, "taught": taught_summary()})
             return
         if domain not in DOM:
             self._send(*_unknown_domain(domain))

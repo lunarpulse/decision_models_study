@@ -77,7 +77,10 @@ First request after a cold start takes ~1–2 s (CUDA warm-up); afterwards 10–
 6. Wrong-token test: Re-teach with a garbage token is rejected and re-prompts; the real token works.
 7. `VERSION` in the live tree equals the repo HEAD you meant to ship.
 8. Disk and logs sane: `df -h .`, `du -sh studio-runs`, journal not ballooning.
-9. After any restart, run one warm-up predict — first answer is the slow CUDA one (~1–2 s).
+9. Domain Builder starts fresh: on `?mode=domain` every card's badge reads "fresh — your model only".
+   If not, press **↺ Reset every business to a fresh start** (token) — or
+   `curl -X POST localhost:8903/studio/reset -H "X-Studio-Token: $(cat studio-token.txt)" -d '{"domain":"all"}'`.
+10. After any restart, run one warm-up predict — first answer is the slow CUDA one (~1–2 s).
 
 ## 2. Sharing online (cloudflared)
 
@@ -180,7 +183,12 @@ one; while it runs, compare answers "the model is being re-taught". One job at a
 training the studio unloads its two engines, then refuses to start below `TEACH_MIN_FREE_GIB`
 (11.5) free — a plain "not enough GPU memory" message instead of a crash. Each re-teach starts
 from `prod-ckpt` (never cumulative) and replaces `ft-ckpt` only on success; its result persists
-in `last-result.json`, so a reload or a latecomer sees the last run.
+in `last-result.json`, so a reload or a latecomer sees the last run. Every page says which model is
+active — a green "Fresh start" bar or an amber "A re-taught model is active — “rule” (finished …)"
+bar, plus a badge on each business card. The amber bar's **↺ Reset to a fresh start** button
+(token) deletes the re-taught model for that business; the production model is never modified,
+so there is nothing else to reset. Open pages, including the audience's, switch to the fresh state
+within ~2 s. Reset is refused (409) while a re-teach runs.
 
 | measured with the full live stack serving | value |
 |---|---|

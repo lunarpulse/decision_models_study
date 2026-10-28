@@ -199,6 +199,12 @@ footer{border-top:1px solid var(--line);margin-top:1.2rem;padding:.7rem 0;font-s
 .db-board{display:flex;gap:.3rem;flex-wrap:wrap;margin:.2rem 0 .4rem}
 .db-board .db-chip{font-size:.85em}
 .db-zero{color:#8a4b4b}
+.db-badge{font-size:.72em;font-weight:700;color:var(--ok)}
+.db-badge.taught{color:var(--warn)}
+.db-state{border-radius:10px;padding:.5rem .8rem;margin:.3rem 0 .6rem;font-size:.92em;border:1.5px solid var(--line)}
+.db-state.fresh{border-color:#bcd9cb;background:#f4faf7}
+.db-state.taught{border-color:#d9c08f;background:var(--era1-soft)}
+.db-state.run{border-color:var(--warnline);background:var(--era1-soft)}
 @media (max-width:760px){.db-try,.db-impact{grid-template-columns:1fr}.db-vs{grid-template-columns:1fr}
   .db-arrow{transform:rotate(90deg);justify-self:center}.db-steps{position:static}}
 </style>
@@ -994,13 +1000,52 @@ function dbNoDocs(text){
 }
 
 // ---- page skeleton ----
+let DB_TAUGHT = {};   // {domain: finished-timestamp | null}: which businesses run a re-taught model now
+function dbBadgeText(k){
+  return DB_TAUGHT[k] ? `● re-taught model active (since ${String(DB_TAUGHT[k]).slice(11, 16)})` : "● fresh — your model only";
+}
+function dbBadges(){
+  document.querySelectorAll(".db-dom").forEach(b => {
+    const t = b.querySelector(".db-badge"); if (!t) return;
+    t.textContent = dbBadgeText(b.dataset.dom);
+    t.classList.toggle("taught", !!DB_TAUGHT[b.dataset.dom]);
+  });
+}
 function dbPickerHTML(){
   return `<div class="db-pick" role="radiogroup" aria-label="pick a business">${Object.keys(DOMS).map(k => {
     const m = DOM_META[k] || {icon:"🗂", name:humanize(k), blurb:""};
     const on = DB && DB.domain === k;
     return `<button type="button" class="db-dom${on ? " on" : ""}" role="radio" aria-checked="${on}" data-dom="${esc(k)}">
-      <span class="t"><span aria-hidden="true">${m.icon}</span> ${esc(m.name)}</span><span class="small">${esc(m.blurb)}</span></button>`;
+      <span class="t"><span aria-hidden="true">${m.icon}</span> ${esc(m.name)}</span><span class="small">${esc(m.blurb)}</span>
+      <span class="db-badge${DB_TAUGHT[k] ? " taught" : ""}">${esc(dbBadgeText(k))}</span></button>`;
   }).join("")}</div>`;
+}
+// What is loaded for this business right now — and the presenter's way back to a fresh start.
+function dbStateRender(){
+  const box = $("dbState"); if (!box || !DB || !DB.s) return;
+  const R = DB.result;
+  if (DB.running) box.innerHTML = `<div class="db-state run"><span aria-hidden="true">🔴</span> <b>Re-teaching now.</b>
+    Your model (trained once on 2,000 past ${dbNouns()}) stays untouched; the re-taught copy replaces the previous one when it finishes.</div>`;
+  else if (R) box.innerHTML = `<div class="db-state taught"><span aria-hidden="true">🟠</span> <b>A re-taught model is active</b> —
+    “${esc(R.sentence)}” (finished ${esc(R.finished || "")}). Your model is unchanged; steps ④–⑤ show both.
+    <button type="button" class="mini" id="dbResetOne">↺ Reset to a fresh start — presenter</button></div>`;
+  else box.innerHTML = `<div class="db-state fresh"><span aria-hidden="true">🟢</span> <b>Fresh start.</b> Only your model is
+    loaded (trained once on 2,000 past ${dbNouns()}); nothing has been re-taught for this business.</div>`;
+  const b = $("dbResetOne"); if (b) b.onclick = () => dbReset(DB.domain);
+}
+async function dbReset(target){
+  const name = target === "all" ? "every business" : ((DOM_META[target] || {}).name || target);
+  if (!confirm(`Reset ${name} to a fresh start? The re-taught model and its result are deleted; your production model stays.`)) return;
+  const tok = sessionStorage.getItem("studioToken") || prompt("Studio token (presenter only):") || "";
+  let r;
+  try { r = await studioCall("/reset", {domain: target}, tok); }
+  catch (e){ alert("Network error — the studio is unreachable; try again."); return; }
+  if (r.data.error_kind === "token"){ sessionStorage.removeItem("studioToken"); alert("Wrong or missing studio token."); return; }
+  sessionStorage.setItem("studioToken", tok);
+  if (r.code !== 200){ alert(dbFailText(r.data)); return; }
+  for (const [k, v] of Object.entries(r.data.taught || {})) DB_TAUGHT[k] = v ? v.finished : null;
+  if (DB && (target === "all" || target === DB.domain)) dbPick(DB.domain);
+  else dbBadges();
 }
 function dbStepsHTML(){
   return `<nav class="db-steps" aria-label="demo steps">${DB_STEPS.map((t, i) =>
@@ -1011,7 +1056,7 @@ function dbSteps(done){   // highlight steps 1..done as reached
 }
 function dbRender(){
   const el = $("domainfloor");
-  el.innerHTML = `<div id="dbLive"></div>` + dbPickerHTML() + dbStepsHTML() +
+  el.innerHTML = `<div id="dbLive"></div>` + dbPickerHTML() + dbStepsHTML() + `<div id="dbState"></div>` +
     dbAct1HTML() + dbAct2HTML() + dbAct3HTML() +
     `<section class="db-act" id="dbAct4" hidden></section>` + dbAct5HTML() + dbFineHTML();
   el.querySelectorAll(".db-dom").forEach(b => b.onclick = () => dbPick(b.dataset.dom));
@@ -1024,6 +1069,7 @@ function dbRender(){
   dbRenderMutators();
   $("dbAskBtn").onclick = dbAsk;
   dbSteps(1);
+  dbStateRender();
 }
 
 // ---- act 1: your model today ----
@@ -1255,6 +1301,7 @@ function dbRunning(s){
   $("dbTeach").disabled = true;
   $("dbTeachNote").textContent = s.sentence ? `teaching: “${s.sentence}”` : "teaching…";
   dbSteps(3);
+  dbStateRender();
   const p = s.progress, learning = !!(p && p.epochs);
   const ph = s.state === "evaluating" ? "exam" : learning ? "learn" : "prep";
   const order = ["prep", "learn", "exam"];
@@ -1318,6 +1365,7 @@ function dbShowResult(res, animate){
       Click any ${dbNoun()} to put the models side by side.</p>`;
   dbWireTiles(sec, ex);
   dbSteps(4);
+  dbStateRender();
   dbRenderMutators();
   dbFine();
   const pre = document.querySelector("#dbAct5 .db-sub");
@@ -1478,8 +1526,9 @@ function dbOnStatus(s){
       <button type="button" class="mini" id="dbFollow">follow it</button></div>` : "";
     if (other) $("dbFollow").onclick = () => dbPick(s.domain);
   }
-  if (!DB || !DB.s || s.domain !== DB.domain) return;
-  if (running){
+  if (s.taught){ DB_TAUGHT = s.taught; dbBadges(); }
+  if (!DB || !DB.s) return;
+  if (running && s.domain === DB.domain){
     if (s.policy && JSON.stringify(s.policy) !== JSON.stringify(DB.pol)){   // a teach started elsewhere: show its rule
       DB.pol = {kind: s.policy.kind, params: {...s.policy.params}};
       document.querySelector("#dbAct2 .db-pol").innerHTML = DB.s.presets.map(dbCardHTML).join("");
@@ -1491,10 +1540,14 @@ function dbOnStatus(s){
     dbRunning(s);
     return;
   }
-  if (DB.running){
+  if (DB.running){                               // this business's run just ended
     dbRunEnd(s);
-    if (s.state === "done" && s.result) dbShowResult(s.result, true);
+    if (s.state === "done" && s.result && s.domain === DB.domain) dbShowResult(s.result, true);
+    else dbStateRender();
+    return;
   }
+  // a reset (or a run this page missed) changed which model is active: reload what is now true
+  if (s.taught && (s.taught[DB.domain] || null) !== (DB.result ? DB.result.finished : null)) dbPick(DB.domain);
 }
 function dbWatch(){
   if (DB_WATCH) return;
@@ -1550,6 +1603,7 @@ async function initDomain(){
     const r = await studioCall("/domains");
     if (r.code !== 200) throw new Error("HTTP " + r.code);
     DOMS = r.data.domains;
+    for (const [k, v] of Object.entries(DOMS)) DB_TAUGHT[k] = v.taught ? v.taught.finished : null;
   } catch (e) {
     el.innerHTML = `<div class="db-act"><p>The studio service is unreachable (${esc(String(e))}). It runs on localhost
       :8903 behind the console's /studio proxy.</p></div>`;
@@ -1562,8 +1616,10 @@ async function initDomain(){
   if (want && DOMS[want]) return dbPick(want);
   el.innerHTML = `<div id="dbLive"></div><h2>Pick a business</h2>` + dbPickerHTML() +
     `<p class="small">Each one runs on a written rulebook — seven decisions per case, 2,000 past cases to learn from,
-      500 sealed ones to test on.</p>`;
+      500 sealed ones to test on. The badge on each card says whether a re-taught model is active.
+      <button type="button" class="mini" id="dbResetAll">↺ Reset every business to a fresh start — presenter</button></p>`;
   el.querySelectorAll(".db-dom").forEach(b => b.onclick = () => dbPick(b.dataset.dom));
+  $("dbResetAll").onclick = () => dbReset("all");
 }
 
 const m0 = modeFromLocation();
