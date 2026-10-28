@@ -1030,7 +1030,8 @@ function dbStateRender(){
     “${esc(R.sentence)}” (finished ${esc(R.finished || "")}). Your model is unchanged; steps ④–⑤ show both.
     <button type="button" class="mini" id="dbResetOne">↺ Reset to a fresh start — presenter</button></div>`;
   else box.innerHTML = `<div class="db-state fresh"><span aria-hidden="true">🟢</span> <b>Fresh start.</b> Only your model is
-    loaded (trained once on 2,000 past ${dbNouns()}); nothing has been re-taught for this business.</div>`;
+    loaded — trained <i>before this demo</i> on 2,000 past ${dbNouns()} whose answers came from today's rulebook;
+    nothing has been re-taught in this session.</div>`;
   const b = $("dbResetOne"); if (b) b.onclick = () => dbReset(DB.domain);
 }
 async function dbReset(target){
@@ -1086,7 +1087,7 @@ function dbAct1HTML(){
         <div class="big">${z ? z.all7 : "—"}<small> / ${n}</small></div>
         <div class="lbl">${dbNouns()} with all 7 decisions right · ${pct(z && z.avg)} of single decisions</div></div>
       <div class="db-arrow" aria-hidden="true">→</div>
-      <div class="db-stat good"><div class="lbl">Your model · the same Laya, trained once on 2,000 past ${dbNouns()}</div>
+      <div class="db-stat good"><div class="lbl">Your model · the same Laya, trained before this demo on 2,000 past ${dbNouns()} (~7 min, once)</div>
         <div class="big">${p ? p.all7 : "…"}<small> / ${n}</small></div>
         <div class="lbl">${dbNouns()} with all 7 decisions right · ${pct(p && p.avg)} of single decisions</div></div>
     </div>
@@ -1467,7 +1468,9 @@ async function dbAsk(){
   if (partial)
     lead = `<b>The rulebook can't read this wording</b> (${unread.length} of ${qids.length} decisions unreadable), so it can't
       referee — rewording is exactly what breaks rules engines. The models still answer${A ? `; your model and the re-taught one agree on ${same} of ${qids.length}` : ""}. Judge them yourself.`;
-  else if (!A) lead = `Your model agrees with today's rulebook on ${score(d.before, RO)} of ${qids.length} decisions${Z ? `; the same model out of the box, on ${score(Z, RO)}` : ""}.`;
+  else if (!A) lead = `Your model agrees with today's rulebook on ${score(d.before, RO)} of ${qids.length} decisions${Z ? `; the same model out of the box, on ${score(Z, RO)}` : ""}.
+    <span class="small">“Your model” was trained before this demo on 2,000 past ${dbNouns()} the rulebook had decided — so
+    on familiar wording it matches the rulebook; on reworded ${dbNouns()} the rulebook can't read, it still answers.</span>`;
   else if (touched.length){
     const ok = touched.every(q => v(A, q) === RN[q].v);
     lead = `<b>The new rule applies here</b> (${touched.map(q => esc(dbTitle(q)) + ": " + esc(dbVal(q, RO[q].v)) + " → " + esc(dbVal(q, RN[q].v))).join("; ")}).
@@ -1477,7 +1480,7 @@ async function dbAsk(){
       ${same} of ${qids.length}. The difference training makes is the out-of-the-box column.`;
   }
   box.innerHTML = `<p>${lead}</p>${board}
-    <div class="tablewrap"><table class="db-dt"><thead><tr><th>decision</th>${Z ? "<th>out of the box<br><span class=\"small\">no training</span></th>" : ""}<th>your model<br><span class="small">trained · today's rule</span></th>${A ? "<th>re-taught<br><span class=\"small\">new rule</span></th>" : ""}<th>rulebook${A ? " (new)" : ""}${partial ? " — partial read" : ""}</th></tr></thead><tbody>${
+    <div class="tablewrap"><table class="db-dt"><thead><tr><th>decision</th>${Z ? "<th>out of the box<br><span class=\"small\">no training</span></th>" : ""}<th>your model<br><span class="small">pre-trained before this demo</span></th>${A ? "<th>re-taught<br><span class=\"small\">new rule, this session</span></th>" : ""}<th>rulebook${A ? " (new)" : ""}${partial ? " — partial read" : ""}</th></tr></thead><tbody>${
       qids.map(q => `<tr class="${touched.includes(q) ? "diff" : ""}"><td>${esc(dbTitle(q))}</td>
         ${Z ? `<td>${judge(Z, RO, q)} ${esc(dbVal(q, v(Z, q)))}</td>` : ""}
         <td>${judge(d.before, RO, q)} ${esc(dbVal(q, v(d.before, q)))}</td>
