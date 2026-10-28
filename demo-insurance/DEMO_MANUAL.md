@@ -99,20 +99,31 @@ network see traffic metadata. Fine for a session with known recipients; revoke w
 
 ## 3. What to show — the 8-minute arc
 
-1. **Frame (1 min):** "Every claim triggers three small decisions — which unit, fraud or not, how
-   urgent. Today people make them; a decision model makes them in milliseconds and shows you the
-   probability it is acting on."
-2. **Day 1 (3 min):** open `?mode=day1`. Run 2 standard presets — out-of-box Laya misses some.
-   Then run a **FRAUD** preset: Laya says YES/NO with high confidence on the wrong side.
-   decider-4b is right — "the bigger generalist is decent with zero data; the small one is lost."
-3. **The reveal (1 min):** press the green **"⚡ Train on 12,000 past claims"** button — same claim,
-   trained engine, all seven decisions correct with sharp probabilities. "Fifteen minutes of
-   training on this machine, before the session. Nothing you are watching is recorded or staged."
-4. **Multilingual (1 min):** compare mode, run 🇰🇷 Korean / 🇯🇵 Japanese presets — the zero-shot
-   engine auto-routes to its multilingual checkpoint; the trained engine now also switches
-   checkpoints per language (badge: `trained checkpoint: multilingual-finetuned`).
-5. **Audience drives (2 min):** hand over the free-text box — paste any claim; discuss the
-   probability bars. Scoreboard tallies preset hits per engine; Reset clears.
+1. **Frame:** "Follow one claim through seven decisions, grouped into four stages of the
+   journey. We'll compare each engine with the claims manual, then see what training changed."
+   Point to the story strip under the tabs: pick a claim → Day 1 → After → Compare.
+2. **Pick and run:** open `?mode=day1`, choose one standard or fraud preset and run it. The
+   selected claim card highlights the policy type, dates, amount and documents; keep this same
+   claim for the reveal. The compact chips also include multilingual examples, and the
+   collapsible box accepts a claim pasted by the audience.
+3. **Day 1:** read across the single decision table: Laya out-of-box and decider-4b alongside
+   the claims-manual answers. ✓/✗ marks each answer against the manual and each engine's score
+   chip shows its correct decisions out of seven, and one sentence above the table says it in
+   words. **Show confidence & probabilities** reveals the bars for every cell at once. The summary reports 46.4% average per decision and 1/500 all-seven for
+   out-of-box Laya, versus 70.8% and 21/500 for decider-4b.
+4. **The reveal:** press **"Show the same claim after training on 12,000 past claims →"**.
+   After re-runs that claim, highlighting fine-tuned Laya decisions that changed, with "was …"
+   showing the Day 1 answer. Training took about 15 minutes on this machine and happened before
+   the session; the button does not train live. If no claim has been run, reveal selects and
+   runs the first preset. The measured fine-tuned summary is 100.0% average per decision and
+   500/500 all-seven.
+5. **Compare and invite participation:** open `?mode=compare` to see Laya out-of-box, Laya
+   fine-tuned, decider-4b and the rules engine beside the manual in the same table; the same
+   toggle shows rules evidence. Rules scored 100% on English phrasing only. Try a multilingual preset:
+   out-of-box Laya answers, while the fine-tuned column explains its English-only limitation.
+   Or paste a claim: without a manual answer there are no ✓/✗ verdicts, so judge the answers
+   together. Open **fine print** for the holdout, Wilson confidence intervals, the 100% result's
+   caveat, unparsed rules and uncalibrated-confidence caveats.
 
 ### The ops floor (the executive close) — `?mode=ops`
 

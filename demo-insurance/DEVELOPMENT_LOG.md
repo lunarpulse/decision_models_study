@@ -232,6 +232,9 @@ does the percentage come from, and why does decider show a red dot — "check th
     and a "reset every business" button on the picker; `/studio/status`, `/health` and
     `/studio/domains` report what is active, so every open page re-syncs within ~2 s. Verified in
     two browsers: reset one → the other page switched to "Fresh start"; reset all → three fresh badges.
+24. Claim-console clutter (operator, 2026-10-28) — see Phase 11. The removed top-bar scoreboard
+    had counted every rerun of the same preset, so its percentages drifted with presenter
+    clicks; per-claim k/7 chips replace it.
 
 ## Phase 6 — Demo v2: journey questions, ops floor, Engine D, decider parity (2026-10-13)
 
@@ -452,6 +455,36 @@ do?" Plan and reasoning: `docs/PLAN_DOMAIN_DEMO_V3.md`.
    70/70 during a re-teach. Production models on the hand-reworded probes: support 0/3 fully
    right (16/21 decisions), logistics 3/3 (21/21), HR 2/3 (20/21); the rulebook can't read 26 of
    those 63 decisions.
+
+## Phase 11 — Claim console revamp: one claim, side by side (2026-10-28)
+
+Operator: make `day1`, `after` and `compare` "more organic, intuitive and less cluttered", using
+BMad workflows. BMad was set up in the repo (`_bmad/`); the plan is
+`_bmad-output/plan-claim-console-ux-revamp.md` and the UX spines are
+`_bmad-output/ux-claim-console/{DESIGN,EXPERIENCE}.md`.
+
+1. **Before**: three stat cards, a long preset list, a free-text box, per-engine cards each
+   repeating seven questions with probability bars, a top-bar scoreboard that double-counted
+   reruns, and a reveal button labelled "Train…" although training happened before the session.
+   The audience had to scan two or four cards to find what changed.
+2. **After**: a story strip (① pick a claim → ② Day 1 → ③ After → ④ Compare, done/now marks);
+   compact preset chips (three per group, "+N more"), collapsing to "Claim: … · Change claim"
+   once a claim runs; a claim card with the rule-relevant facts highlighted; ONE decision table
+   for all three modes (rows = seven decisions by stage, columns = the mode's engines + the
+   claims-manual answer, ✓/✗, k/7 chips) with a plain sentence on top — Day 1 "Out of the box,
+   Laya gets 1 of 7; decider-4b gets 4 of 7", After "Training changed 6 of 7 decisions on this
+   claim — 6 now match the claims manual" with "was …" under each changed answer, Compare "who
+   gets 7/7". One toggle reveals confidence and probability bars (and rules evidence) for every
+   cell. Measured numbers moved to a slim summary row; caveats to a fine-print disclosure. The
+   reveal reads "Show the same claim after training on 12,000 past claims →" and runs the first
+   preset when no claim was run. Phones get stacked per-decision cards and a scrolling tab row;
+   `:focus-visible` rings and `prefers-reduced-motion` were added site-wide.
+3. **Verified in the browser through the tunnel** (desktop 1366 and phone 390): day1 → reveal →
+   after → compare on a fraud preset, a Korean preset (fine-tuned column shows the English-only
+   note) and pasted text (no ✓/✗); no page-level horizontal overflow; zero page errors; ops
+   counters and the Domain Builder render unchanged. Two review rounds fixed clipped chips, raw
+   manual answers, per-cell "Details" clutter, the missing after-mode change sentence, the phone
+   table, and a picker that pushed the table below the fold.
 
 ## Final state at log time
 

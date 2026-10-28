@@ -47,11 +47,11 @@ p{margin:.4em 0}
 .tab{font:inherit;font-weight:700;border:1.5px solid var(--line);background:#fff;border-radius:999px;
   padding:.4rem 1rem;cursor:pointer}
 .tab.on{background:var(--ink);color:#fff;border-color:var(--ink)}
-.preset{display:block;width:100%;text-align:left;font:inherit;border:1px solid var(--line);border-radius:9px;
-  background:#fff;padding:.5rem .7rem;margin:.35rem 0;cursor:pointer;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.preset{display:inline-block;max-width:100%;text-align:left;font:inherit;font-size:.8em;border:1px solid var(--line);border-radius:999px;
+  background:#fff;padding:.35rem .7rem;cursor:pointer;overflow-wrap:anywhere}
 .preset:hover{border-color:var(--accent);background:var(--accent-soft)}
 .preset.sel{border-color:var(--accent);background:var(--accent-soft);font-weight:700}
-#presets{max-height:min(420px,55vh);overflow-y:auto;padding-right:.25rem}
+#presets{display:grid;gap:.5rem}
 textarea{width:100%;min-height:110px;font:inherit;border:1px solid var(--line);border-radius:9px;padding:.6rem}
 button.primary{font:inherit;font-weight:700;background:var(--accent);color:#fff;border:none;border-radius:9px;
   padding:.55rem 1.2rem;cursor:pointer;margin-top:.4rem}
@@ -59,21 +59,11 @@ button.primary:disabled{opacity:.45;cursor:default}
 button.ghost{font:inherit;border:1px solid var(--line);background:#fff;border-radius:9px;padding:.3rem .8rem;cursor:pointer}
 button.reveal{font:inherit;font-weight:800;background:var(--ok);color:#fff;border:none;border-radius:9px;
   padding:.55rem 1.1rem;cursor:pointer;margin-top:.5rem;font-size:.95em}
-.engines{display:grid;grid-template-columns:repeat(auto-fit,minmax(260px,1fr));gap:.9rem;margin:.8rem 0}
-.eng{border:1px solid var(--line);border-radius:12px;background:#fff;padding:.7rem .85rem}
-.eng .tag{font-size:.68em;font-weight:800;text-transform:uppercase;letter-spacing:.08em;color:var(--muted)}
-.eng .name{font-weight:800;font-size:1.02em}
-.eng .sub{font-size:.75em;color:var(--muted);margin-bottom:.4rem}
 .thinking{color:var(--muted);font-style:italic;animation:pulse 1.2s ease-in-out infinite}
 @keyframes pulse{50%{opacity:.4}}
-.qblock{border-top:1px dashed var(--line);padding:.5rem 0 .2rem;margin-top:.5rem}
-.qlabel{font-size:.78em;font-weight:700;color:#2c4a6e}
-.ansline{display:flex;align-items:center;gap:.5rem;flex-wrap:wrap;margin:.15rem 0 .3rem}
-.ans{font-weight:800;padding:.1em .55em;border-radius:7px;background:var(--accent-soft);border:1px solid var(--accent)}
 .verdict{font-size:.72em;font-weight:800;padding:.14em .6em;border-radius:999px}
 .v-ok{background:var(--ok);color:#fff}
 .v-bad{background:var(--bad);color:#fff}
-.v-na{background:#e5e9ef;color:var(--muted)}
 .lat{font-size:.72em;color:var(--muted);font-variant-numeric:tabular-nums}
 .brow{display:grid;grid-template-columns:minmax(90px,150px) 1fr 46px;gap:.45rem;align-items:center;margin:.12rem 0;font-size:.76em}
 .brow .k{overflow:hidden;text-overflow:ellipsis;white-space:nowrap;color:#33465c}
@@ -90,8 +80,6 @@ pre.schema{font-size:.68em;background:#f4f7fb;border:1px solid var(--line);borde
 .statl{font-size:.75em;color:var(--muted);font-weight:600}
 .statsgrid{display:grid;grid-template-columns:repeat(auto-fit,minmax(190px,1fr));gap:.7rem;margin:.6rem 0}
 footer{border-top:1px solid var(--line);margin-top:1.2rem;padding:.7rem 0;font-size:.75em;color:var(--muted)}
-.stagehdr{margin:.8rem 0 .2rem;padding:.15rem .45rem;background:var(--accent-soft);border-left:3px solid var(--accent);
-  font-size:.72em;font-weight:800;letter-spacing:.08em;text-transform:uppercase;color:var(--accent);border-radius:0 6px 6px 0}
 .ev{margin-top:.3rem;padding:.35rem .5rem;background:#f6f8fa;border:1px dashed var(--line);border-radius:6px;color:var(--muted)}
 .tablewrap{overflow-x:auto}
 .opstable{width:100%;border-collapse:collapse;font-size:.92em}
@@ -207,6 +195,65 @@ footer{border-top:1px solid var(--line);margin-top:1.2rem;padding:.7rem 0;font-s
 .db-state.run{border-color:var(--warnline);background:var(--era1-soft)}
 @media (max-width:760px){.db-try,.db-impact{grid-template-columns:1fr}.db-vs{grid-template-columns:1fr}
   .db-arrow{transform:rotate(90deg);justify-self:center}.db-steps{position:static}}
+/* Claim console: one case and one decision table. */
+.card,.console-card{background:var(--card);border:1px solid var(--line);border-radius:12px;padding:1rem}
+#storyStrip{display:flex;gap:.5rem;flex-wrap:wrap;margin:.75rem 0}
+.story-step{flex:1 1 180px;padding:.5rem .75rem;border:1px solid var(--line);border-radius:8px;background:#fff;font-size:.8em;color:var(--muted)}
+.story-step.done{border-color:var(--ok);color:var(--ok)}
+.story-step.current{border-color:var(--accent);background:var(--accent-soft);color:var(--ink);font-weight:700}
+.story-step.done::after{content:" · done";font-weight:700}
+.story-step.current::after{content:" · now";font-weight:700}
+.story-step.day1.current{border-color:var(--warnline);background:var(--era1-soft)}
+.story-step.after.current{border-color:var(--ok);background:var(--era2-soft)}
+.summary-row{display:flex;gap:.5rem 1.5rem;flex-wrap:wrap;align-items:baseline;font-size:.82em}
+.summary-row span{min-width:0}
+.fine-print{margin:.5rem 0 1rem;font-size:.8em;color:var(--muted)}
+.fine-print summary{cursor:pointer;font-weight:700}
+.preset-group{display:flex;gap:.5rem;align-items:center;min-width:0}
+.preset-group h3{flex:0 0 7rem;margin:0;color:var(--muted);font-size:.8em}
+.preset-options-shell{min-width:0;flex:1}
+.preset-options{display:flex;flex-wrap:wrap;gap:.5rem;min-width:0;padding:.25rem}
+.preset-options .preset,.preset-more{flex:0 1 auto;max-width:100%}
+.preset-more{font:inherit;font-size:.8em;border:1px solid var(--line);border-radius:999px;background:#fff;padding:.35rem .7rem;cursor:pointer}
+.claim-picker-summary{display:flex;align-items:center;gap:.4rem;min-width:0}
+.claim-picker-summary span{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.claim-picker-summary button{flex:none;border:0;background:none;color:var(--accent);font:inherit;font-weight:700;padding:.2rem;cursor:pointer}
+.paste-claim{margin:.75rem 0}
+.paste-claim summary{cursor:pointer;font-weight:700}
+.claim-card{margin:.75rem 0;padding:.75rem;border:1px solid var(--line);border-left:4px solid var(--accent);border-radius:8px;background:#f7f9fc;white-space:pre-wrap;overflow-wrap:anywhere}
+.claim-card b{background:#fff1bf;border-radius:3px}
+.decision-scores{display:flex;flex-wrap:wrap;gap:.5rem;margin:.75rem 0}
+.decision-table{width:100%;min-width:650px;border-collapse:collapse;font-size:.85em}
+.decision-table th,.decision-table td{padding:.5rem;border-bottom:1px solid var(--line);text-align:left;vertical-align:top;min-width:130px;overflow-wrap:anywhere}
+.decision-table thead th{color:var(--muted);font-size:.85em}
+.decision-table .stage-row th{background:var(--accent-soft);color:var(--accent);font-size:.85em}
+.decision-table tr.changed td,.decision-table tr.changed th{background:var(--era2-soft)}
+.decision-detail{margin-top:.4rem;color:var(--muted);font-size:.85em}
+.decision-detail .brow{grid-template-columns:minmax(65px,1fr) minmax(35px,1fr) 42px}
+.was{display:block;color:var(--era1);font-size:.8em;margin-top:.25rem}
+.console-note{font-size:.8em;color:var(--muted)}
+:focus-visible{outline:3px solid var(--accent);outline-offset:3px}
+@media (prefers-reduced-motion:reduce){*,*::before,*::after{animation-duration:.01ms !important;animation-iteration-count:1 !important;transition-duration:.01ms !important;scroll-behavior:auto !important}}
+@media (max-width:760px){
+  .wrap{padding:.75rem;min-width:0}.topbar{position:static;padding:.5rem .75rem}
+  .tabs{gap:.5rem;flex-wrap:nowrap;overflow-x:auto;max-width:100%;scroll-snap-type:x mandatory;scrollbar-width:thin}
+  .tab{flex:0 0 auto;max-width:90%;scroll-snap-align:start;font-size:.85em;padding:.4rem .75rem}
+  .story-step{flex:1 1 140px}.preset-group{display:block}.preset-group h3{margin-bottom:.25rem}
+  .preset-options-shell{position:relative;max-width:100%;min-width:0}
+  .preset-options-shell::after{content:"";position:absolute;right:0;top:0;bottom:0;width:1.5rem;background:linear-gradient(to right,transparent,var(--card));pointer-events:none}
+  .preset-options{flex-wrap:nowrap;overflow-x:auto;max-width:100%;scroll-snap-type:x mandatory;scrollbar-width:thin;padding-right:1.5rem}
+  .preset-options .preset,.preset-more{flex:0 0 auto;max-width:85%;scroll-snap-align:start}
+  .console-card,.card{padding:.75rem}.tablewrap{max-width:100%}
+  .claim-card{max-width:100%}
+  #decisions .tablewrap{overflow:visible}
+  .decision-table,.decision-table tbody,.decision-table tr,.decision-table th,.decision-table td{display:block;width:100%;min-width:0}
+  .decision-table thead{display:none}
+  .decision-table tr:not(.stage-row){margin:.5rem 0;border:1px solid var(--line);border-radius:9px;overflow:hidden}
+  .decision-table tr:not(.stage-row)>th{background:#f7f9fc}
+  .decision-table td{border:0;padding:.3rem .5rem}
+  .decision-table td::before{content:attr(data-label) ": ";font-weight:700}
+  .decision-table .stage-row th{border:0}
+}
 </style>
 </head>
 <body>
@@ -216,8 +263,6 @@ footer{border-top:1px solid var(--line);margin-top:1.2rem;padding:.7rem 0;font-s
   <span class="small"><span class="dot" id="dotLaya" role="img" aria-label="Laya service status"></span>Laya service</span>
   <span class="small"><span class="dot" id="dotDecider" role="img" aria-label="decider service status"></span>decider service</span>
   <span class="small"><span class="dot" id="dotStudio" role="img" aria-label="studio status"></span>studio</span>
-  <span id="sboard" style="display:flex;gap:.6rem;flex-wrap:wrap"></span>
-  <button class="ghost" id="resetScores">Reset</button>
 </div>
 
 <div class="wrap">
@@ -227,10 +272,7 @@ footer{border-top:1px solid var(--line);margin-top:1.2rem;padding:.7rem 0;font-s
     <strong>Run decision</strong>, and see exactly what each engine is asked and what it answers —
     with the probabilities your thresholds would act on.</p>
   <p class="lead" id="heroLine" hidden></p>
-  <div class="ctabar" id="ctabar">
-    <strong>Run this console on 500 of your historical decisions.</strong>
-    <span class="small">Same console, your data, measured in front of you — everything stays on this machine. Talk to the presenter.</span>
-  </div>
+  <div id="ctaHeroSlot"></div>
 
   <div class="tabs" role="tablist" aria-label="demo modes">
     <button class="tab" role="tab" id="tab-day1" data-mode="day1" aria-controls="era-day1">Day 1 · nothing trained yet</button>
@@ -239,13 +281,17 @@ footer{border-top:1px solid var(--line);margin-top:1.2rem;padding:.7rem 0;font-s
     <button class="tab" role="tab" id="tab-ops" data-mode="ops" aria-controls="era-ops">🚦 Ops floor · straight-through processing</button>
     <button class="tab" role="tab" id="tab-domain" data-mode="domain" aria-controls="era-domain">🏭 Domain builder · change a rule, re-teach live</button>
   </div>
+  <nav class="story" id="storyStrip" aria-label="Claim journey">
+    <span class="story-step" data-step="pick">① Pick a claim</span>
+    <span class="story-step day1" data-step="day1">② Day 1: untrained engines</span>
+    <span class="story-step after" data-step="after">③ After: trained on 12,000 past claims<br><small>Before the session · ~15 min</small></span>
+    <span class="story-step" data-step="compare">④ Compare all four</span>
+  </nav>
 
   <div class="era day1" id="era-day1" role="tabpanel" hidden>
-    <h2><span aria-hidden="true">🕘</span> Day 1 — the engines know nothing about insurance</h2>
-    <p>No training has happened. Laya is a general-purpose judgment engine straight from the open
-      shelf; decider-4b is the bigger generalist. Run claims and watch where they struggle —
-      then press the button below and roll the clock forward.</p>
-    <button class="reveal" id="revealBtn"><span aria-hidden="true">⚡</span> Train on 12,000 past claims — and re-run this claim →</button>
+    <h2>Day 1 · untrained engines</h2>
+    <p>Laya is out of the box; decider-4b is an untrained generalist. Pick a claim to compare their decisions with the claims manual.</p>
+    <button class="reveal" id="revealBtn" disabled>Show the same claim after training on 12,000 past claims →</button>
   </div>
   <div class="era after" id="era-after" role="tabpanel" hidden>
     <h2><span aria-hidden="true">✅</span> After training — same claim, one engine, ~15 minutes of learning</h2>
@@ -254,13 +300,8 @@ footer{border-top:1px solid var(--line);margin-top:1.2rem;padding:.7rem 0;font-s
       generalist can do with no data at all.</p>
   </div>
   <div class="era" id="era-compare" role="tabpanel" style="border-color:var(--line);background:#fff" hidden>
-    <h2><span aria-hidden="true">⚖️</span> All four engines, same claim, same moment</h2>
-    <p>Day-one Laya · fine-tuned Laya · decider-4b · the rules engine. The scoreboard above tallies
-      preset hits; the matrix below the console spreads every question × every engine.</p>
-    <p class="note">The <strong>rules engine</strong> is hand-coded for English phrasing — on the Korean,
-      Japanese, Hindi and Spanish presets it answers <em>unparsed</em> on every question. Try one and
-      watch its column.</p>
-    <div id="compareMatrix"></div>
+    <h2>All four engines · same claim</h2>
+    <p>The rules engine is hand-coded for English phrasing. On Korean, Japanese, Hindi and Spanish presets it returns <em>unparsed</em>; show confidence and probabilities to see its evidence.</p>
   </div>
   <div class="era" id="era-ops" role="tabpanel" style="border-color:var(--line);background:#fff" hidden>
     <h2><span aria-hidden="true">🚦</span> The ops floor — today's intake, decided in one pass</h2>
@@ -281,34 +322,51 @@ footer{border-top:1px solid var(--line);margin-top:1.2rem;padding:.7rem 0;font-s
 
   <div id="opsfloor" hidden style="margin:.4rem 0 1rem"></div>
 
-  <div class="statsgrid" id="mainStats">
-    <div class="card"><div class="statbig" id="st-zero">…</div><div class="statl">Laya out-of-box · avg per decision · 500 unseen claims <span id="st-zero-sub"></span></div></div>
-    <div class="card" id="cardFt" style="border-color:#bcd9cb;background:#f4faf7"><div class="statbig" id="st-ft">…</div><div class="statl">Laya fine-tuned · same 500 · avg per decision <span id="st-ft-sub"></span></div><div class="caveat" id="cav-ft" hidden></div></div>
-    <div class="card"><div class="statbig" id="st-dec">…</div><div class="statl">decider-4b, zero training · same 500 · avg per decision <span id="st-dec-sub"></span></div></div>
-  </div>
-
-  <div class="grid g2" id="claimGrid" style="display:grid;grid-template-columns:repeat(auto-fit,minmax(300px,1fr));gap:.9rem">
-    <div class="card">
-      <h2>Pick a claim</h2>
-      <div id="presets"><p class="small">loading presets…</p></div>
-      <h3 style="margin-top:.9rem">Or paste any claim text</h3>
-      <textarea id="freeText" placeholder="e.g. Insurance claim CLM-… filed by … The incident: … Claimed amount: … Documents attached: …"></textarea>
-      <button class="primary" id="runBtn" disabled>Run decision</button>
+  <section id="mainStats" aria-label="Measured holdout summary">
+    <div class="summary-row">
+      <span><b id="st-zero">…</b> → <b id="st-ft">…</b> Laya avg per decision</span>
+      <span id="all-seven">… all 7 correct</span>
+      <span>decider-4b: <b id="st-dec">…</b> avg · <span id="dec-seven">…</span></span>
+      <span>rules: <b id="st-rules">…</b> · English only</span>
     </div>
-    <div>
-      <details class="asked">
-        <summary>What we asked the models <span class="small">(exact request)</span></summary>
-        <p class="small" id="askedState" style="white-space:pre-wrap"></p>
-        <details><summary class="small">Questions schema (JSON)</summary><pre class="schema" id="askedSchema"></pre></details>
+    <details class="fine-print"><summary>Fine print · holdout and confidence</summary>
+      <p>500 sealed holdout claims; averages are per decision. All-seven results: <span id="st-zero-sub"></span>; <span id="st-ft-sub"></span>; <span id="st-dec-sub"></span>; <span id="st-rules-sub"></span>.</p>
+      <p id="cav-ft"></p>
+      <p>Rules are hand-coded for English phrasing and may return unparsed when they cannot read a claim. Model confidence is not calibrated and should not be treated as a guarantee.</p>
+    </details>
+  </section>
+
+  <section class="console-card" id="claimGrid">
+    <div id="claimPickerSummary" class="claim-picker-summary" hidden>
+      <span id="claimPickerLabel"></span><span aria-hidden="true">·</span>
+      <button type="button" id="changeClaimBtn" aria-expanded="false" aria-controls="claimPicker">Change claim</button>
+    </div>
+    <div id="claimPicker">
+      <h2 tabindex="-1">Pick a claim</h2>
+      <p class="console-note">Choose a preset to run it, or paste your own claim.</p>
+      <details class="paste-claim">
+        <summary>Paste your own claim</summary>
+        <label for="freeText" class="small">Claim text</label>
+        <textarea id="freeText" placeholder="e.g. Insurance claim CLM-… filed by … The incident: … Claimed amount: … Documents attached: …"></textarea>
+        <button class="primary" id="runBtn" disabled>Run decision</button>
+        <p class="small" id="inputPrompt" role="status"></p>
       </details>
-      <div class="engines" id="engines"></div>
+      <div id="presets"><p class="small">loading presets…</p></div>
     </div>
-  </div>
+    <div class="claim-card" id="claimCard" hidden></div>
+    <details class="asked">
+      <summary>What we asked the models <span class="small">(exact request)</span></summary>
+      <p class="small" id="askedState" style="white-space:pre-wrap;overflow-wrap:anywhere"></p>
+      <details><summary class="small">Questions schema (JSON)</summary><pre class="schema" id="askedSchema"></pre></details>
+    </details>
+    <p class="console-note" id="readHint"><strong>How to read it:</strong> ✓ matches the claims manual; ✗ does not. Show confidence and probabilities to see model details and rules evidence. Pasted claims have no manual answer — judge yourself.</p>
+    <div id="decisions" aria-live="polite"></div>
+  </section>
 
-  <p class="callout" id="readHint"><strong>How to read it:</strong> every engine answers every question with a
-    probability, never prose. <span style="color:var(--ok);font-weight:700">✓</span> matches the
-    claims manual's rule (hover a preset to see it); <span style="color:var(--bad);font-weight:700">✗</span>
-    does not. Pasted free text has no rule answer — judge the plausibility yourself.</p>
+  <div class="ctabar" id="ctabar">
+    <strong>Run this console on 500 of your historical decisions.</strong>
+    <span class="small">Same console, your data, measured in front of you — everything stays on this machine. Talk to the presenter.</span>
+  </div>
 
   <footer>
     <div>Engines: laya 0.3.28 (Apache-2.0) — zero-shot Router; insurance fine-tune: laya-train,
@@ -330,7 +388,6 @@ const ENGINES = {
   rules:{tag:"Engine D", name:"Rules engine (hand-coded policy)", sub:"keyword + date parsing · the way automation is built today"},
 };
 const MODE_ENGINES = {day1:["zero","dec"], after:["ft","dec"], compare:["zero","ft","dec","rules"], ops:[], domain:[]};
-const SHORT = {zero:"Laya zero", ft:"Laya ft", dec:"decider", rules:"Rules"};
 const QTITLE = {routing:"Route to unit", fraud_review:"Flag for fraud investigation?", urgency:"Priority",
   coverage_eligibility:"Coverage eligibility", net_payable_band:"Net payable band",
   subrogation:"Pursue third party (subrogation)?", expected_touches:"Expected adjuster touches"};
@@ -339,7 +396,10 @@ const ARM_LABEL = {zero:"Laya zero-shot", ft:"Laya fine-tuned", dec:"decider-4b 
 const OPS_ARMS = [["ft","Laya fine-tuned"],["dec_ft","decider-4b fine-tuned"],["dec","decider-4b zero-shot"],["zero","Laya zero-shot"]];
 const CAVEAT_100 = "train and test share one generator — on hand-reworded cases the Domain Builder's production models get 0–3 of 3 fully right per business (57/63 decisions); shifted-phrasing study 92.0%";
 const TEACH_ETA = "~1 min";   // Domain Builder re-teach, measured click-to-result 64–65 s (600 rows, 1 pass from the production model) with the live stack serving
-let PRESETS = [], QUESTIONS = null, STAGES = [], SCORES = {}, MODE = "day1", LAST = null;
+let PRESETS = [], QUESTIONS = null, STAGES = [], MODE = "day1", LAST = null, LAST_RUN = null, RUN_ID = 0;
+const DAY1_ANSWERS = new Map();
+const STORY_RUNS = new Set();
+let SHOW_DECISION_DETAILS = false;
 
 const $ = (id) => document.getElementById(id);
 const fmtP = (p) => (100*p).toFixed(1) + "%";
@@ -368,7 +428,9 @@ const DECBASE = SAME ? LAYA + "/dec" : (QP.get("dec") || "http://127.0.0.1:8902"
 const DEC = DECBASE + "/predict";
 
 const HERO = {
-  insurance: {title:"One Claim, Two Eras —<br>Watch the Decision Happen",
+  insurance: {title:"One claim, side by side",
+    lead:`Pick one claim and follow seven decisions from untrained engines to a model trained on past claims.`},
+  ops: {title:"One Claim, Two Eras —<br>Watch the Decision Happen",
     lead:`Real models, running live on this machine. Pick a claim, press <strong>Run decision</strong>, and see exactly what each engine is asked and what it answers — with the probabilities your thresholds would act on.`},
   domain: {title:"Change One Rule —<br>Watch the Model Change",
     lead:`A decision model is only useful if it keeps up with the business. Pick a rule change, re-teach the model live on this GPU, and see exactly which decisions move — on cases it has never seen.`},
@@ -378,8 +440,10 @@ function applyHero(kind){
   $("heroTitle").innerHTML = h.title;
   $("heroLead").innerHTML = h.lead;
   document.title = kind === "domain" ? "Domain Builder — Decision Console" : "Live Demo — Insurance Claims Decision Console";
+  if (kind === "ops") $("ctaHeroSlot").appendChild($("ctabar"));
+  else document.querySelector("footer").before($("ctabar"));
   $("ctabar").hidden = (kind === "domain" || kind === "compare");
-  $("heroLine").hidden = (kind === "domain" || kind === "compare");
+  $("heroLine").hidden = kind !== "ops" || !$("heroLine").textContent;
 }
 
 function modeFromLocation(){
@@ -393,21 +457,21 @@ function setMode(m, keepClaim, push){
     t.classList.toggle("on", t.dataset.mode === m);
     t.setAttribute("aria-selected", t.dataset.mode === m ? "true" : "false");
   });
+  if (window.matchMedia("(max-width:760px)").matches){
+    const tab = $("tab-"+m), bar = tab.parentElement;
+    bar.scrollLeft = tab.offsetLeft - bar.offsetLeft;
+  }
   for (const k of ["day1","after","compare","ops","domain"]) $("era-"+k).hidden = (k !== m);
   const wide = (m === "ops" || m === "domain");
   $("opsfloor").hidden = (m !== "ops");
   $("domainfloor").hidden = (m !== "domain");
-  // compare keeps the claim picker but drops the measured-stat cards: the matrix is the content
-  $("mainStats").style.display = wide || m === "compare" ? "none" : "";
-  $("claimGrid").style.display = wide ? "none" : "";
-  $("readHint").hidden = wide;           // the ✓/✗ claims legend belongs to the claim console
-  $("cardFt").hidden = (m === "day1");   // day1: the fine-tuned card would spoil the reveal
-  applyHero(m === "domain" ? "domain" : m === "compare" ? "compare" : "insurance");
-  if (m === "compare" && !$("compareMatrix").innerHTML)
-    $("compareMatrix").innerHTML = `<p class="small">run a claim to fill the question × engine matrix.</p>`;
+  $("mainStats").hidden = wide;
+  $("claimGrid").hidden = wide;
+  $("storyStrip").hidden = wide;
+  applyHero(m === "domain" ? "domain" : m === "ops" ? "ops" : m === "compare" ? "compare" : "insurance");
   if (push !== false){ try { history.pushState({mode:m}, "", "?mode=" + m); } catch (e) { } }
-  renderEngineCards();
-  drawScores();
+  updateStory();
+  renderDecisionTable(LAST_RUN);
   if (m === "ops") initOps();
   else if (m === "domain") initDomain();
   else if (keepClaim && LAST) runClaim(LAST.state, LAST.gold, LAST.nonLatin, true, LAST.lang);
@@ -448,7 +512,7 @@ function barsHTML(ans){
 
 function answerText(a){   // display-only; raw values stay in title tooltips
   if (a.choice !== undefined) return {txt:esc(humanize(a.choice)), title:esc(String(a.choice))};
-  if (a.noul !== undefined) return {txt:(a.noul>=0.5?`YES · p=${fmtP(a.noul)}`:`NO · p(yes)=${fmtP(a.noul)}`), title:"p(yes)="+a.noul};
+  if (a.noul !== undefined) return {txt:a.noul>=0.5?"YES":"NO", title:""};
   if (a.score !== undefined){
     const raw = (typeof a.score === "number") ? a.score : null;
     return {txt:`level ${raw===null?esc(String(a.score)):Math.round(raw)}`, title:raw===null?"":"raw "+raw};
@@ -456,119 +520,139 @@ function answerText(a){   // display-only; raw values stay in title tooltips
   return {txt:"—", title:""};
 }
 
-const SKELETON_QS = 3;
-function renderEngineCards(run){
-  const el = $("engines");
-  const visible = MODE_ENGINES[MODE];
-  el.innerHTML = "";
-  for (const key of visible){
-    const meta = ENGINES[key];
-    const d = run && run.data ? run.data[key] : null;
-    const div = document.createElement("div");
-    div.className = "eng";
-    let inner = `<div class="tag">${meta.tag}</div><div class="name">${meta.name}</div>` +
-                `<div class="sub">${meta.sub}${d && d.ms !== undefined ? " · " + d.ms + " ms" : ""}</div>`;
-    if (run && run.pending){
-      inner += `<div class="qblock thinking" aria-live="polite">thinking…</div>`;
-      for (let i = 1; i < SKELETON_QS; i++) inner += `<div class="qblock thinking">thinking…</div>`;
-    } else if (!run){
-      inner += `<div class="small">Run a claim to see answers.</div>`;
-    } else if (!d){
-      inner += `<div class="qblock"><p class="small" style="color:var(--bad)"><strong>unavailable</strong> — this engine didn't answer (error or timeout). The other engines still ran.</p></div>`;
-    } else if (key === "ft" && d.note === "english-only"){
-      inner += `<div class="qblock"><p class="small">Fine-tuned on <strong>English claims only</strong> — for other languages see Engine A, whose zero-shot checkpoint covers 100+ languages. (The English fine-tune trades away language robustness: measured 1/3 on a Spanish claim where the untrained base scored 2/3.)</p></div>`;
-    } else if (!d.answers){
-      inner += `<div class="qblock"><p class="small">No answers returned for this engine.</p></div>`;
-    } else {
-      if (key === "ft" && d.ft_checkpoint){
-        inner += `<div class="qblock"><span class="lat">trained checkpoint: ${esc(d.ft_checkpoint)}</span></div>`;
-      }
-      const qids = Object.keys(d.answers);
-      const stages = (STAGES && STAGES.length) ? STAGES : [{stage:"Decisions", questions:qids}];
-      for (const st of stages){
-        inner += `<div class="stagehdr">${esc(st.stage)}</div>`;
-        for (const qid of st.questions){
-          const a = d.answers[qid]; if (!a) continue;
-          const v = verdictFor(qid, a, run.gold);
-          const at = answerText(a);
-          inner += `<div class="qblock"><div class="qlabel">${QTITLE[qid]||humanize(qid)}</div>` +
-            `<div class="ansline"><span class="ans"${at.title?` title="${at.title}"`:""}>${at.txt}</span>` +
-            `<span class="verdict ${v.cls}">${v.txt}</span>` +
-            (a.confidence!==undefined?`<span class="lat">confidence ${fmtP(a.confidence)}</span>`:"") +
-            (d.routing_model && d.routing_model !== "english"?`<span class="lat">via ${esc(d.routing_model)}</span>`:"") + `</div>` +
-            `<div class="bars">${barsHTML(a)}</div>` +
-            (key==="rules" && d.evidence && d.evidence[qid] ? `<div class="small ev">${d.evidence[qid].map(e=>"· "+esc(e)).join("<br>")}</div>`:"") +
-            `</div>`;
-        }
-      }
-    }
-    div.innerHTML = inner;
-    el.appendChild(div);
-  }
+function updateStory(){
+  document.querySelectorAll("#storyStrip [data-step]").forEach(el => {
+    const active = el.dataset.step === MODE;
+    el.classList.toggle("current", active);
+    el.classList.toggle("done", el.dataset.step === "pick" ? !!LAST : STORY_RUNS.has(el.dataset.step));
+    if (active) el.setAttribute("aria-current", "step"); else el.removeAttribute("aria-current");
+  });
 }
 
-function buildCompareMatrix(data, gold){
-  const el = $("compareMatrix"); if (!el) return;
-  const eng = MODE_ENGINES.compare;
-  const rows = (STAGES && STAGES.length) ? STAGES : [{stage:"Decisions", questions:Object.keys(QUESTIONS||{})}];
-  let html = `<h2 style="margin-top:.6rem">Every question × every engine</h2>` +
-    `<div class="tablewrap"><table class="opstable"><thead><tr><th>question</th>` +
-    eng.map(k=>`<th>${esc(ENGINES[k].name)}</th>`).join("") + `</tr></thead><tbody>`;
-  for (const st of rows){
-    html += `<tr><td colspan="${eng.length+1}" class="stagehdr" style="margin:0">${esc(st.stage)}</td></tr>`;
+// Compare the decisions, not the confidence attached to them.
+function sameAnswer(a, b){
+  if (!a || !b) return false;
+  if (a.choice !== undefined && b.choice !== undefined) return a.choice === b.choice;
+  if (a.noul !== undefined && b.noul !== undefined) return (a.noul >= .5) === (b.noul >= .5);
+  if (a.score !== undefined && b.score !== undefined) return scoreEq(a.score, b.score);
+  return false;
+}
+
+function renderDecisionTable(run){
+  const el = $("decisions"), engines = MODE_ENGINES[MODE];
+  if (!engines.length) return;
+  if (!run){ el.innerHTML = `<p class="small">Pick a claim to see the seven decisions.</p>`; return; }
+  if (run.pending){ el.innerHTML = `<p class="thinking">Running the same claim across the engines…</p>`; return; }
+  const {data, gold, state} = run;
+  const stages = STAGES.length ? STAGES : [{stage:"Decisions", questions:Object.keys(QUESTIONS || {})}];
+  const qids = stages.flatMap(st => st.questions);
+  const before = DAY1_ANSWERS.get(state);
+  const scoreFor = key => {
+    const d = data[key], answers = d && d.note !== "english-only" && d.answers;
+    return gold && answers && qids.length && qids.every(q => answers[q] && q in gold)
+      ? qids.filter(q => verdictFor(q, answers[q], gold).cls === "v-ok").length : null;
+  };
+  let headline = "";
+  if (MODE === "after"){
+    if (!before) headline = "Run this claim in Day 1 first to see what training changed.";
+    else if (data.ft && data.ft.note === "english-only") headline = "The fine-tuned model is English only, so its training changes cannot be compared on this claim.";
+    else if (data.ft && data.ft.answers && qids.every(q => before[q] && data.ft.answers[q])){
+      const changed = qids.filter(q => !sameAnswer(before[q], data.ft.answers[q]));
+      const matched = gold && changed.every(q => q in gold)
+        ? ` — ${changed.filter(q => verdictFor(q, data.ft.answers[q], gold).cls === "v-ok").length} now match the claims manual` : "";
+      headline = `Training changed ${changed.length} of ${qids.length} decisions on this claim${matched}.`;
+    } else headline = "Training changes are unavailable because an engine did not return all decisions.";
+  } else if (gold && MODE === "day1"){
+    const zero = scoreFor("zero"), dec = scoreFor("dec");
+    headline = `Out of the box, Laya gets ${zero === null ? "an unavailable score" : `${zero} of ${qids.length}`}; decider-4b gets ${dec === null ? "an unavailable score" : `${dec} of ${qids.length}`}.`;
+  } else if (gold && MODE === "compare"){
+    const perfect = engines.filter(k => scoreFor(k) === qids.length).map(k => ENGINES[k].name);
+    const unavailable = engines.some(k => scoreFor(k) === null);
+    headline = perfect.length ? `${perfect.join(", ")} ${perfect.length === 1 ? "gets" : "get"} ${qids.length}/${qids.length} on this claim${unavailable ? " among engines with complete answers" : ""}.`
+      : `No engine with complete answers gets ${qids.length}/${qids.length} on this claim.`;
+  }
+  let html = `<h2>Seven decisions · one claim</h2>${headline ? `<p>${esc(headline)}</p>` : ""}<div class="decision-scores">`;
+  for (const key of engines){
+    const count = scoreFor(key), score = count === null ? "—" : `${count}/${qids.length}`;
+    html += `<span class="scell">${esc(ENGINES[key].name)}: <b>${score}</b></span>`;
+  }
+  html += `</div>`;
+  if (!gold) html += `<p class="console-note">No manual answer — judge yourself.</p>`;
+  if (data.ft && data.ft.note === "english-only" && engines.includes("ft"))
+    html += `<p class="note">Fine-tuned on English claims only. For other languages use out-of-box Laya (100+ languages)${MODE === "after" ? ", shown below each English-only cell" : ""}. The English fine-tune trades away language robustness: on a Spanish claim it scored 1/3 where the untrained base scored 2/3.</p>`;
+  html += `<button type="button" class="ghost" id="decisionDetailsToggle" aria-expanded="${SHOW_DECISION_DETAILS}">${SHOW_DECISION_DETAILS ? "Hide" : "Show"} confidence &amp; probabilities</button>`;
+  html += `<div class="tablewrap" role="region" aria-label="Decision comparison"><table class="decision-table"><thead><tr><th scope="col">Decision</th>` +
+    engines.map(k => `<th scope="col">${esc(ENGINES[k].name)}<br><span class="small">${esc(ENGINES[k].sub)}</span></th>`).join("") +
+    `<th scope="col">Claims manual</th></tr></thead><tbody>`;
+  for (const st of stages){
+    html += `<tr class="stage-row"><th colspan="${engines.length+2}" scope="colgroup">${esc(st.stage)}</th></tr>`;
     for (const qid of st.questions){
-      html += `<tr><td class="small">${QTITLE[qid]||humanize(qid)}</td>`;
-      for (const k of eng){
-        const d = data[k]; const a = (d && d.answers) ? d.answers[qid] : null;
-        if (!a){ html += `<td class="small" style="color:var(--muted)">—</td>`; continue; }
-        const v = verdictFor(qid, a, gold);
+      const ft = data.ft && data.ft.note !== "english-only" && data.ft.answers && data.ft.answers[qid];
+      const old = before && before[qid];
+      const changed = MODE === "after" && ft && old && !sameAnswer(ft, old);
+      html += `<tr${changed ? ' class="changed"' : ""}><th scope="row">${esc(QTITLE[qid] || humanize(qid))}</th>`;
+      for (const key of engines){
+        const d = data[key], a = d && d.answers && d.answers[qid];
+        const label = esc(({zero:"Laya out-of-box", ft:"Laya fine-tuned", dec:"decider-4b", rules:"Rules engine"})[key]);
+        if (!d){ html += `<td data-label="${label}" class="small">unavailable</td>`; continue; }
+        if (key === "ft" && d.note === "english-only"){
+          const zero = MODE === "after" && data.zero && data.zero.answers && data.zero.answers[qid];
+          const zv = zero && verdictFor(qid, zero, gold);
+          html += `<td data-label="${label}" class="small">English only${zero ? `<div>Out-of-box Laya: <strong>${answerText(zero).txt}</strong> ${zv.cls === "v-ok" ? "✓" : zv.cls === "v-bad" ? "✗" : ""}</div>` : MODE === "after" ? `<div>Out-of-box Laya unavailable</div>` : ""}</td>`;
+          continue;
+        }
+        if (!a){ html += `<td data-label="${label}" class="small">no answer</td>`; continue; }
+        const unparsed = key === "rules" && a.choice === "unparsed";
+        const v = verdictFor(qid, a, gold), at = answerText(a);
+        const mark = !unparsed && v.cls === "v-ok" ? `<span class="verdict v-ok" aria-label="correct">✓</span>` :
+          !unparsed && v.cls === "v-bad" ? `<span class="verdict v-bad" aria-label="incorrect">✗</span>` : "";
         const conf = a.confidence !== undefined ? a.confidence : (a.noul !== undefined ? Math.max(a.noul, 1-a.noul) : null);
-        const at = answerText(a);
-        const bars = (a.probabilities && Object.keys(a.probabilities).length && (conf === null || conf < 0.95))
-          ? `<details class="small"><summary>bars</summary>${barsHTML(a)}</details>` : "";
-        const mk = v.cls === "v-ok" ? `<span class="verdict v-ok">✓</span>` : v.cls === "v-bad" ? `<span class="verdict v-bad">✗</span>` : "";
-        html += `<td><span class="ans" style="font-size:.85em"${at.title?` title="${at.title}"`:""}>${at.txt}</span> ${mk}` +
-          (conf !== null ? `<div class="lat">confidence ${fmtP(conf)}</div>` : "") + bars + `</td>`;
+        const bars = barsHTML(a);
+        const evidence = key === "rules" && d.evidence && d.evidence[qid];
+        const details = (conf !== null || bars || evidence || d.routing_model || d.ft_checkpoint || d.ms !== undefined) ?
+          `<div class="decision-detail"${SHOW_DECISION_DETAILS ? "" : " hidden"}>${conf !== null ? `<div>confidence ${fmtP(conf)}</div>` : ""}` +
+          `${a.noul !== undefined ? `<div>p(yes) ${fmtP(a.noul)}</div>` : ""}${bars}` +
+          `${evidence ? `<div class="ev">${evidence.map(e => esc(e)).join("<br>")}</div>` : ""}` +
+          `${d.routing_model ? `<div>via ${esc(d.routing_model)}</div>` : ""}` +
+          `${d.ft_checkpoint ? `<div>checkpoint: ${esc(d.ft_checkpoint)}</div>` : ""}` +
+          `${d.ms !== undefined ? `<div>${esc(d.ms)} ms</div>` : ""}</div>` : "";
+        html += `<td data-label="${label}"><strong>${unparsed ? "can't read" : at.txt}</strong> ${mark}` +
+          `${changed && key === "ft" ? `<span class="was">was ${answerText(old).txt}</span>` : ""}${details}</td>`;
       }
-      html += `</tr>`;
+      html += `<td data-label="Manual">${gold && qid in gold ? goldDisp(qid, gold[qid]) : `<span class="small">no manual answer</span>`}</td></tr>`;
     }
   }
-  html += `</tbody></table></div><p class="small">Probability bars collapse under each answer and are
-    omitted when the engine is ≥ 95% confident.</p>`;
-  el.innerHTML = html;
+  el.innerHTML = html + `</tbody></table></div>`;
+  $("decisionDetailsToggle").onclick = () => {
+    SHOW_DECISION_DETAILS = !SHOW_DECISION_DETAILS;
+    $("decisionDetailsToggle").setAttribute("aria-expanded", String(SHOW_DECISION_DETAILS));
+    $("decisionDetailsToggle").textContent = `${SHOW_DECISION_DETAILS ? "Hide" : "Show"} confidence & probabilities`;
+    el.querySelectorAll(".decision-detail").forEach(detail => { detail.hidden = !SHOW_DECISION_DETAILS; });
+  };
 }
 
-function tallyEngine(key, data, gold){
-  if (!gold || !data || !data.answers) return;
-  if (!SCORES[key]) SCORES[key] = {ok:0, total:0};
-  for (const qid of Object.keys(gold)){
-    const a = data.answers[qid]; if (!a) continue;
-    const v = verdictFor(qid, a, gold);
-    if (v.cls === "v-ok") SCORES[key].ok++;
-    else if (v.cls === "v-bad") {}
-    else continue;
-    SCORES[key].total++;
-  }
-  drawScores();
-}
-
-function drawScores(){
-  const el = $("sboard");
-  el.innerHTML = MODE_ENGINES[MODE].map(key => {
-    const s = SCORES[key] || {ok:0,total:0};
-    return `<span class="scell">${SHORT[key] || ENGINES[key].name}: ` +
-      `<b>${s.total ? Math.round(100*s.ok/s.total) : 0}%</b> <span style="color:var(--muted)">(${s.ok}/${s.total})</span></span>`;
-  }).join("");
+function showClaim(state, lang){
+  // Escape each segment before adding markup, including arbitrary pasted claim text.
+  const facts = /(No supporting documents[^.]*\.|The customer attached[^.]*\.|고객은[^.]*\.|お客様は[^。]*。|अस्पताल का[^।]*।|El cliente adjuntó[^.]*\.|\b(?:MOTOR|PROPERTY|HEALTH|TRAVEL)-\d+|\b\d{4}-\d{2}-\d{2}\b|\d{4}年\s*\d{1,2}月\s*\d{1,2}日|\bUSD\s*[\d,]+(?:\.\d+)?|\b[\d,]+\s*(?:USD|米ドル|अमेरिकी डॉलर))/gi;
+  const card = $("claimCard");
+  card.innerHTML = state.split(facts).map((part, i) => i % 2 ? `<b>${esc(part)}</b>` : esc(part)).join("");
+  if (lang) card.lang = lang; else card.removeAttribute("lang");
+  card.hidden = false;
 }
 
 async function runClaim(state, gold, nonLatin, silent, lang){
+  const runId = ++RUN_ID, startedMode = MODE;
   LAST = {state, gold, nonLatin, lang};
+  if (startedMode === "day1" || startedMode === "after") STORY_RUNS.add(startedMode);
   $("askedState").textContent = state;
   if (lang) $("askedState").lang = lang; else $("askedState").removeAttribute("lang");
   $("askedSchema").textContent = JSON.stringify(QUESTIONS, null, 1);
-  if (!silent) $("runBtn").disabled = true;
-  renderEngineCards({pending:true});
-  if (MODE === "compare") $("compareMatrix").innerHTML = `<p class="small">thinking…</p>`;
+  $("inputPrompt").textContent = "";
+  $("runBtn").disabled = true;
+  showClaim(state, lang);
+  updateStory();
+  LAST_RUN = {pending:true};
+  renderDecisionTable(LAST_RUN);
   const SIG = { signal: AbortSignal.timeout(60000) };
   const post = (url, body) => fetch(url, {method:"POST", headers:{"Content-Type":"application/json"},
     body: JSON.stringify(body), ...SIG}).then(r => r.json());
@@ -586,14 +670,11 @@ async function runClaim(state, gold, nonLatin, silent, lang){
     dec:  okArm(drR, "decider"),
     rules:(rrR.status === "fulfilled" && rrR.value && !rrR.value.error) ? rrR.value : null,
   };
-  renderEngineCards({data, gold});
-  for (const key of MODE_ENGINES[MODE]) if (data[key]) tallyEngine(key, data[key], gold);
-  if (MODE === "compare"){
-    buildCompareMatrix(data, gold);
-    const first = $("engines").querySelector(".eng");
-    if (first && first.getBoundingClientRect().top > window.innerHeight * 0.6)
-      first.scrollIntoView({block:"start"});   // keep the decisions above the fold
-  }
+  if (startedMode === "day1" && data.zero && data.zero.answers)
+    DAY1_ANSWERS.set(state, data.zero.answers);
+  if (runId !== RUN_ID) return;
+  LAST_RUN = {data, gold, state};
+  renderDecisionTable(LAST_RUN);
   $("runBtn").disabled = !QUESTIONS;
 }
 
@@ -601,7 +682,48 @@ function isNonLatin(s){
   return /[\u3131-\uD79F\u3040-\u30FF\u4E00-\u9FFF\u0900-\u097F\u0600-\u06FF\u0590-\u05FF\u0E00-\u0E7F]/.test(s);
 }
 
-function goldDisp(v){ return typeof v === "boolean" ? (v ? "yes" : "no") : humanize(v); }
+function goldDisp(qid, value){
+  const type = QUESTIONS && QUESTIONS[qid] && QUESTIONS[qid].type;
+  return answerText(type === "noul" ? {noul:Number(value)} :
+    type === "score" ? {score:value} : {choice:value}).txt;
+}
+
+function updatePresetGroups(){
+  document.querySelectorAll("#presets .preset-group").forEach(group => {
+    const expanded = group.dataset.expanded === "true";
+    const buttons = [...group.querySelectorAll(".preset")];
+    let hiddenCount = 0;
+    buttons.forEach((button, index) => {
+      const omitted = index >= 3 && !button.classList.contains("sel");
+      if (omitted) hiddenCount++;
+      button.hidden = !expanded && omitted;
+    });
+    const more = group.querySelector(".preset-more");
+    more.hidden = expanded ? buttons.length <= 3 : hiddenCount === 0;
+    more.textContent = expanded ? "fewer" : `+${hiddenCount} more`;
+    more.setAttribute("aria-expanded", String(expanded));
+  });
+}
+
+function collapseClaimPicker(label){
+  $("claimPickerLabel").textContent = `Claim: ${label}`;
+  $("claimPicker").hidden = true;
+  $("claimPickerSummary").hidden = false;
+  $("changeClaimBtn").setAttribute("aria-expanded", "false");
+  $("changeClaimBtn").focus({preventScroll:true});
+}
+
+$("changeClaimBtn").onclick = () => {
+  $("claimPicker").hidden = false;
+  $("claimPickerSummary").hidden = true;
+  $("changeClaimBtn").setAttribute("aria-expanded", "true");
+  const selected = $("presets").querySelector(".preset.sel");
+  (selected || $("claimPicker").querySelector("h2")).focus({preventScroll:true});
+  if (selected && window.matchMedia("(max-width:760px)").matches){
+    const row = selected.parentElement;
+    row.scrollLeft += selected.getBoundingClientRect().left - row.getBoundingClientRect().left;
+  }
+};
 
 function loadPresets(){
   const el = $("presets");
@@ -609,30 +731,49 @@ function loadPresets(){
   el.innerHTML = `<p class="small">loading presets…</p>`;
   fetch(LAYA + "/presets").then(r => { if (!r.ok) throw new Error("HTTP " + r.status); return r.json(); }).then(d => {
     PRESETS = d.presets; QUESTIONS = d.questions; STAGES = d.stages || [];
-    const groups = {"Standard claims":[], "Fraud-flag scenarios":[], "Multilingual (auto-routed)":[]};
+    const groups = {"Standard":[], "Fraud":[], "Multilingual":[]};
     for (const p of PRESETS){
-      if (/FRAUD/i.test(p.label)) groups["Fraud-flag scenarios"].push(p);
-      else if (p.lang || /Korean|Japanese|Hindi|Spanish/.test(p.label)) groups["Multilingual (auto-routed)"].push(p);
-      else groups["Standard claims"].push(p);
+      if (/FRAUD/i.test(p.label)) groups.Fraud.push(p);
+      else if (p.lang || /Korean|Japanese|Hindi|Spanish/.test(p.label)) groups.Multilingual.push(p);
+      else groups.Standard.push(p);
     }
     el.innerHTML = "";
     for (const [g, items] of Object.entries(groups)){
-      el.insertAdjacentHTML("beforeend", `<h3>${g}</h3>`);
+      const group = document.createElement("div");
+      group.className = "preset-group";
+      group.dataset.expanded = "false";
+      group.innerHTML = `<h3>${esc(g)}</h3><div class="preset-options-shell"><div class="preset-options"></div></div>`;
+      el.appendChild(group);
       for (const p of items){
         const b = document.createElement("button");
         b.className = "preset";
-        const goldTxt = Object.entries(p.gold||{}).map(([k,v]) => `${humanize(k)}=${goldDisp(v)}`).join(" · ");
+        b.dataset.presetIndex = PRESETS.indexOf(p);
+        b.setAttribute("aria-pressed", "false");
         b.innerHTML = `<span ${p.lang ? `lang="${esc(p.lang)}"` : ""}>${esc(p.label)}</span>`;
-        b.title = "rule answers: " + goldTxt;
-        b.onclick = () => {
-          document.querySelectorAll(".preset").forEach(x=>x.classList.remove("sel"));
-          b.classList.add("sel"); $("freeText").value = "";
-          runClaim(p.state, p.gold, isNonLatin(p.state), false, p.lang || null);
-        };
-        el.appendChild(b);
+        b.onclick = () => selectPreset(p);
+        group.querySelector(".preset-options").appendChild(b);
       }
+      const more = document.createElement("button");
+      more.type = "button";
+      more.className = "preset-more";
+      more.setAttribute("aria-label", `Show more or fewer ${g} claims`);
+      more.onclick = () => {
+        group.dataset.expanded = String(group.dataset.expanded !== "true");
+        updatePresetGroups();
+        const selected = group.querySelector(".preset.sel");
+        if (group.dataset.expanded === "false" && selected){
+          if (more.hidden) selected.focus({preventScroll:true});
+          if (window.matchMedia("(max-width:760px)").matches){
+            const row = selected.parentElement;
+            row.scrollLeft += selected.getBoundingClientRect().left - row.getBoundingClientRect().left;
+          }
+        }
+      };
+      group.querySelector(".preset-options").appendChild(more);
     }
+    updatePresetGroups();
     $("runBtn").disabled = false;
+    $("revealBtn").disabled = !PRESETS.length;
   }).catch(e => {
     el.innerHTML = `<p class="small" style="color:var(--bad)">couldn't load presets (${esc(String(e))}).</p>`;
     const b = document.createElement("button");
@@ -641,9 +782,29 @@ function loadPresets(){
   });
 }
 
-$("runBtn").onclick = () => { const t = $("freeText").value.trim(); if (t) runClaim(t, null, isNonLatin(t)); };
-$("resetScores").onclick = () => { SCORES = {}; drawScores(); };
-$("revealBtn").onclick = () => setMode("after", true);
+function selectPreset(p){
+  document.querySelectorAll(".preset").forEach(b => {
+    const selected = Number(b.dataset.presetIndex) === PRESETS.indexOf(p);
+    b.classList.toggle("sel", selected);
+    b.setAttribute("aria-pressed", String(selected));
+  });
+  updatePresetGroups();
+  $("freeText").value = "";
+  collapseClaimPicker(p.label);
+  runClaim(p.state, p.gold, isNonLatin(p.state), false, p.lang || null);
+}
+$("runBtn").onclick = () => {
+  const t = $("freeText").value.trim();
+  if (!t){ $("inputPrompt").textContent = "Paste a claim before running a decision."; return; }
+  document.querySelectorAll(".preset").forEach(b => { b.classList.remove("sel"); b.setAttribute("aria-pressed", "false"); });
+  updatePresetGroups();
+  collapseClaimPicker("your pasted claim");
+  runClaim(t, null, isNonLatin(t));
+};
+$("revealBtn").onclick = () => {
+  if (LAST) setMode("after", true);
+  else if (PRESETS.length){ setMode("after", false); selectPreset(PRESETS[0]); }
+};
 document.querySelectorAll(".tab").forEach(t => t.onclick = () => setMode(t.dataset.mode, false));
 
 function setDot(el, cls, label){
@@ -674,27 +835,30 @@ async function health(){
 }
 
 function fillStat(id, subId, avg, k, n){
-  $(id).textContent = fmtP(avg);
-  if (subId && k !== undefined && n) $(subId).textContent = "· all 7 correct: " + k + "/" + n + " " + fmtCI(k, n);
+  $(id).textContent = avg === undefined ? "n/a" : fmtP(avg);
+  if (subId) $(subId).textContent = k !== undefined && n ? id.replace("st-", "") + ": " + k + "/" + n + " " + fmtCI(k, n) : id.replace("st-", "") + ": unavailable";
 }
 fetch(LAYA + "/stats").then(r=>r.json()).then(s => {
   const n = s.n_rows || 500, rac = s.rows_all_correct || {};
   fillStat("st-zero", "st-zero-sub", s.zero, rac.zero, n);
   fillStat("st-ft", "st-ft-sub", s.ft, rac.ft, n);
   fillStat("st-dec", "st-dec-sub", s.dec, rac.dec, n);
-  if (s.ft === 1 && $("cav-ft")){ $("cav-ft").hidden = false; $("cav-ft").textContent = CAVEAT_100; }
-  if (s.rules !== undefined){
-    const sub = (rac.rules !== undefined && n) ? `all 7 correct: ${rac.rules}/${n} ${fmtCI(rac.rules, n)}` : "";
-    document.getElementById("mainStats").insertAdjacentHTML("beforeend",
-      `<div class="card"><div class="statbig">${fmtP(s.rules)}</div><div class="statl">${esc(ARM_LABEL.rules)} · same 500 · avg per decision ${sub ? "· " + esc(sub) : ""} — perfect on the phrasing it was built for, <em>unparsed</em> on anything else</div><div class="caveat">${esc(CAVEAT_100)}</div></div>`);
-  }
+  if (s.rules !== undefined) fillStat("st-rules", "st-rules-sub", s.rules, rac.rules, n);
+  else { $("st-rules").textContent = "n/a"; $("st-rules-sub").textContent = "rules: unavailable"; }
+  $("all-seven").textContent = `${rac.zero ?? "?"}/${n} → ${rac.ft ?? "?"}/${n} all 7`;
+  $("dec-seven").textContent = `${rac.dec ?? "?"}/${n} all 7`;
+  $("cav-ft").textContent = CAVEAT_100;
   const hl = $("heroLine");
-  if (hl && s.zero !== undefined && s.ft !== undefined){
+  if (s.zero !== undefined && s.ft !== undefined){
     hl.innerHTML = `Measured on ${n} sealed holdout claims: Laya out-of-the-box gets <b>${fmtP(s.zero)}</b> of decisions right (${rac.zero ?? "?"}/${n} all seven); after a ~15-minute fine-tune on 12,000 past claims: <b>${fmtP(s.ft)}</b> avg, <b>${rac.ft ?? "?"}/${n}</b> all seven. <span class="small">Same engine, no code changes — only training.</span>`;
-    if (MODE !== "domain" && MODE !== "compare") hl.hidden = false;   // applyHero owns visibility in those modes
+    hl.hidden = MODE !== "ops";
   }
   if (s.version) $("verLine").textContent = " · version " + esc(s.version);
-}).catch(()=>{ $("st-zero").textContent=$("st-ft").textContent=$("st-dec").textContent="n/a"; });
+}).catch(()=>{
+  for (const id of ["st-zero","st-ft","st-dec","st-rules"]) $(id).textContent = "n/a";
+  $("all-seven").textContent = $("dec-seven").textContent = "holdout unavailable";
+  $("cav-ft").textContent = CAVEAT_100;
+});
 $("etaOut").textContent = TEACH_ETA;
 
 

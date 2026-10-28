@@ -22,18 +22,26 @@ Supervised operation (systemd user units, `sync_live.sh`, logs, pre-show checkli
 
 ## The audience experience (engineered flow)
 
-1. **Day 1 tab** — engines untrained. Run presets; watch out-of-box Laya miss decisions
-   (measured 46.4% avg per decision, 1/500 claims all-7 correct) while decider holds 70.8%.
-2. **The reveal button** — "⚡ Train on 12,000 past claims — and re-run this claim" switches to the
-   after-era and re-runs the *same* claim on the trained engine: correct answers with sharp
-   probabilities (100.0% measured).
-3. **After tab / Compare tab** — trained engine, or all three side by side with a live scoreboard
-   (preset hits per visible engine; Reset clears).
-4. **Free-text box** — paste any claim; engines answer with probabilities, verdict shows
-   "no rule answer" honestly.
-5. Preset groups: standard claims · fraud-flag scenarios · multilingual (Korean/Japanese/Hindi/Spanish,
-   auto-routed to Laya's multilingual checkpoint; the fine-tuned engine correctly shows its
-   English-only note instead of guessing).
+1. **Pick a claim** from compact standard, fraud or multilingual chips (three per group, "+N more" expands), or expand
+   **paste your own claim**. The selected claim card highlights policy type, dates, amount and
+   documents; the story strip tracks Pick → Day 1 → After → Compare.
+2. **Day 1** runs that claim in one seven-decision table: Laya out-of-box and decider-4b beside
+   the claims-manual answer, with ✓/✗ and per-engine scores out of seven. The holdout summary
+   reports 46.4% average per decision and 1/500 all-seven for Laya, versus 70.8% and 21/500
+   for decider-4b.
+3. **Reveal** with **"Show the same claim after training on 12,000 past claims →"**. After
+   re-runs the same claim and highlights fine-tuned answers that differ from Day 1, with
+   "was …" for the earlier answer. Training took about 15 minutes before the session, not
+   during the reveal. Without a prior run, reveal selects and runs the first preset. Fine-tuned
+   Laya measured 100.0% average per decision and 500/500 all-seven on the holdout.
+4. **Compare** shows Laya out-of-box, Laya fine-tuned, decider-4b and the rules engine together
+   with the manual in the same table; rules evidence is available on demand. Rules measured
+   100% for English phrasing only.
+5. **Explore** multilingual presets (Korean, Japanese, Hindi and Spanish): out-of-box Laya
+   answers and the fine-tuned column displays its English-only note. For pasted text without a
+   manual answer, the table shows answers without ✓/✗ and asks the audience to judge.
+   **Show confidence & probabilities** reveals bars for every cell at once; fine print holds the measurements'
+   caveats.
 
 ## The Domain Builder (`?mode=domain`) — change one rule, watch the model change
 
@@ -60,9 +68,15 @@ Full table: DEVELOPMENT_LOG Phase 10.
 
 ## What the audience sees per run
 
-- The exact request (claim text + questions schema with the routing rule and answer options).
-- Per engine, per question: chosen answer, probability bars over all options, confidence, latency.
-- Verdict chips against the claims-manual rule (✓ / ✗ / no rule answer).
+- A highlighted claim card and one table of seven decisions grouped into four journey stages.
+- The engines for the selected mode and a claims-manual column; answers carry ✓/✗ against the
+  manual and engine score chips show correct decisions out of seven when a manual answer exists.
+- Confidence and probability bars on demand; rules evidence on demand in Compare. After marks
+  fine-tuned answers changed from Day 1 with "was …". Unavailable engines and unparsed rules
+  are identified rather than mistaken for answers.
+- A slim holdout summary and a fine-print disclosure for caveats, including Wilson confidence
+  intervals, the in-distribution 100% result, English-only rules and uncalibrated confidence.
+  For free text with no manual answer, answers appear without verdicts: judge them yourself.
 
 ## Measured on the 500-claim holdout (through the live services)
 
