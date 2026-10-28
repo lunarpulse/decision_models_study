@@ -1,0 +1,66 @@
+/* Domain Builder layouts and interaction states. Shared surfaces live in theme.css. */
+#domainfloor, .db-pick > *, .db-pol > *, .db-grid > *, .db-res > *, .db-vs > *, .db-impact > *, .db-try > * { min-width: 0; }
+.db-pick, .db-pol, .db-grid, .db-res {
+  display: grid;
+  gap: var(--space-3);
+  margin: var(--space-3) 0;
+}
+.db-pick { grid-template-columns: repeat(auto-fit, minmax(min(100%, 230px), 1fr)); }
+.db-pol { grid-template-columns: repeat(auto-fit, minmax(min(100%, 260px), 1fr)); }
+.db-grid { grid-template-columns: repeat(auto-fill, minmax(min(100%, 230px), 1fr)); }
+.db-res { grid-template-columns: repeat(auto-fit, minmax(min(100%, 220px), 1fr)); }
+.db-dom { display: flex; flex-direction: column; align-items: flex-start; gap: var(--space-2); text-align: left; cursor: pointer; font: inherit; }
+.db-dom .t, .db-card .t, .db-tile .id { font-weight: 700; }
+.db-dom:hover, .db-card:hover { border-color: var(--color-accent); }
+.db-dom.on, .db-card.on { border-color: var(--color-accent); background: var(--color-accent-soft); }
+.db-steps { position: sticky; top: 0; z-index: 4; display: flex; flex-wrap: wrap; gap: var(--space-2); padding: var(--space-2) 0; background: var(--color-bg); }
+.db-steps button { cursor: pointer; }
+.db-steps button.done { border-color: var(--color-success); color: var(--color-success); background: var(--color-success-soft); }
+.db-act { scroll-margin-top: var(--space-8); }
+.db-vs { display: grid; grid-template-columns: minmax(0, 1fr) auto minmax(0, 1fr); gap: var(--space-3); align-items: stretch; margin: var(--space-3) 0; }
+.db-stat .big small { font-size: var(--text-sm); color: var(--color-text-muted); }
+.db-arrow { align-self: center; color: var(--color-text-muted); font-size: var(--text-2xl); }
+.db-showhead { display: flex; flex-wrap: wrap; gap: var(--space-2); align-items: center; margin-top: var(--space-4); }
+.db-showhead h3 { margin: 0; }
+.db-ticket { margin: var(--space-3) 0; overflow-wrap: anywhere; }
+.db-ticket b { font-weight: 700; color: var(--color-accent); }
+.db-dt { min-width: 560px; }
+.db-dt tfoot td { font-weight: 700; }
+.db-card { cursor: pointer; }
+.db-card .story, .db-today, .db-tile .facts { color: var(--color-text-muted); }
+.db-card .story { margin: var(--space-2) 0; font-size: var(--text-sm); }
+.db-rule { line-height: 2; }
+.db-rule select { max-width: 100%; }
+.db-today { margin-top: var(--space-2); font-size: var(--text-xs); }
+.db-impact { display: grid; grid-template-columns: minmax(170px, 240px) minmax(0, 1fr); gap: var(--space-4); align-items: start; margin: var(--space-3) 0; }
+.db-impact .lbl { color: var(--color-text-muted); font-size: var(--text-sm); }
+.db-chip { margin: var(--space-1) var(--space-1) var(--space-1) 0; }
+.db-tile { cursor: pointer; font-size: var(--text-sm); overflow-wrap: anywhere; }
+.db-tile:hover { border-color: var(--color-accent); }
+.db-tile .q { font-weight: 700; }
+.db-tile.chg { border-style: dashed; }
+.db-tile.flip { animation: dbflip .7s ease both; }
+@keyframes dbflip { 0% { transform: perspective(600px) rotateY(0); } 50% { transform: perspective(600px) rotateY(90deg); } 100% { transform: perspective(600px) rotateY(0); } }
+.db-teachrow { display: flex; gap: var(--space-4); align-items: center; flex-wrap: wrap; margin: var(--space-3) 0; }
+.db-phases { display: flex; gap: var(--space-2); flex-wrap: wrap; margin: var(--space-3) 0; }
+.db-phase { flex: 1 1 170px; font-size: var(--text-sm); }
+.db-phase.now { border-color: var(--color-accent); background: var(--color-accent-soft); }
+.db-phase.done { border-color: var(--color-success); background: var(--color-success-soft); }
+.db-phase .progress { margin-top: var(--space-2); }
+.db-clock { font-variant-numeric: tabular-nums; }
+.db-ask, .db-live, .db-state { margin: var(--space-3) 0; }
+.db-headline { font-size: var(--text-lg); font-weight: 700; }
+.db-try { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1.3fr); gap: var(--space-4); align-items: start; }
+.db-mut, .db-board { display: flex; gap: var(--space-2); flex-wrap: wrap; align-items: center; margin: var(--space-3) 0; }
+.db-mut-category { display: inline-flex; flex-wrap: wrap; align-items: center; gap: var(--space-2); }
+.db-mut select { max-width: 100%; }
+.db-fine { margin: var(--space-6) 0; }
+.db-zero { color: var(--color-text-muted); }
+@media (max-width: 760px) {
+  .db-try, .db-impact, .db-vs { grid-template-columns: minmax(0, 1fr); }
+  .db-arrow { transform: rotate(90deg); justify-self: center; }
+  .db-steps { position: static; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .db-tile.flip { animation: none; }
+}

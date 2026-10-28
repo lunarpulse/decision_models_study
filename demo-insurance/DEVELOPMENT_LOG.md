@@ -235,6 +235,8 @@ does the percentage come from, and why does decider show a red dot — "check th
 24. Claim-console clutter (operator, 2026-10-28) — see Phase 11. The removed top-bar scoreboard
     had counted every rerun of the same preset, so its percentages drifted with presenter
     clicks; per-claim k/7 chips replace it.
+25. The ops floor had shown the insurance hero and two intros since Phase 6, and the domain page
+    had shown two intros since Phase 10. Found in the site-wide revamp review and fixed.
 
 ## Phase 6 — Demo v2: journey questions, ops floor, Engine D, decider parity (2026-10-13)
 
@@ -486,6 +488,30 @@ BMad workflows. BMad was set up in the repo (`_bmad/`); the plan is
    manual answers, per-cell "Details" clutter, the missing after-mode change sentence, the phone
    table, and a picker that pushed the table below the fold.
 
+## Phase 12 — Site-wide look and feel (2026-10-28)
+
+1. **Why**: the demo had grown mode by mode, leaving inconsistent styles and duplicated
+   introductions across the claim console, ops floor and Domain Builder.
+2. **What changed**: split the `index.html` monolith into a markup shell, shared `theme.css`,
+   per-mode `console.css`, `ops.css` and `domain.css`, and classic scripts `core.js` →
+   `console.js` → `ops.js` → `domain.js` → `main.js`; the laya service serves whitelisted
+   assets at `/assets/` with no-store. Restyled every mode with one design system: a product
+   header, tabs and one status pill with service details on hover or focus, one intro per mode,
+   shared components and no decorative emoji. On phones the tab row scrolls, claim decisions
+   stack as cards, and the ops queue stacks as cards with all three override buttons visible.
+3. **How**: the BMad plan `_bmad-output/plan-demo-site-revamp.md` and UX spines
+   `_bmad-output/ux-demo-site/{DESIGN,EXPERIENCE}.md` set the contract; four parallel
+   restylers worked on disjoint files. Two corrective rounds removed the duplicated ops and
+   domain intros and the insurance hero on ops, exposed phone queue override buttons, fixed
+   claim-card highlight spacing, and removed the holdout sentence repeated on Day 1.
+4. **Verified**: staging and live through the public tunnel at 1366 and 390 px, all five modes,
+   zero page errors and no page-level horizontal overflow. The claim reveal showed "Training
+   changed 6 of 7 decisions…"; an ops override moved counters and reset restored them; Domain
+   Builder impact and compare showed out of the box / your model / re-taught. One live support
+   desk VIP re-teach took 64 s click to result, with 12/12 changed decisions and 12/12
+   untouched cases fully right, then reset to fresh. The laya restart took ~11 s; the tunnel
+   was untouched.
+
 ## Final state at log time
 
 - Services (systemd user units `decision-demo-{laya,decider,studio}`, target `decision-demo`):
@@ -493,6 +519,7 @@ BMad workflows. BMad was set up in the repo (`_bmad/`); the plan is
   `/report`), `decider_service.py` :8902, `studio_service.py` :8903 — all bound to 127.0.0.1.
 - Public URL (ephemeral quick tunnel): see `tunnel-url.txt`; refresh procedure in `DEMO_MANUAL.md` §2.
 - Deploy: `sync_live.sh` from the repo; `VERSION` in the live tree = deployed commit.
+- Console: `index.html` markup shell and shared/per-mode CSS and classic scripts under `assets/`.
 - Data: `data/` (corpus + presets + measured `stats.json`); checkpoints `laya-ft-ckpt/` (served),
   `laya-ft-ml-ckpt/` (retained, unserved), `studio-runs/<domain>/prod-ckpt` (Domain Builder
   production models) and `ft-ckpt` (last re-teach).

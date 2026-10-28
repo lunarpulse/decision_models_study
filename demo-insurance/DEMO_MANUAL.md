@@ -62,7 +62,8 @@ changes and exits non-zero while anything differs. Restart to load new code:
 - studio training: `studio-runs/<domain>/train-<YYYYmmdd-HHMMSS>.log` — the full train_cli output;
   `/studio/status` shows parsed progress only, so go to the log when a teach fails.
 
-Health dots in the top bar; `?mode=` URLs are shareable (`day1`, `after`, `compare`, `ops`, `domain`).
+The three service health dots live in one status pill in the header; hover or focus on it for details.
+`?mode=` URLs are shareable (`day1`, `after`, `compare`, `ops`, `domain`).
 First request after a cold start takes ~1–2 s (CUDA warm-up); afterwards 10–30 ms per decision.
 
 ### Pre-show checklist
@@ -78,7 +79,7 @@ First request after a cold start takes ~1–2 s (CUDA warm-up); afterwards 10–
 7. `VERSION` in the live tree equals the repo HEAD you meant to ship.
 8. Disk and logs sane: `df -h .`, `du -sh studio-runs`, journal not ballooning.
 9. Domain Builder starts fresh: on `?mode=domain` every card's badge reads "fresh — your model only".
-   If not, press **↺ Reset every business to a fresh start** (token) — or
+   If not, press **Reset every business to a fresh start — presenter** (token) — or
    `curl -X POST localhost:8903/studio/reset -H "X-Studio-Token: $(cat studio-token.txt)" -d '{"domain":"all"}'`.
 10. After any restart, run one warm-up predict — first answer is the slow CUDA one (~1–2 s).
 
@@ -169,7 +170,7 @@ business with `?mode=domain&d=support_tickets` (or `logistics_exceptions`, `hr_e
    decisions, and the exam — 24 cases the model never saw, 12 the rule changes (amber: today's
    model still follows the old rule) and 12 it doesn't. Setting a value back to today's rule
    disables Re-teach ("that is today's rule").
-9. **Re-teach (≈1 min).** Press ⚡ Re-teach (token once per browser session). Phases: prepare →
+9. **Re-teach (≈1 min).** Press **Re-teach (~1 min) — presenter** (token once per browser session). Phases: prepare →
    learn (loading your model, then the pass) → exam, with a clock. Use the minute: *ask the room
    how long their last rule change took to reach the system that decides, and who had to be
    involved* — that answer is the business case; no number is claimed on screen.
@@ -183,7 +184,7 @@ business with `?mode=domain&d=support_tickets` (or `logistics_exceptions`, `hr_e
     the rule doesn't touch — the training difference is the out-of-the-box column. The changed decision is
     highlighted, latency in ms. One-click edits flip the rule on purpose — the button matching
     the taught rule is highlighted (make it Premium / remove the evidence / make it a conduct
-    case). ✍️ *Reword it* loads a hand-written rewording: the rulebook can't read it, so the
+    case). **Reword it (hand-written)** loads a hand-written rewording: the rulebook can't read it, so the
     console stops refereeing and says so — the incumbent's real weakness; the models still
     answer. Anyone on the public URL can do this step from a phone (read-only inference).
 
@@ -196,7 +197,7 @@ training the studio unloads its two engines, then refuses to start below `TEACH_
 from `prod-ckpt` (never cumulative) and replaces `ft-ckpt` only on success; its result persists
 in `last-result.json`, so a reload or a latecomer sees the last run. Every page says which model is
 active — a green "Fresh start" bar or an amber "A re-taught model is active — “rule” (finished …)"
-bar, plus a badge on each business card. The amber bar's **↺ Reset to a fresh start** button
+bar, plus a badge on each business card. The amber bar's **Reset to a fresh start — presenter** button
 (token) deletes the re-taught model for that business; the production model is never modified,
 so there is nothing else to reset. Open pages, including the audience's, switch to the fresh state
 within ~2 s. Reset is refused (409) while a re-teach runs.

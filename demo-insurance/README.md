@@ -4,6 +4,7 @@ Audience-facing demo of the study's engines on an insurance-claims user journey.
 Insurance fine-tuning happens **before** the session (`bash train_laya.sh`); the Domain Builder tab
 changes one rule of a business's rulebook and re-teaches that business's production model live
 (studio service, presenter-gated, 51–64 s click to result). Five tabs: day1 · after · compare · ops · domain.
+Every mode shares one design system, documented in [`_bmad-output/ux-demo-site/`](../_bmad-output/ux-demo-site/).
 
 ## Start
 
@@ -93,7 +94,9 @@ Train and holdout share one templated generator (in-distribution); see DEMO_MANU
 - `gen_corpus.py` → `data/` (train 12k / val 2k / holdout 500 / 20 curated presets; rule-computed gold)
 - `laya-ft-ckpt/` — the trained checkpoint (soft-ce, `--shuffle-options`, 3 epochs)
 - `eval_via_http.py` — re-runs the holdout through the services, rewrites `data/stats.json`
-- `index.html` — the console (also served at `/`)
+- `index.html` — markup shell served at `/`
+- `assets/theme.css` — shared design system; `assets/console.css`, `assets/ops.css` and `assets/domain.css` — per-mode styles
+- `assets/core.js` → `console.js` → `ops.js` → `domain.js` → `main.js` — classic scripts sharing one scope, served at `/assets/`
 
 ## Retained caveats
 

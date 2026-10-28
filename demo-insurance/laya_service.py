@@ -203,6 +203,22 @@ class H(BaseHTTPRequestHandler):
                 traceback.print_exc(file=sys.stderr)
                 self._send(500, "application/json", b'{"error":"internal error"}')
             return
+        if path.startswith("/assets/"):
+            name = path[len("/assets/"):]
+            if not re.fullmatch(r"[a-z0-9_-]+\.(css|js)", name):
+                self.send_response(404); self._cors(); self.end_headers()
+                return
+            try:
+                payload = (ROOT / "assets" / name).read_bytes()
+                ctype = "text/css" if name.endswith(".css") else "text/javascript"
+                self.send_response(200); self._cors()
+                self.send_header("Content-Type", ctype + "; charset=utf-8")
+                self.send_header("Cache-Control", "no-store")
+                self.send_header("Content-Length", str(len(payload))); self.end_headers()
+                self.wfile.write(payload)
+            except FileNotFoundError:
+                self.send_response(404); self._cors(); self.end_headers()
+            return
         routes = {
             "/": ("text/html; charset=utf-8", base + "/index.html"),
             "/presets": ("application/json", base + "/data/demo_presets.json"),
