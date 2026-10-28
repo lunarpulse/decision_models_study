@@ -214,6 +214,16 @@ does the percentage come from, and why does decider show a red dot — "check th
     measurement runs wrote there; consolidating them overwrote the HR runs' `results.jsonl`, which
     was restored line-for-line from the run's console output. The script now defaults to
     `studio-runs/policy-measure/` in the demo tree.
+22. The vanilla model was missing from the Domain Builder's live comparison (operator report,
+    2026-10-28: "both model results are all the same for many scenarios"). The two columns were
+    the production model and the re-taught model — identical by design on cases the new rule
+    doesn't touch — while untrained Laya appeared only in step 1's precomputed numbers. Measured:
+    untrained and production Laya agree on all 7 decisions for only 5 / 0 / 10 of 500 cases
+    (support / logistics / HR). Fixed: `/studio/compare` also asks the untrained zero-shot Router
+    already resident in the laya service (the engine behind the portfolio's out-of-box numbers),
+    the panel shows out of the box · your model · re-taught · rulebook with a score chip each, exam
+    tiles show the out-of-box score, and the result adds an out-of-box tile on the same exam
+    (HR VIP run: 0/24 fully right out of the box vs 24/24 re-taught).
 
 ## Phase 6 — Demo v2: journey questions, ops floor, Engine D, decider parity (2026-10-13)
 
@@ -424,7 +434,8 @@ do?" Plan and reasoning: `docs/PLAN_DOMAIN_DEMO_V3.md`.
 6. **Console**: five-step page (sticky step bar), plain words ("your model", "the new rule",
    "tickets it never saw"), rule cards with dropdowns, instant impact, exam tiles that flip on
    the result, a facilitation prompt instead of an unmeasured "weeks" claim during the minute of
-   training, side-by-side compare with one-click edits and hand-written rewordings, watchers
+   training, side-by-side compare (untrained, trained and re-taught Laya plus the rulebook) with
+   one-click edits and hand-written rewordings, watchers
    following a presenter's run (their page switches to the rule being taught), fine print with
    the table above. When the rulebook can't read a rewording it stops refereeing (no ✓/✗).
 7. **Measured live** (full stack serving, via the tunnel, desktop and phone layouts): click →

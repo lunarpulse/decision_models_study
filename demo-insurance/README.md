@@ -49,7 +49,8 @@ Three businesses (support desk, logistics exceptions, HR exceptions), each with 
 3. **Re-teach** — fine-tunes the production model on 300 changed + 300 unchanged relabeled cases,
    one pass; the new rule is also written into the question text.
 4. **What changed** — the exam flips: today's model follows the old rule, the re-taught one the new.
-5. **Try to break it** — any case, both models side by side with the rulebook as referee; one-click
+5. **Try to break it** — any case, Laya out of the box, your model and the re-taught model side by
+   side with the rulebook as referee; one-click
    edits (tier, evidence, amount, start date, category) and hand-written rewordings.
 
 Measured on all 500 test cases per business and preset (`measure_policy_teach.py`): every decision

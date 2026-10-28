@@ -73,7 +73,7 @@ First request after a cold start takes ~1–2 s (CUDA warm-up); afterwards 10–
    `prod_ready` true for every business; `pgrep -af laya.train_cli` finds nothing.
 4. One phone test on mobile data through the tunnel URL — page loads, one preset answers.
 5. `?mode=domain&d=support_tickets` renders all five steps; picking a rule shows its impact and the
-   24-case exam; *Ask both models* answers.
+   24-case exam; *Ask the models* answers with three columns (out of the box, your model, re-taught).
 6. Wrong-token test: Re-teach with a garbage token is rejected and re-prompts; the real token works.
 7. `VERSION` in the live tree equals the repo HEAD you meant to ship.
 8. Disk and logs sane: `df -h .`, `du -sh studio-runs`, journal not ballooning.
@@ -163,8 +163,10 @@ business with `?mode=domain&d=support_tickets` (or `logistics_exceptions`, `hr_e
     changes, your model now follows it on 12 (before: 0). On the 12 it leaves alone, 12 are
     still fully right." Three tiles: changed decisions right before → after, untouched decisions
     still right, cases fully right under the new rulebook. A red tile is a real miss — read it out.
-11. **Try to break it (2 min).** Click any exam tile (or edit the text box). **Ask both models**:
-    today's model, the re-taught model and the rulebook side by side, the changed decision
+11. **Try to break it (2 min).** Click any exam tile (or edit the text box). **Ask the models**:
+    Laya out of the box (no training), your model, the re-taught model and the rulebook side by
+    side, with a score chip per model. Your model and the re-taught one *should* match on cases
+    the rule doesn't touch — the training difference is the out-of-the-box column. The changed decision is
     highlighted, latency in ms. One-click edits flip the rule on purpose — the button matching
     the taught rule is highlighted (make it Premium / remove the evidence / make it a conduct
     case). ✍️ *Reword it* loads a hand-written rewording: the rulebook can't read it, so the

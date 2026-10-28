@@ -196,6 +196,9 @@ footer{border-top:1px solid var(--line);margin-top:1.2rem;padding:.7rem 0;font-s
 .db-fine{border:1px solid var(--line);border-radius:12px;background:#fff;padding:.5rem .9rem;margin:.9rem 0}
 .db-fine summary{cursor:pointer;font-weight:700}
 .db-live{border:1.5px solid var(--warnline);background:var(--era1-soft);border-radius:10px;padding:.5rem .8rem;margin:.5rem 0}
+.db-board{display:flex;gap:.3rem;flex-wrap:wrap;margin:.2rem 0 .4rem}
+.db-board .db-chip{font-size:.85em}
+.db-zero{color:#8a4b4b}
 @media (max-width:760px){.db-try,.db-impact{grid-template-columns:1fr}.db-vs{grid-template-columns:1fr}
   .db-arrow{transform:rotate(90deg);justify-self:center}.db-steps{position:static}}
 </style>
@@ -265,7 +268,7 @@ footer{border-top:1px solid var(--line);margin-top:1.2rem;padding:.7rem 0;font-s
     <h2><span aria-hidden="true">🏭</span> The Domain Builder — change the rulebook, watch the model change</h2>
     <p>Pick a business. Meet the model trained on its rulebook, change one rule the way the business
       would, and re-teach the model live on this machine. Then test it on cases it has never seen —
-      and hand both models any case you like.</p>
+      and hand the models any case you like.</p>
   </div>
 
   <div id="domainfloor" hidden style="margin:.4rem 0 1rem"></div>
@@ -1157,7 +1160,9 @@ async function dbImpact(){
 }
 function dbTileHTML(e, i, after){
   const before = e.before || {}, qs = e.changed, n = Object.keys(e.new_gold).length;
-  const right = (m) => Object.keys(e.new_gold).filter(q => m && m[q] === e.new_gold[q]).length;
+  const right = (m, gold) => Object.keys(gold).filter(q => m && m[q] === gold[q]).length;
+  // out of the box (untrained Laya), scored against the rulebook the trained model is shown against
+  const zeroLine = e.zero ? `<div class="small db-zero">out of the box: ${right(e.zero, after ? e.new_gold : e.old_gold)}/${n} right</div>` : "";
   let cls = "db-tile", body;
   if (qs.length){
     cls += after ? (qs.every(q => after[q] === e.new_gold[q]) ? " win" : " miss") : " chg";
@@ -1169,14 +1174,14 @@ function dbTileHTML(e, i, after){
       const a = after[q];
       return `<div><span class="q">${esc(dbTitle(q))}</span> <s>${esc(dbVal(q, b))}</s> → <b>${esc(dbVal(q, a))}</b>
         ${a === nv ? dbMark(true) : `<span class="no">✗ rule: ${esc(dbVal(q, nv))}</span>`}</div>`;
-    }).join("");
+    }).join("") + zeroLine;
   } else if (after){
-    const k = right(after); cls += k === n ? " kept" : " miss";
+    const k = right(after, e.new_gold); cls += k === n ? " kept" : " miss";
     const wrong = Object.keys(e.new_gold).filter(q => after[q] !== e.new_gold[q]);
     body = `<div class="small">no change under the new rule · re-taught ${k}/${n} right ${dbMark(k === n)}</div>` +
-      wrong.map(q => `<div class="small no">${esc(dbTitle(q))}: ${esc(dbVal(q, after[q]))} (rule: ${esc(dbVal(q, e.new_gold[q]))})</div>`).join("");
+      wrong.map(q => `<div class="small no">${esc(dbTitle(q))}: ${esc(dbVal(q, after[q]))} (rule: ${esc(dbVal(q, e.new_gold[q]))})</div>`).join("") + zeroLine;
   } else {
-    body = `<div class="small">no change under the new rule · today's model ${right(before)}/${n} right</div>`;
+    body = `<div class="small">no change under the new rule · today's model ${right(before, e.old_gold)}/${n} right</div>` + zeroLine;
   }
   return `<div class="${cls}" data-i="${i}" role="button" tabindex="0" aria-label="try ${esc(e.id)} below">
     <div class="id">${esc(e.id.toUpperCase())}</div><div class="facts">${esc(dbFacts(e.state))}</div>${body}</div>`;
@@ -1304,10 +1309,13 @@ function dbShowResult(res, animate){
         <div class="lbl">decisions the rule left alone, still right</div></div>
       <div class="db-stat"><div class="big">${f(S.before.all7)} → ${f(S.after.all7)}</div>
         <div class="lbl">${dbNouns()} with all 7 decisions right under the new rulebook</div></div>
+      ${S.zero ? `<div class="db-stat bad"><div class="big">${f(S.zero.all7)}</div>
+        <div class="lbl">out of the box (Laya, no training) on the same exam — ${f(S.zero.changed)} changed and
+        ${f(S.zero.kept)} untouched decisions right</div></div>` : ""}
     </div>
     <div class="db-grid">${ex.map((e, i) => dbTileHTML(e, i, e.after)).join("")}</div>
     <p class="small">Green: follows the new rule (or, where the rule changes nothing, still fully right). Red: wrong.
-      Click any ${dbNoun()} to put both models side by side.</p>`;
+      Click any ${dbNoun()} to put the models side by side.</p>`;
   dbWireTiles(sec, ex);
   dbSteps(4);
   dbRenderMutators();
@@ -1325,19 +1333,19 @@ function dbShowResult(res, animate){
 // ---- act 5: try to break it ----
 function dbAct5Sub(){
   return DB.result
-    ? `Today's model (the old rule) and the re-taught model (“${esc(DB.result.sentence)}”) answer the same text; the rulebook column is the referee.`
-    : `Re-teach a rule change and the new model joins this table. Until then: today's model against today's rulebook.`;
+    ? `Three models answer the same text: Laya out of the box (no training), your model (trained, old rule) and the re-taught model (“${esc(DB.result.sentence)}”). The rulebook column is the referee.`
+    : `Two models answer the same text: Laya out of the box (no training) and your model (trained on today's rulebook). Re-teach a rule change and the new model joins the table.`;
 }
 function dbAct5HTML(){
   return `<section class="db-act" id="dbAct5"><p class="kicker">⑤ Try to break it</p>
-    <h2>Hand it any ${dbNoun()} — both models answer, side by side</h2>
+    <h2>Hand it any ${dbNoun()} — untrained, trained and re-taught answer side by side</h2>
     <p class="small db-sub">${dbAct5Sub()}</p>
-    <p class="small">Open to everyone: open this page on your phone, edit a ${dbNoun()}, press <b>Ask both models</b>.</p>
+    <p class="small">Open to everyone: open this page on your phone, edit a ${dbNoun()}, press <b>Ask the models</b>.</p>
     <div class="db-try">
       <div>
         <textarea id="dbText" rows="7" aria-label="${dbNoun()} text"></textarea>
         <div class="db-mut" id="dbMut"></div>
-        <button class="primary" id="dbAskBtn">Ask both models</button>
+        <button class="primary" id="dbAskBtn">Ask the models</button>
       </div>
       <div id="dbAnswer"><p class="small">Pick a ${dbNoun()} from the exam, use “try it yourself” above, or edit this one — then ask.</p></div>
     </div></section>`;
@@ -1381,7 +1389,7 @@ function dbTry(text, scroll){
 async function dbAsk(){
   const box = $("dbAnswer"), text = $("dbText").value.trim(), domain = DB.domain;
   if (!text){ box.innerHTML = `<p class="small">Type or paste a ${dbNoun()} first.</p>`; return; }
-  box.innerHTML = `<p class="thinking">both models are reading it…</p>`;
+  box.innerHTML = `<p class="thinking">the models are reading it…</p>`;
   let r;
   try { r = await studioCall("/compare", {domain, state: text}); }
   catch (e){ box.innerHTML = `<p class="small no">network error — press Ask again</p>`; return; }
@@ -1401,27 +1409,35 @@ async function dbAsk(){
   const touched = d.rules_new && !partial ? qids.filter(q => RN[q].v !== RO[q].v) : [];
   const judge = (m, R, q) => partial ? "" : dbMark(v(m, q) === R[q].v);
   const same = A ? qids.filter(q => v(A, q) === v(d.before, q)).length : 0;
+  const Z = d.zero;   // out of the box: the same Laya, untrained, asked with today's question text
+  const score = (m, R) => qids.filter(q => v(m, q) === R[q].v).length;
+  const board = partial ? "" : `<div class="db-board">
+      ${Z ? `<span class="db-chip">out of the box <b class="${score(Z, RO) === qids.length ? "ok" : "no"}">${score(Z, RO)}/${qids.length}</b></span>` : ""}
+      <span class="db-chip">your model <b class="${score(d.before, RO) === qids.length ? "ok" : "no"}">${score(d.before, RO)}/${qids.length}</b> under today's rule</span>
+      ${A ? `<span class="db-chip">re-taught <b class="${score(A, RN) === qids.length ? "ok" : "no"}">${score(A, RN)}/${qids.length}</b> under the new rule</span>` : ""}</div>`;
   let lead;
   if (partial)
     lead = `<b>The rulebook can't read this wording</b> (${unread.length} of ${qids.length} decisions unreadable), so it can't
-      referee — rewording is exactly what breaks rules engines. Both models still answer${A ? `; they agree on ${same} of ${qids.length}` : ""}. Judge them yourself.`;
-  else if (!A) lead = `Today's model agrees with today's rulebook on ${qids.filter(q => v(d.before, q) === RO[q].v).length} of ${qids.length} decisions.`;
+      referee — rewording is exactly what breaks rules engines. The models still answer${A ? `; your model and the re-taught one agree on ${same} of ${qids.length}` : ""}. Judge them yourself.`;
+  else if (!A) lead = `Your model agrees with today's rulebook on ${score(d.before, RO)} of ${qids.length} decisions${Z ? `; the same model out of the box, on ${score(Z, RO)}` : ""}.`;
   else if (touched.length){
     const ok = touched.every(q => v(A, q) === RN[q].v);
     lead = `<b>The new rule applies here</b> (${touched.map(q => esc(dbTitle(q)) + ": " + esc(dbVal(q, RO[q].v)) + " → " + esc(dbVal(q, RN[q].v))).join("; ")}).
-      Today's model follows the old rule; the re-taught model ${ok ? `<span class="ok">follows the new one ✓</span>` : `<span class="no">doesn't yet ✗</span>`}.`;
+      Your model follows the old rule; the re-taught model ${ok ? `<span class="ok">follows the new one ✓</span>` : `<span class="no">doesn't yet ✗</span>`}.`;
   } else {
-    lead = `The new rule doesn't touch this ${dbNoun()} — both models should decide it the same way: they agree on ${same} of ${qids.length}.`;
+    lead = `The new rule doesn't touch this ${dbNoun()}, so your model and the re-taught one <i>should</i> agree — they do on
+      ${same} of ${qids.length}. The difference training makes is the out-of-the-box column.`;
   }
-  box.innerHTML = `<p>${lead}</p>
-    <div class="tablewrap"><table class="db-dt"><thead><tr><th>decision</th><th>today's model</th>${A ? "<th>re-taught</th>" : ""}<th>rulebook${A ? " (new)" : ""}${partial ? " — partial read" : ""}</th></tr></thead><tbody>${
+  box.innerHTML = `<p>${lead}</p>${board}
+    <div class="tablewrap"><table class="db-dt"><thead><tr><th>decision</th>${Z ? "<th>out of the box<br><span class=\"small\">no training</span></th>" : ""}<th>your model<br><span class="small">trained · today's rule</span></th>${A ? "<th>re-taught<br><span class=\"small\">new rule</span></th>" : ""}<th>rulebook${A ? " (new)" : ""}${partial ? " — partial read" : ""}</th></tr></thead><tbody>${
       qids.map(q => `<tr class="${touched.includes(q) ? "diff" : ""}"><td>${esc(dbTitle(q))}</td>
+        ${Z ? `<td>${judge(Z, RO, q)} ${esc(dbVal(q, v(Z, q)))}</td>` : ""}
         <td>${judge(d.before, RO, q)} ${esc(dbVal(q, v(d.before, q)))}</td>
         ${A ? `<td>${judge(A, RN, q)} <b>${esc(dbVal(q, v(A, q)))}</b></td>` : ""}
         <td${partial ? ` class="small"` : ""}>${esc(dbVal(q, RN[q].v))}${touched.includes(q) ? ` <span class="db-chip acc">was ${esc(dbVal(q, RO[q].v))}</span>` : ""}
           <div class="small">${esc((RN[q].why || []).join("; "))}</div></td></tr>`).join("")}</tbody></table></div>
-    <p class="lat">today's model ${d.before.ms} ms${A ? ` · re-taught ${A.ms} ms` : ""} · on this machine's GPU, nothing leaves it.
-      ${partial ? "" : `✓/✗ = agrees with the rulebook ${A ? "each model was taught (today's / new)" : ""}.`}</p>`;
+    <p class="lat">${Z ? `out of the box ${Z.ms} ms · ` : `<span class="no">out-of-the-box model unavailable</span> · `}your model ${d.before.ms} ms${A ? ` · re-taught ${A.ms} ms` : ""} · on this machine's GPU, nothing leaves it.
+      ${partial ? "" : `✓/✗ = agrees with the rulebook each model was asked under (today's${A ? " / new for the re-taught one" : ""}).`}</p>`;
 }
 
 // ---- fine print ----

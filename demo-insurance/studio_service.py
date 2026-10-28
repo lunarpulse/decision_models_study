@@ -52,6 +52,7 @@ import threading
 import time
 import traceback
 import urllib.parse
+import urllib.request
 from collections import Counter, deque
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 
@@ -88,6 +89,10 @@ STATE_CAP = 4000
 TOKEN_MISSES_ALLOWED = 5
 THROTTLE_S = 60.0
 COMPARE_WAIT_S = 15.0
+# The out-of-the-box model (laya's zero-shot Router — the same engine the portfolio's "zero"
+# numbers measured) is resident in the laya service; the studio asks it instead of loading a copy.
+LAYA_PREDICT = f"http://127.0.0.1:{os.environ.get('LAYA_PORT', '8901')}/predict"
+ZERO_TIMEOUT_S = 10.0
 WARM_UP = os.environ.get("STUDIO_WARMUP", "1").strip().lower() not in ("0", "false", "no", "off")
 
 sys.path.insert(0, str(ROOT))
@@ -157,6 +162,20 @@ def answer_conf(a):
 
 def values(answers):
     return {q: answer_value(a) for q, a in (answers or {}).items()}
+
+
+def zero_answers(state, defs):
+    """Out-of-the-box answers {answers: {qid: {v, c}}, ms} from the laya service, or None."""
+    try:
+        req = urllib.request.Request(LAYA_PREDICT, data=json.dumps({"state": state, "questions": defs}).encode(),
+                                     headers={"Content-Type": "application/json"})
+        with urllib.request.urlopen(req, timeout=ZERO_TIMEOUT_S) as r:
+            z = json.load(r)["zero"]
+        return {"answers": {q: {"v": answer_value(a), "c": a.get("confidence")} for q, a in z["answers"].items()},
+                "ms": round(z.get("ms") or 0)}
+    except Exception:
+        traceback.print_exc()
+        return None
 
 
 def rules_view(spec, state):
@@ -414,6 +433,8 @@ def impact(domain, pol):
         idx = {r["id"]: i for i, r in enumerate(d["hold"])}
         for e in exam:
             e["before"] = pv[idx[e["id"]]]
+    for e in exam:                    # out-of-the-box answers, measured once for the portfolio
+        e["zero"] = d["zero"].get(e["id"])
     out = {"policy": pol, "sentence": policy_sentence(spec, pol), "noop": policy_is_noop(spec, pol),
            "corpus": {"changed": corpus_changed, "total": len(d["train"])},
            "holdout": {"changed": hold_changed, "total": len(d["hold"]), "by_decision": dict(by_q)},
@@ -699,7 +720,8 @@ def train_worker(domain, pol, rows, corpus_changed):
             "domain": domain, "policy": pol, "sentence": policy_sentence(spec, pol),
             "train_seconds": train_s, "train_rows": len(rows), "corpus_changed": corpus_changed,
             "exam": exam,
-            "summary": {"before": tally(exam, "before"), "after": tally(exam, "after")},
+            "summary": {"zero": tally(exam, "zero"), "before": tally(exam, "before"),
+                        "after": tally(exam, "after")},
             "config": {"changed_rows": TEACH_CHANGED_ROWS, "same_rows": TEACH_SAME_ROWS,
                        "epochs": TEACH_EPOCHS, "micro_batch": TEACH_MICRO_BATCH,
                        "grad_accum": TEACH_GRAD_ACCUM, "base": "prod-ckpt",
@@ -909,6 +931,9 @@ class H(BaseHTTPRequestHandler):
             lr = last_result(domain)
             out = {"policy": lr["policy"] if lr else None, "sentence": lr["sentence"] if lr else None,
                    "rules_old": rules_view(spec, state), "rules_new": None, "after": None}
+            zero_box = {}
+            zt = threading.Thread(target=lambda: zero_box.update(r=zero_answers(state, spec["questions"]["defs"])))
+            zt.start()                        # the untrained model answers on the laya service meanwhile
             t = time.time()
             ans = prod.predict(state, spec["questions"]["defs"]).get("answers", {})
             out["before"] = {"answers": {q: {"v": answer_value(a), "c": answer_conf(a)} for q, a in ans.items()},
@@ -920,6 +945,8 @@ class H(BaseHTTPRequestHandler):
                 ans = taught.predict(state, new_spec["questions"]["defs"]).get("answers", {})
                 out["after"] = {"answers": {q: {"v": answer_value(a), "c": answer_conf(a)} for q, a in ans.items()},
                                 "ms": round(1000 * (time.time() - t))}
+            zt.join(ZERO_TIMEOUT_S + 1)
+            out["zero"] = zero_box.get("r")
             self._send(200, out)
         except Exception:
             traceback.print_exc()
