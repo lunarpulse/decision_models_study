@@ -19,7 +19,7 @@ Services: `laya_service.py` :8901 (zero-shot Router + fine-tuned checkpoint, con
 `decider_service.py` :8902 (decider-4b v2.1) · `studio_service.py` :8903 (Domain Builder: token-gated
 re-teach, open side-by-side compare; needs `studio-runs/<domain>/prod-ckpt` from `train_prod_ckpt.sh`).
 Supervised operation (systemd user units, `sync_live.sh`, logs, pre-show checklist): see
-`DEMO_MANUAL.md` §1.
+`DEMO_MANUAL.md` §1 — including "Parking the demo" (free the GPU, keep or stop the tunnel, bring it back).
 
 ## The audience experience (engineered flow)
 

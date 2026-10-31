@@ -50,7 +50,9 @@ done
 STUDIO_PIDS="$(pgrep -f "studio_service.py $STUDIO_PORT")"
 LAYA_PIDS="$(pgrep -f "laya_service.py $LAYA_PORT")"
 DECIDER_PIDS="$(pgrep -f "decider_service.py $DECIDER_PORT")"
-CF_PIDS="$(pgrep -f "cloudflared tunnel --url http://(127[.]0[.]0[.]1|localhost):$LAYA_PORT")"
+# `.*` between `tunnel` and `--url`: the live tunnel runs with `--no-autoupdate`, which a strict
+# "tunnel --url" pattern missed (the script then reported "cloudflared stopped" with it still up).
+CF_PIDS="$(pgrep -f "cloudflared tunnel .*--url http://(127[.]0[.]0[.]1|localhost):$LAYA_PORT")"
 
 ACTIVE_UNITS=""
 SYSTEMCTL="$(command -v systemctl 2>/dev/null || true)"
@@ -105,7 +107,7 @@ for p in "$LAYA_PORT" "$DECIDER_PORT" "$STUDIO_PORT"; do
     echo ":$p stopped"
   fi
 done
-if pgrep -f "cloudflared tunnel --url" >/dev/null 2>&1; then
+if pgrep -f "cloudflared tunnel .*--url" >/dev/null 2>&1; then
   echo "cloudflared still up — check: pgrep -af cloudflared"
 else
   echo "cloudflared stopped; GPU memory freed when processes exit."

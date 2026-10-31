@@ -83,6 +83,59 @@ First request after a cold start takes ~1–2 s (CUDA warm-up); afterwards 10–
    `curl -X POST localhost:8903/studio/reset -H "X-Studio-Token: $(cat studio-token.txt)" -d '{"domain":"all"}'`.
 10. After any restart, run one warm-up predict — first answer is the slow CUDA one (~1–2 s).
 
+### Parking the demo (free the GPU) and bringing it back
+
+The three model services hold ~22 GiB of VRAM and ~12 GiB of RAM while up (laya ~7.9, decider
+~9.7, studio ~4.1–4.8 GiB VRAM; measured). Parked, the card is free for other work.
+
+**Park — stop the services, keep the public URL alive:**
+
+```bash
+curl -s localhost:8903/studio/status        # must say "idle"; wait if it says training/evaluating
+systemctl --user stop decision-demo-studio decision-demo-laya decision-demo-decider
+systemctl --user stop decision-demo.target
+systemctl --user disable decision-demo.target   # linger is on: without this a reboot restarts all three
+nvidia-smi --query-compute-apps=pid,process_name,used_memory --format=csv   # no decision-demo python left
+```
+
+The distrobox `ai-dev` stays up (idle, no GPU). Nothing is deleted: checkpoints
+(`studio-runs/<domain>/prod-ckpt`), `laya-ft-ckpt`, the studio token and `tunnel-url.txt` all stay.
+While parked the public URL answers **502** (the tunnel is up, nothing listens on :8901); it
+serves the same URL again the moment laya is back, as long as the tunnel process was not stopped.
+
+**The tunnel is not a systemd unit on the live machine.** It is a hand-started `cloudflared`
+process (so its quick-tunnel URL survives service restarts). Do not run
+`decision-demo-tunnel.service` next to it — that starts a second tunnel with a *different* URL.
+
+**Stop the tunnel** (the URL is then gone for good; the next tunnel gets a new one):
+
+```bash
+pgrep -x cloudflared                                  # the PID (live machine: 3330141, started 2026-10-16)
+tr '\0' ' ' < /proc/<PID>/cmdline                     # confirm: cloudflared tunnel ... --url http://127.0.0.1:8901
+kill <PID>                                            # SIGTERM; `kill -9 <PID>` only if it ignores that
+```
+
+`bash stop_demo.sh --yes` also stops cloudflared (plus the services above); run it without
+`--yes` first to see the PID list. A new public URL later: `bash start_demo.sh --tunnel` or
+§2 below, then share the URL written to `tunnel-url.txt`.
+
+**Bring everything back:**
+
+```bash
+systemctl --user enable decision-demo.target     # optional: start on boot again
+systemctl --user start decision-demo.target      # laya :8901, decider :8902, studio :8903 (not the tunnel)
+# wait for readiness (decider loads 8 GB of weights: ~2.5 min cold; laya ~10 s; studio ~40 s to cache holdout answers)
+curl -s localhost:8901/health ; curl -s localhost:8901/dec/health
+curl -s localhost:8901/studio/health    # want: "warm": true and "prod_ready": true for all three businesses
+```
+
+Needs ≥ 22 GiB of free VRAM for the resident stack, plus the `teach_min_free_gib` (11.5 GiB) headroom
+for Re-teach (whole-card peak 27.6 GiB measured) — do not start it while another experiment holds
+the card; the studio refuses Re-teach with a plain "not enough GPU memory" message rather than
+crashing. Then work through the pre-show checklist above (VERSION, fresh state — reset the
+Domain Builder if a previous session left a re-taught model — and one warm-up predict).
+Without systemd: `bash start_demo.sh` (see top of §1).
+
 ## 2. Sharing online (cloudflared)
 
 ```bash
@@ -293,5 +346,5 @@ synthetic data), not English-only data.
 | Top-bar dot red | service down → `start_demo.sh`; check `*-service.log` |
 | First answer slow | CUDA warm-up; second run is milliseconds |
 | Multilingual preset shows note instead of answers | multilingual fine-tuned checkpoint missing → it fell back; retrain with `laya.train_cli --base <laya snapshot>/multilingual` |
-| Tunnel URL dead | quick tunnels are ephemeral → restart cloudflared, share the new URL |
-| GPU busy / other ML work running | stop_demo.sh first; engines need ~10 GB VRAM |
+| Tunnel URL dead | quick tunnels are ephemeral → restart cloudflared, share the new URL; if the services are parked the URL answers 502 → see "Parking the demo" in §1 |
+| GPU busy / other ML work running | park the demo (§1 "Parking the demo") — engines need ~22 GiB resident; `stop_demo.sh` also stops the tunnel |

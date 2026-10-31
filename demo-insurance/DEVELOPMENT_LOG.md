@@ -237,6 +237,12 @@ does the percentage come from, and why does decider show a red dot — "check th
     clicks; per-claim k/7 chips replace it.
 25. The ops floor had shown the insurance hero and two intros since Phase 6, and the domain page
     had shown two intros since Phase 10. Found in the site-wide revamp review and fixed.
+26. `stop_demo.sh` could not see the live tunnel (found 2026-10-31 while parking the demo): it
+    matched `cloudflared tunnel --url …`, but the tunnel runs as `cloudflared tunnel --no-autoupdate
+    --url …`, so `--yes` would have left it running while printing "cloudflared stopped". Pattern now
+    allows extra flags (checked read-only with `pgrep -f`; the script itself is not run on the live
+    host). The demo was parked the same day — services stopped, `decision-demo.target` disabled,
+    tunnel kept — and the park/restore runbook is DEMO_MANUAL §1 "Parking the demo".
 
 ## Phase 6 — Demo v2: journey questions, ops floor, Engine D, decider parity (2026-10-13)
 
